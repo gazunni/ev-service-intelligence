@@ -1,1 +1,130 @@
-//Place Holder
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EV Intelligence Dashboard</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
+  body { background: #f4f6f8; color: #334155; padding: 20px; }
+  h1 { text-align: center; margin-bottom: 20px; color: #1e293b; }
+
+  .ev-slider-container { display: flex; overflow-x: auto; padding: 10px 0; gap: 10px; }
+  .ev-card { flex: 0 0 150px; background: #fff; border-radius: 10px; padding: 15px; text-align: center; cursor: pointer; transition: transform 0.2s; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+  .ev-card.selected { transform: scale(1.05); border: 2px solid #0ea5e9; }
+  .ev-card img { width: 100%; border-radius: 5px; margin-bottom: 10px; }
+
+  .controls { margin: 20px 0; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  .controls select, .controls button { padding: 8px 12px; border-radius: 5px; border: 1px solid #cbd5e1; background: #fff; cursor: pointer; }
+
+  .issue-list { margin-top: 20px; }
+  .issue { background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+  .issue h4 { color: #0ea5e9; margin-bottom: 5px; }
+  .issue p { font-size: 0.9rem; color: #475569; }
+
+  @media (max-width: 600px) {
+    .ev-card { flex: 0 0 120px; }
+    .controls { flex-direction: column; }
+  }
+</style>
+</head>
+<body>
+
+<h1>EV Intelligence Dashboard</h1>
+
+<div class="ev-slider-container" id="ev-slider">
+  <!-- EV cards dynamically inserted -->
+</div>
+
+<div class="controls">
+  <select id="year-select">
+    <option value="">Select Year</option>
+    <script>
+      const currentYear = new Date().getFullYear();
+      for (let y = currentYear; y >= 2015; y--) {
+        document.write(`<option value="${y}">${y}</option>`);
+      }
+    </script>
+  </select>
+  <button id="run-sweep">Run Sweep</button>
+  <button id="refresh-data">Refresh Data</button>
+</div>
+
+<div class="issue-list" id="issue-list">
+  <!-- EV issues will be listed here -->
+</div>
+
+<script>
+const evs = [
+  { key: "tesla_model3", name: "Tesla Model 3", img: "https://tesla-cdn.thron.com/delivery/public/image/tesla/3/640x480" },
+  { key: "chevy_bolt", name: "Chevy Bolt EV", img: "https://www.chevrolet.com/content/dam/chevrolet/na/us/english/index/vehicles/2023/ev/bolt-ev/01-images/2023-bolt-ev-masthead-01.jpg" },
+  { key: "ford_mach_e", name: "Ford Mustang Mach-E", img: "https://www.ford.com/cmslibs/content/dam/brand_ford/en_us/brand/vehicles/mustang-mach-e/2023/collections/mustang-mach-e-hero.jpg/_jcr_content/renditions/cq5dam.web.1280.1280.jpeg" }
+];
+
+const slider = document.getElementById('ev-slider');
+const issueList = document.getElementById('issue-list');
+const yearSelect = document.getElementById('year-select');
+let selectedEV = null;
+
+function renderEVs() {
+  slider.innerHTML = '';
+  evs.forEach(ev => {
+    const card = document.createElement('div');
+    card.className = 'ev-card';
+    card.innerHTML = `<img src="${ev.img}" alt="${ev.name}"><strong>${ev.name}</strong>`;
+    card.onclick = () => selectEV(ev.key, card);
+    slider.appendChild(card);
+  });
+}
+
+function selectEV(key, card) {
+  selectedEV = key;
+  document.querySelectorAll('.ev-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  fetchIssues();
+}
+
+async function runSweep() {
+  if (!selectedEV || !yearSelect.value) {
+    alert("Select EV and Year first");
+    return;
+  }
+  const res = await fetch('/api/run-sweep', {
+    method: 'POST',
+    body: JSON.stringify({
+      vkey: selectedEV,
+      make: selectedEV.split('_')[0],
+      model: selectedEV.split('_')[1],
+      year: parseInt(yearSelect.value)
+    })
+  });
+  const data = await res.json();
+  alert(`Sweep complete. ${data.count} issues recorded.`);
+  fetchIssues();
+}
+
+async function fetchIssues() {
+  if (!selectedEV || !yearSelect.value) return;
+  issueList.innerHTML = '<p>Loading...</p>';
+  const res = await fetch(`/api/get-data?vkey=${selectedEV}&year=${yearSelect.value}`);
+  const issues = await res.json();
+  if (!issues.length) { issueList.innerHTML = '<p>No issues found.</p>'; return; }
+  issueList.innerHTML = '';
+  issues.forEach(i => {
+    const div = document.createElement('div');
+    div.className = 'issue';
+    div.innerHTML = `<h4>${i.title || i.type}</h4>
+                     <p>${i.summary || ''}</p>
+                     <p><strong>Severity:</strong> ${i.severity || 'N/A'} | <strong>Source:</strong> ${i.source || 'N/A'}</p>`;
+    issueList.appendChild(div);
+  });
+}
+
+document.getElementById('run-sweep').onclick = runSweep;
+document.getElementById('refresh-data').onclick = fetchIssues;
+
+renderEVs();
+</script>
+
+</body>
+</html>
