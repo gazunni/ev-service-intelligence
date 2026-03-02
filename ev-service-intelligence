@@ -2,589 +2,132 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>EV Service Intelligence — Recalls · TSBs · Community</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EV Service Intelligence</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap');
+  /* Basic reset */
+  * { box-sizing: border-box; margin: 0; padding: 0; font-family: Arial, sans-serif; }
 
-:root {
---bg:       #070b10;
---surface:  #0d1520;
---surface2: #111c2a;
---border:   #1e2f42;
---text:     #c8d8e8;
---muted:    #4a6480;
---recall:   #ef4444;
---recall-bg:#1a0808;
---tsb:      #f59e0b;
---tsb-bg:   #1a1208;
---pip:      #a78bfa;
---pip-bg:   #120f1a;
---community:#22d3ee;
---community-bg:#081418;
---green:    #22c55e;
---mono:     'JetBrains Mono', monospace;
---sans:     'Syne', sans-serif;
-}
+  body { background: #f4f6f8; color: #334155; padding: 20px; }
 
-*{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;min-height:100vh;line-height:1.6;}
+  h1 { text-align: center; margin-bottom: 20px; color: #1e293b; }
 
-.header{background:linear-gradient(135deg,#0a1628 0%,#070b10 60%);border-bottom:1px solid var(--border);padding:20px 24px 16px;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px);}
-.header-top{display:flex;align-items:center;gap:12px;margin-bottom:14px}
-.header-icon{font-size:22px}
-.header-title{font-family:var(--sans);font-size:18px;font-weight:800;letter-spacing:-.02em;background:linear-gradient(90deg,#ef4444,#f59e0b,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;}
-.header-sub{font-size:10px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:1px}
-.sweep-bar{font-size:10px;color:var(--muted);padding:4px 0 0;display:flex;align-items:center;gap:8px}
-.sweep-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:pulse 2s infinite}
-.sweep-dot.active{background:var(--green)}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+  .ev-slider-container { display: flex; overflow-x: auto; padding: 10px 0; gap: 10px; }
+  .ev-card { flex: 0 0 150px; background: #fff; border-radius: 10px; padding: 15px; text-align: center; cursor: pointer; transition: transform 0.2s; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+  .ev-card.selected { transform: scale(1.05); border: 2px solid #0ea5e9; }
+  .ev-card img { width: 100%; border-radius: 5px; margin-bottom: 10px; }
 
-.selector{display:flex;gap:8px;align-items:center;flex-wrap:wrap;padding:12px 24px;background:var(--surface);border-bottom:1px solid var(--border);}
-.sel-group{display:flex;flex-direction:column;gap:3px}
-.sel-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-select{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:6px 10px;border-radius:5px;cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%234a6480'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:26px;}
-select:focus{outline:none;border-color:var(--community)}
-.vin-input{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 10px;border-radius:5px;width:200px;letter-spacing:.06em;text-transform:uppercase;}
-.vin-input::placeholder{color:var(--muted);text-transform:none;letter-spacing:0}
-.vin-input:focus{outline:none;border-color:var(--community)}
-.sweep-btn{background:linear-gradient(135deg,#1e3a5f,#0f2040);border:1px solid #2a4a70;color:#7dd3fc;font-family:var(--mono);font-size:11px;font-weight:600;padding:7px 14px;border-radius:5px;cursor:pointer;letter-spacing:.04em;transition:all .2s;white-space:nowrap;}
-.sweep-btn:hover{background:linear-gradient(135deg,#2a4a70,#1a2f50);border-color:#3a6090}
-.sweep-btn:disabled{opacity:.4;cursor:not-allowed}
-.last-sweep{font-size:9px;color:var(--muted);align-self:flex-end;padding-bottom:8px}
+  .controls { margin: 20px 0; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px; }
+  .controls select, .controls button { padding: 8px 12px; border-radius: 5px; border: 1px solid #cbd5e1; background: #fff; cursor: pointer; }
 
-.stats-bar{display:flex;gap:0;border-bottom:1px solid var(--border);overflow-x:auto;}
-.stat{flex:1;min-width:80px;text-align:center;padding:10px 8px;border-right:1px solid var(--border);}
-.stat:last-child{border-right:none}
-.stat-n{font-family:var(--sans);font-size:20px;font-weight:800;line-height:1}
-.stat-l{font-size:9px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.06em}
-.stat-recall .stat-n{color:var(--recall)}
-.stat-tsb .stat-n{color:var(--tsb)}
-.stat-pip .stat-n{color:var(--pip)}
-.stat-community .stat-n{color:var(--community)}
+  .issue-list { margin-top: 20px; }
+  .issue { background: #fff; padding: 15px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+  .issue h4 { color: #0ea5e9; margin-bottom: 5px; }
+  .issue p { font-size: 0.9rem; color: #475569; }
 
-.section{border-bottom:1px solid var(--border)}
-.section-header{display:flex;align-items:center;gap:10px;padding:14px 24px;cursor:pointer;user-select:none;transition:background .15s;}
-.section-header:hover{background:rgba(255,255,255,.02)}
-.section-badge{font-family:var(--sans);font-size:10px;font-weight:700;padding:3px 8px;border-radius:3px;letter-spacing:.06em;text-transform:uppercase;}
-.badge-recall{background:var(--recall-bg);color:var(--recall);border:1px solid #3a1010}
-.badge-tsb{background:var(--tsb-bg);color:var(--tsb);border:1px solid #3a2810}
-.badge-pip{background:var(--pip-bg);color:var(--pip);border:1px solid #251a3a}
-.badge-community{background:var(--community-bg);color:var(--community);border:1px solid #0a2830}
-.section-title{font-family:var(--sans);font-size:14px;font-weight:700;flex:1}
-.section-count{font-size:10px;color:var(--muted);background:var(--surface2);padding:2px 8px;border-radius:10px;}
-.chevron{font-size:10px;color:var(--muted);transition:transform .2s}
-.chevron.open{transform:rotate(180deg)}
-.section-body{padding:0 24px 16px;display:none}
-.section-body.open{display:block}
-
-.source-legend{display:flex;gap:12px;flex-wrap:wrap;padding:8px 0 12px;border-bottom:1px solid var(--border);margin-bottom:12px;}
-.source-pill{font-size:9px;padding:2px 7px;border-radius:3px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;}
-.pill-nhtsa{background:#0c2340;color:#60a5fa;border:1px solid #1a3a60}
-.pill-tc{background:#0c2a1a;color:#4ade80;border:1px solid #1a4a30}
-.pill-reddit{background:#2a1a0a;color:#fb923c;border:1px solid #4a2a10}
-.pill-forum{background:#1a1230;color:#a78bfa;border:1px solid #2a1a50}
-.pill-submitted{background:#0f1f0f;color:#86efac;border:1px solid #1a3a1a}
-.pill-dealer{background:#1a100a;color:#fcd34d;border:1px solid #3a2810}
-
-.card{background:var(--surface2);border:1px solid var(--border);border-radius:6px;margin-bottom:8px;overflow:hidden;transition:border-color .15s;}
-.card:hover{border-color:#2a4060}
-.card-header{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;cursor:pointer;}
-.card-severity{width:3px;border-radius:2px;align-self:stretch;flex-shrink:0;min-height:20px;}
-.sev-critical{background:var(--recall)}
-.sev-moderate{background:var(--tsb)}
-.sev-low{background:var(--pip)}
-.card-meta{flex:1;min-width:0}
-.card-title{font-family:var(--sans);font-size:12px;font-weight:700;color:#e2ecf5;margin-bottom:3px;line-height:1.3;}
-.card-id{font-size:9px;color:var(--muted);letter-spacing:.06em;font-weight:600;text-transform:uppercase;}
-.card-date{font-size:9px;color:var(--muted)}
-.card-pills{display:flex;gap:5px;flex-wrap:wrap;margin-top:5px}
-.card-toggle{font-size:10px;color:var(--muted);flex-shrink:0;padding-top:2px}
-.card-body{padding:10px 14px 12px 27px;display:none;border-top:1px solid var(--border);}
-.card-body.open{display:block}
-.card-field{margin-bottom:8px}
-.card-field-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:2px;}
-.card-field-value{font-size:11px;color:var(--text);line-height:1.5}
-.card-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.card-link{font-size:10px;padding:4px 10px;border-radius:4px;text-decoration:none;font-weight:600;letter-spacing:.03em;transition:opacity .15s;}
-.card-link:hover{opacity:.8}
-.link-pdf{background:#1a2f1a;color:#4ade80;border:1px solid #2a4a2a}
-.link-nhtsa{background:#0c1f3a;color:#60a5fa;border:1px solid #1a3060}
-.link-forum{background:#1a1230;color:#a78bfa;border:1px solid #2a1a50}
-.link-reddit{background:#2a1a0a;color:#fb923c;border:1px solid #3a2010}
-.confirmation-bar{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:10px;color:var(--muted);}
-.conf-count{background:var(--community-bg);color:var(--community);border:1px solid #0a2830;padding:1px 7px;border-radius:10px;font-weight:700;font-size:10px;}
-
-.empty{text-align:center;padding:32px 16px;color:var(--muted);}
-.empty-icon{font-size:28px;margin-bottom:8px}
-.empty-text{font-size:11px;line-height:1.6}
-
-.loading{display:flex;align-items:center;gap:8px;padding:16px;color:var(--muted);font-size:11px;}
-.spinner{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--community);border-radius:50%;animation:spin .7s linear infinite;}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-.submit-section{border-top:2px solid var(--border);padding:20px 24px;background:var(--surface);}
-.submit-title{font-family:var(--sans);font-size:13px;font-weight:700;color:#e2ecf5;margin-bottom:3px;}
-.submit-sub{font-size:10px;color:var(--muted);margin-bottom:12px;line-height:1.5}
-.submit-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
-@media(max-width:600px){.submit-grid{grid-template-columns:1fr}}
-.field{display:flex;flex-direction:column;gap:3px}
-.field label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
-.field input,.field textarea,.field select{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:7px 10px;border-radius:5px;transition:border-color .15s;}
-.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--community);}
-.field textarea{resize:vertical;min-height:60px}
-.field-full{grid-column:1/-1}
-.submit-actions{display:flex;gap:8px;align-items:center;margin-top:8px}
-.submit-btn{background:linear-gradient(135deg,#0a2a1a,#061812);border:1px solid #1a4a30;color:#4ade80;font-family:var(--mono);font-size:11px;font-weight:600;padding:8px 16px;border-radius:5px;cursor:pointer;letter-spacing:.04em;transition:all .2s;}
-.submit-btn:hover{background:linear-gradient(135deg,#0f3a22,#0a2018)}
-.submit-btn:disabled{opacity:.4;cursor:not-allowed}
-.submit-status{font-size:10px;color:var(--muted)}
-
-.ai-box{background:#080e18;border:1px solid #1a2a40;border-left:3px solid var(--community);border-radius:6px;padding:12px;margin:10px 0;font-size:11px;line-height:1.6;color:#94b4cc;}
-.ai-box-label{font-size:9px;color:var(--community);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:6px;display:flex;align-items:center;gap:6px;}
-
-.disclaimer{font-size:9px;color:var(--muted);line-height:1.5;padding:10px 24px;border-top:1px solid var(--border);background:var(--surface);}
+  @media (max-width: 600px) {
+    .ev-card { flex: 0 0 120px; }
+    .controls { flex-direction: column; }
+  }
 </style>
 </head>
 <body>
 
-<div class="header">
-  <div class="header-top">
-    <span class="header-icon">⚡</span>
-    <div>
-      <div class="header-title">EV SERVICE INTELLIGENCE</div>
-      <div class="header-sub">Recalls · TSBs · PIPs · Community Issues</div>
-    </div>
-  </div>
-  <div class="sweep-bar">
-    <div class="sweep-dot" id="sweepDot"></div>
-    <span id="sweepStatus">Ready — select vehicle and run sweep</span>
-  </div>
+<h1>EV Service Intelligence</h1>
+
+<div class="ev-slider-container" id="ev-slider">
+  <!-- EV cards inserted dynamically -->
 </div>
 
-<div class="selector">
-  <div class="sel-group">
-    <div class="sel-label">Model</div>
-    <select id="selModel">
-      <option value="equinox_ev">Chevrolet Equinox EV</option>
-      <option value="blazer_ev">Chevrolet Blazer EV</option>
-      <option value="mach_e">Ford Mustang Mach-E</option>
-    </select>
-  </div>
-  <div class="sel-group">
-    <div class="sel-label">Year</div>
-    <select id="selYear">
-      <option value="2025">2025</option>
-      <option value="2024">2024</option>
-    </select>
-  </div>
-  <div class="sel-group">
-    <div class="sel-label">VIN (optional)</div>
-    <input class="vin-input" id="vinInput" type="text" maxlength="17" placeholder="17-character VIN">
-  </div>
-  <div class="sel-group" style="justify-content:flex-end">
-    <div class="sel-label">&nbsp;</div>
-    <button class="sweep-btn" id="sweepBtn" onclick="runSweep()">⚡ Run AI Sweep</button>
-  </div>
-  <div class="last-sweep" id="lastSweepLabel"></div>
+<div class="controls">
+  <select id="year-select">
+    <option value="">Select Year</option>
+    <script>
+      const currentYear = new Date().getFullYear();
+      for (let y = currentYear; y >= 2015; y--) {
+        document.write(`<option value="${y}">${y}</option>`);
+      }
+    </script>
+  </select>
+  <button id="run-sweep">Run Sweep</button>
+  <button id="refresh-data">Refresh Data</button>
 </div>
 
-<div class="stats-bar">
-  <div class="stat stat-recall"><div class="stat-n" id="statRecall">—</div><div class="stat-l">Recalls</div></div>
-  <div class="stat stat-tsb"><div class="stat-n" id="statTsb">—</div><div class="stat-l">TSBs</div></div>
-  <div class="stat stat-pip"><div class="stat-n" id="statPip">—</div><div class="stat-l">PIPs</div></div>
-  <div class="stat stat-community"><div class="stat-n" id="statCommunity">—</div><div class="stat-l">Community</div></div>
-</div>
-
-<div class="main">
-
-  <div class="section">
-    <div class="section-header" onclick="toggleSection('recall')">
-      <span class="section-badge badge-recall">🔴 Safety Recall</span>
-      <span class="section-title">Official Safety Recalls</span>
-      <span class="section-count" id="cntRecall">—</span>
-      <span class="chevron" id="chvRecall">▼</span>
-    </div>
-    <div class="section-body" id="bodyRecall">
-      <div class="source-legend">
-        <span class="source-pill pill-nhtsa">NHTSA Official</span>
-        <span class="source-pill pill-tc">Transport Canada</span>
-      </div>
-      <div id="recallCards"><div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Run a sweep to load recall data</div></div></div>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-header" onclick="toggleSection('tsb')">
-      <span class="section-badge badge-tsb">🟡 TSB</span>
-      <span class="section-title">Technical Service Bulletins</span>
-      <span class="section-count" id="cntTsb">—</span>
-      <span class="chevron" id="chvTsb">▼</span>
-    </div>
-    <div class="section-body" id="bodyTsb">
-      <div class="source-legend">
-        <span class="source-pill pill-nhtsa">NHTSA Filed</span>
-        <span class="source-pill pill-dealer">Dealer Confirmed</span>
-      </div>
-      <div style="font-size:9px;color:var(--muted);margin-bottom:10px;line-height:1.6">TSBs are filed by manufacturers with NHTSA. Coverage is not exhaustive — early-release bulletins and PIPs may not appear here.</div>
-      <div id="tsbCards"><div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Run a sweep to load TSB data</div></div></div>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-header" onclick="toggleSection('pip')">
-      <span class="section-badge badge-pip">🟣 PIP</span>
-      <span class="section-title">Preliminary Information (PIPs)</span>
-      <span class="section-count" id="cntPip">—</span>
-      <span class="chevron" id="chvPip">▼</span>
-    </div>
-    <div class="section-body" id="bodyPip">
-      <div class="source-legend">
-        <span class="source-pill pill-forum">Forum-surfaced</span>
-        <span class="source-pill pill-reddit">Reddit</span>
-        <span class="source-pill pill-submitted">User-submitted</span>
-      </div>
-      <div style="font-size:9px;color:var(--muted);margin-bottom:10px;line-height:1.6">PIPs are internal GM dealer communications — pre-TSB, not publicly filed. These surface via forums and Facebook groups. AI-deduplicated to prevent double-counting.</div>
-      <div id="pipCards"><div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Run a sweep to load PIPs</div></div></div>
-    </div>
-  </div>
-
-  <div class="section">
-    <div class="section-header" onclick="toggleSection('community')">
-      <span class="section-badge badge-community">🔵 Community</span>
-      <span class="section-title">Community-Reported Issues</span>
-      <span class="section-count" id="cntCommunity">—</span>
-      <span class="chevron" id="chvCommunity">▼</span>
-    </div>
-    <div class="section-body" id="bodyCommunity">
-      <div class="source-legend">
-        <span class="source-pill pill-forum">Forum</span>
-        <span class="source-pill pill-reddit">Reddit</span>
-        <span class="source-pill pill-submitted">Submitted</span>
-      </div>
-      <div style="font-size:9px;color:var(--muted);margin-bottom:10px;line-height:1.6">Issues reported by owners before an official bulletin exists. AI clusters similar reports to avoid duplication. If a TSB is later issued, the record is promoted and linked.</div>
-      <div id="communityCards"><div class="empty"><div class="empty-icon">🔍</div><div class="empty-text">Run a sweep to load community issues</div></div></div>
-    </div>
-  </div>
-
-</div>
-
-<div class="submit-section">
-  <div class="submit-title">➕ Submit a Known Issue</div>
-  <div class="submit-sub">Saw something in a Facebook group, forum, or discovered it yourself? Submit here.<br>AI will check if it matches an existing record before creating a new entry.</div>
-  <div class="submit-grid">
-    <div class="field">
-      <label>Issue Title / Short Description</label>
-      <input type="text" id="issueTitle" placeholder="e.g. Passenger floor water ingress">
-    </div>
-    <div class="field">
-      <label>Bulletin / TSB # (if known)</label>
-      <input type="text" id="issueBulletin" placeholder="e.g. PIP6241A or leave blank">
-    </div>
-    <div class="field field-full">
-      <label>Symptoms &amp; Details</label>
-      <textarea id="issueDetail" placeholder="Describe symptoms, root cause if known, what the fix was..."></textarea>
-    </div>
-    <div class="field">
-      <label>Source Link (forum/Reddit/Facebook)</label>
-      <input type="text" id="issueSource" placeholder="https://...">
-    </div>
-    <div class="field">
-      <label>Source Type</label>
-      <select id="issueSourceType">
-        <option value="forum">Forum post</option>
-        <option value="reddit">Reddit</option>
-        <option value="facebook">Facebook group</option>
-        <option value="dealer">Dealer confirmed</option>
-        <option value="personal">Personal experience</option>
-      </select>
-    </div>
-  </div>
-  <div class="submit-actions">
-    <button class="submit-btn" id="submitBtn" onclick="submitIssue()">🤖 Check &amp; Submit</button>
-    <span class="submit-status" id="submitStatus"></span>
-  </div>
-  <div id="aiAnalysis" style="display:none"></div>
-</div>
-
-<div class="disclaimer">
-  ⚠️ Recall data sourced from NHTSA public API — authoritative for US market. Community issues are user-submitted and AI-deduplicated — not verified by manufacturer. Always confirm with a qualified dealer before acting on any information here. PIPs are preliminary and subject to change.
+<div class="issue-list" id="issue-list">
+  <!-- Fetched issues will appear here -->
 </div>
 
 <script>
-const VEHICLES = {
-  equinox_ev: { make:'Chevrolet', model:'Equinox EV', nhtsa_make:'chevrolet', nhtsa_model:'Equinox%20EV' },
-  blazer_ev:  { make:'Chevrolet', model:'Blazer EV',  nhtsa_make:'chevrolet', nhtsa_model:'Blazer%20EV' },
-  mach_e:     { make:'Ford',      model:'Mustang Mach-E', nhtsa_make:'ford',  nhtsa_model:'Mach-E' },
-};
+const evs = [
+  { key: "tesla_model3", name: "Tesla Model 3", img: "https://tesla-cdn.thron.com/delivery/public/image/tesla/3/640x480" },
+  { key: "chevy_bolt", name: "Chevy Bolt EV", img: "https://www.chevrolet.com/content/dam/chevrolet/na/us/english/index/vehicles/2023/ev/bolt-ev/01-images/2023-bolt-ev-masthead-01.jpg" },
+  { key: "ford_mach_e", name: "Ford Mustang Mach-E", img: "https://www.ford.com/cmslibs/content/dam/brand_ford/en_us/brand/vehicles/mustang-mach-e/2023/collections/mustang-mach-e-hero.jpg/_jcr_content/renditions/cq5dam.web.1280.1280.jpeg" }
+];
 
-function getVehicle(){ return ['equinox_ev','blazer_ev','mach_e'][document.getElementById('selModel').selectedIndex]; }
-function getYear(){ return document.getElementById('selYear').value; }
+const slider = document.getElementById('ev-slider');
+const issueList = document.getElementById('issue-list');
+const yearSelect = document.getElementById('year-select');
+let selectedEV = null;
 
-// Storage helpers
-async function dbGet(key){ try{ const r=await window.storage.get(key,true); return r?JSON.parse(r.value):null; }catch(e){return null;} }
-async function dbSet(key,val){ try{ await window.storage.set(key,JSON.stringify(val),true); }catch(e){} }
-async function dbList(prefix){ try{ const r=await window.storage.list(prefix,true); return r?r.keys:[]; }catch(e){return[];} }
-function sk(type,vkey,year,id){ return (type+':'+vkey+':'+year+':'+String(id)).replace(/[\s\/'"]/g,'-').toLowerCase().substring(0,190); }
-
-// NHTSA
-async function fetchRecalls(vkey, year){
-  const v=VEHICLES[vkey];
-  try{
-    const r=await fetch('https://api.nhtsa.gov/recalls/recallsByVehicle?make='+v.nhtsa_make+'&model='+v.nhtsa_model+'&modelYear='+year);
-    if(!r.ok) return [];
-    const d=await r.json(); return d.results||[];
-  }catch(e){return [];}
+function renderEVs() {
+  slider.innerHTML = '';
+  evs.forEach(ev => {
+    const card = document.createElement('div');
+    card.className = 'ev-card';
+    card.innerHTML = `<img src="${ev.img}" alt="${ev.name}"><strong>${ev.name}</strong>`;
+    card.onclick = () => selectEV(ev.key, card);
+    slider.appendChild(card);
+  });
 }
 
-// Claude API helpers
-async function claudeCall(system, user, maxTokens){
-  try{
-    const resp=await fetch('https://api.anthropic.com/v1/messages',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens||1000,system,messages:[{role:'user',content:user}]})
-    });
-    const d=await resp.json();
-    return d.content?.map(c=>c.text||'').join('')||'';
-  }catch(e){return '';}
+function selectEV(key, card) {
+  selectedEV = key;
+  document.querySelectorAll('.ev-card').forEach(c => c.classList.remove('selected'));
+  card.classList.add('selected');
+  fetchIssues();
 }
 
-async function aiSummarizeRecalls(recalls, vkey, year){
-  if(!recalls.length) return [];
-  const v=VEHICLES[vkey];
-  const text=await claudeCall(
-    'You are a vehicle safety expert. Summarize these recalls for '+v.make+' '+v.model+' '+year+' owners. Return ONLY a valid JSON array, no markdown:\n[{"id":"campaign#","date":"YYYY-MM-DD","component":"component","severity":"CRITICAL|MODERATE|LOW","title":"plain title under 10 words","risk":"safety risk","remedy":"dealer fix","affectedUnits":number_or_null}]',
-    JSON.stringify(recalls), 2000
-  );
-  try{ return JSON.parse(text.replace(/```json|```/g,'').trim()); }catch(e){ return []; }
-}
-
-async function aiDeduplicate(newIssue, existing){
-  const text=await claudeCall(
-    'Vehicle service bulletin analyst. Check if new issue matches existing records. Return ONLY valid JSON, no markdown:\n{"matchFound":true/false,"matchId":"id or null","matchConfidence":0.0,"component":"component","severity":"CRITICAL|MODERATE|LOW","cleanTitle":"short title","summary":"2-3 sentence plain English summary"}',
-    'New issue: '+JSON.stringify(newIssue)+'\n\nExisting: '+JSON.stringify(existing.slice(0,15)), 600
-  );
-  try{ return JSON.parse(text.replace(/```json|```/g,'').trim()); }
-  catch(e){ return {matchFound:false,matchConfidence:0,component:'Unknown',severity:'LOW',cleanTitle:newIssue.title||'Unknown',summary:newIssue.detail||''}; }
-}
-
-// Seeded known issues
-async function seedKnownIssues(vkey, year){
-  const now=Date.now();
-  const KNOWN={
-    equinox_ev:[
-      {id:'pip-water-ingress',title:'Passenger Floor Water Ingress / Mold Risk',component:'Body — Floor Seams / A/C Drain',severity:'MODERATE',source:'community',sourcePills:['Facebook Group','Forum','Dealer Confirmed'],summary:'Water accumulates under passenger-side carpet. Three root causes: disconnected A/C drain line, plugged sunroof drains, and unsealed floor seams. GM aware — bulletin exists at dealer level.',symptoms:['wet carpet passenger side','musty smell interior','mold under carpet','water under seat after rain'],remedy:'Dealer inspects and seals floor seams, checks A/C drain connection, clears sunroof drains. Carpet replacement if saturated. Covered under warranty.',bulletinRef:'Not filed with NHTSA. Surfaced via Facebook owner groups. Some dealers reference internal PIP.',confirmations:47,year,links:[]},
-      {id:'pip-vihp-calibration',title:'VIHP Regen / Brake Feel Inconsistency',component:'Powertrain — Regenerative Braking',severity:'LOW',source:'community',sourcePills:['Reddit','Forum'],summary:'Inconsistent one-pedal driving behavior and brake feel, particularly in cold weather. Suspected VIHP calibration issue. GM has issued OTA updates addressing some cases.',symptoms:['inconsistent regen braking','brake pedal feel varies','one-pedal driving less smooth in cold'],remedy:'Check for pending OTA software updates. Dealer can confirm if latest powertrain calibration is applied.',bulletinRef:'No NHTSA filing. OTA update reportedly addresses partial fix.',confirmations:23,year,links:[]},
-    ],
-    blazer_ev:[
-      {id:'pip-blazer-software-launch',title:'Launch Software Bugs — Multiple Systems',component:'Software / Infotainment / ADAS',severity:'MODERATE',source:'community',sourcePills:['Forum','Reddit','Dealer Confirmed'],summary:'2024 Blazer EV launched with widespread software issues affecting infotainment, ADAS, and charging. Multiple OTA and in-dealer updates issued through 2024. Most resolved by mid-2024 software revision.',symptoms:['infotainment freezing','ADAS errors','charging failures','random reboots'],remedy:'Ensure vehicle has latest software — dealer or OTA. Most issues resolved in subsequent updates.',bulletinRef:'Multiple TSBs issued. Check NHTSA manufacturer communications for 2024 Blazer EV.',confirmations:89,year,links:[]},
-    ],
-    mach_e:[
-      {id:'pip-mache-12v-drain',title:'12V Battery Drain After Extended Parking',component:'Electrical — 12V Auxiliary Battery',severity:'MODERATE',source:'community',sourcePills:['Reddit','Forum'],summary:'Mach-E 12V auxiliary battery depletes after sitting several days, especially in cold weather. HV battery does not maintain 12V charge sufficiently. Results in inability to start or unlock.',symptoms:['dead 12v battery','car won\'t unlock','won\'t turn on after sitting','jump start needed'],remedy:'Ford issued updated software to improve 12V charging management. Some cases require 12V battery replacement.',bulletinRef:'Multiple TSBs filed — reference SSM 49968 and related. Check NHTSA manufacturer communications.',confirmations:112,year,links:[{label:'r/MachE discussion',type:'reddit',url:'https://reddit.com/r/MacHE'}]},
-    ]
-  };
-  for(const issue of (KNOWN[vkey]||[])){
-    const k=sk('community',vkey,year,issue.id);
-    if(!(await dbGet(k))) await dbSet(k,{...issue,ts:now});
-  }
-}
-
-// Main sweep
-async function runSweep(){
-  const vkey=getVehicle(), year=getYear(), v=VEHICLES[vkey];
-  const btn=document.getElementById('sweepBtn');
-  const dot=document.getElementById('sweepDot');
-  const status=document.getElementById('sweepStatus');
-  btn.disabled=true; dot.classList.add('active');
-
-  status.textContent='Fetching NHTSA recalls for '+v.make+' '+v.model+' '+year+'...';
-  setLoading('recallCards');
-  const rawRecalls=await fetchRecalls(vkey,year);
-
-  let recallData=[];
-  if(rawRecalls.length){
-    status.textContent='AI summarizing '+rawRecalls.length+' recall records...';
-    recallData=await aiSummarizeRecalls(rawRecalls,vkey,year);
-    if(!recallData.length) recallData=rawRecalls.map(r=>({
-      id:r.NHTSACampaignNumber||('r-'+Math.random()),date:r.ReportReceivedDate||'',
-      component:r.Component||'Unknown',severity:'MODERATE',
-      title:(r.Summary||'Recall').substring(0,60),
-      risk:r.Consequence||'',remedy:r.Remedy||'',
-      affectedUnits:r.PotentialNumberOfUnitsAffected||null
-    }));
-  }
-
-  const now=Date.now();
-  for(const rec of recallData) await dbSet(sk('recall',vkey,year,rec.id),{...rec,source:'nhtsa',sourcePills:['NHTSA Official'],ts:now});
-
-  status.textContent='Loading curated issue database...';
-  await seedKnownIssues(vkey,year);
-
-  const loadSection=async(prefix,sId,cId,type)=>{
-    const keys=await dbList(prefix);
-    const data=(await Promise.all(keys.map(k=>dbGet(k)))).filter(Boolean);
-    renderSection(sId,cId,data,type);
-    return data.length;
-  };
-
-  const [rc,tb,pp,cm]=await Promise.all([
-    loadSection('recall:'+vkey+':'+year+':','recallCards','cntRecall','recall'),
-    loadSection('tsb:'+vkey+':'+year+':','tsbCards','cntTsb','tsb'),
-    loadSection('pip:'+vkey+':'+year+':','pipCards','cntPip','pip'),
-    loadSection('community:'+vkey+':'+year+':','communityCards','cntCommunity','community'),
-  ]);
-
-  document.getElementById('statRecall').textContent=rc;
-  document.getElementById('statTsb').textContent=tb||'—';
-  document.getElementById('statPip').textContent=pp||'—';
-  document.getElementById('statCommunity').textContent=cm;
-
-  await dbSet('sweep:'+vkey+':'+year,{ts:now});
-  document.getElementById('lastSweepLabel').textContent='Last sweep: '+new Date().toLocaleString();
-  status.textContent='Sweep complete — '+rc+' recalls · '+cm+' community issues';
-  dot.classList.remove('active'); btn.disabled=false;
-
-  if(rc) openSection('recall');
-  if(cm) openSection('community');
-}
-
-// Submit issue
-async function submitIssue(){
-  const vkey=getVehicle(), year=getYear();
-  const title=document.getElementById('issueTitle').value.trim();
-  const detail=document.getElementById('issueDetail').value.trim();
-  const bulletin=document.getElementById('issueBulletin').value.trim();
-  const source=document.getElementById('issueSource').value.trim();
-  const sourceType=document.getElementById('issueSourceType').value;
-  if(!title||!detail){document.getElementById('submitStatus').textContent='⚠️ Title and details required';return;}
-
-  const btn=document.getElementById('submitBtn');
-  const status=document.getElementById('submitStatus');
-  btn.disabled=true; status.textContent='🤖 AI checking for duplicates...';
-
-  const commKeys=await dbList('community:'+vkey+':'+year+':');
-  const pipKeys=await dbList('pip:'+vkey+':'+year+':');
-  const existing=(await Promise.all([...commKeys,...pipKeys].map(k=>dbGet(k)))).filter(Boolean);
-  const analysis=await aiDeduplicate({title,detail,bulletin,source,sourceType},existing);
-
-  const aiBox=document.getElementById('aiAnalysis');
-  aiBox.style.display='block';
-  aiBox.innerHTML='<div class="ai-box"><div class="ai-box-label">🤖 AI Analysis</div>'+
-    (analysis.matchFound
-      ?'<b style="color:var(--tsb)">Likely duplicate detected</b> ('+Math.round((analysis.matchConfidence||0)*100)+'% confidence)<br>Adding as community confirmation to existing record.'
-      :'<b style="color:var(--green)">New issue identified</b><br>No match found. Creating new community entry.'
-    )+'<br><br><b>Component:</b> '+analysis.component+' &nbsp;·&nbsp; <b>Severity:</b> '+analysis.severity+'<br><b>Title:</b> '+analysis.cleanTitle+'</div>';
-
-  const now=Date.now();
-  if(analysis.matchFound&&analysis.matchId){
-    const match=await dbGet(analysis.matchId);
-    if(match){match.confirmations=(match.confirmations||0)+1;await dbSet(analysis.matchId,match);}
-  } else {
-    const id='usr-'+now;
-    await dbSet(sk('community',vkey,year,id),{
-      id,title:analysis.cleanTitle,component:analysis.component,severity:analysis.severity,
-      summary:analysis.summary||detail,source:sourceType,
-      sourcePills:[sourceType.charAt(0).toUpperCase()+sourceType.slice(1)+' — user submitted'],
-      bulletinRef:bulletin||'Not filed with NHTSA',
-      links:source?[{label:'Source link',type:sourceType,url:source}]:[],
-      confirmations:1,year,ts:now
-    });
-  }
-
-  const ck=await dbList('community:'+vkey+':'+year+':');
-  const comm=(await Promise.all(ck.map(k=>dbGet(k)))).filter(Boolean);
-  renderSection('communityCards','cntCommunity',comm,'community');
-  document.getElementById('statCommunity').textContent=ck.length;
-  status.textContent=analysis.matchFound?'✅ Added as confirmation':'✅ New issue submitted';
-  btn.disabled=false;
-  ['issueTitle','issueDetail','issueBulletin','issueSource'].forEach(id=>{document.getElementById(id).value='';});
-}
-
-// Render
-function setLoading(id){document.getElementById(id).innerHTML='<div class="loading"><div class="spinner"></div><span>Fetching from NHTSA...</span></div>';}
-
-function renderSection(containerId,countId,records,type){
-  document.getElementById(countId).textContent=records.length;
-  if(!records.length){
-    const icons={recall:'✅',tsb:'📋',pip:'📨',community:'💬'};
-    const msgs={recall:'No open recalls found for this vehicle/year',tsb:'No TSBs in database — run sweep or submit one below',pip:'No PIPs in database',community:'No community issues yet — run sweep or submit one below'};
-    document.getElementById(containerId).innerHTML='<div class="empty"><div class="empty-icon">'+icons[type]+'</div><div class="empty-text">'+msgs[type]+'</div></div>';
+async function runSweep() {
+  if (!selectedEV || !yearSelect.value) {
+    alert("Select EV and Year first");
     return;
   }
-  document.getElementById(containerId).innerHTML=records.map((r,i)=>renderCard(r,type,i)).join('');
+  const res = await fetch('/api/run-sweep', {
+    method: 'POST',
+    body: JSON.stringify({
+      vkey: selectedEV,
+      make: selectedEV.split('_')[0],
+      model: selectedEV.split('_')[1],
+      year: parseInt(yearSelect.value)
+    })
+  });
+  const data = await res.json();
+  alert(`Sweep complete. ${data.count} issues recorded.`);
+  fetchIssues();
 }
 
-function renderCard(rec,type,idx){
-  if(!rec) return '';
-  const sc=rec.severity==='CRITICAL'?'sev-critical':rec.severity==='MODERATE'?'sev-moderate':'sev-low';
-  const pills=(rec.sourcePills||[rec.source||'NHTSA']).map(p=>{
-    const c=/nhtsa/i.test(p)?'pill-nhtsa':/reddit/i.test(p)?'pill-reddit':/forum/i.test(p)?'pill-forum':/dealer/i.test(p)?'pill-dealer':/transport/i.test(p)?'pill-tc':'pill-submitted';
-    return '<span class="source-pill '+c+'">'+p+'</span>';
-  }).join('');
-  const links=(rec.links||[]).map(l=>'<a class="card-link link-'+(l.type==='nhtsa'?'nhtsa':l.type==='reddit'?'reddit':'forum')+'" href="'+l.url+'" target="_blank">'+l.label+'</a>').join('');
-  const nhtsaLink=(type==='recall'&&rec.source==='nhtsa')?'<a class="card-link link-nhtsa" href="https://www.nhtsa.gov/vehicle-recall/'+(rec.id||'')+'" target="_blank">🔗 NHTSA Record</a>':'';
-
-  return '<div class="card">'+
-    '<div class="card-header" onclick="toggleCard(\'c-'+type+'-'+idx+'\')">'+
-    '<div class="card-severity '+sc+'"></div>'+
-    '<div class="card-meta">'+
-    '<div class="card-title">'+(rec.title||'Unknown Issue')+'</div>'+
-    '<div style="display:flex;gap:8px;align-items:center;margin-top:3px">'+
-    '<span class="card-id">'+(rec.id||'')+'</span>'+
-    (rec.date?'<span class="card-date">· '+String(rec.date).substring(0,10)+'</span>':'')+
-    '</div><div class="card-pills">'+pills+'</div></div>'+
-    '<span class="card-toggle">▼</span></div>'+
-    '<div class="card-body" id="c-'+type+'-'+idx+'">'+
-    '<div class="card-field"><div class="card-field-label">Component</div><div class="card-field-value">'+(rec.component||'—')+'</div></div>'+
-    (rec.summary?'<div class="card-field"><div class="card-field-label">Summary</div><div class="card-field-value">'+rec.summary+'</div></div>':'')+
-    (rec.risk?'<div class="card-field"><div class="card-field-label">Safety Risk</div><div class="card-field-value" style="color:#fca5a5">'+rec.risk+'</div></div>':'')+
-    (rec.remedy?'<div class="card-field"><div class="card-field-label">Remedy / Fix</div><div class="card-field-value" style="color:#86efac">'+rec.remedy+'</div></div>':'')+
-    (rec.symptoms?'<div class="card-field"><div class="card-field-label">Symptoms to Watch</div><div class="card-field-value">'+rec.symptoms.map(s=>'• '+s).join('<br>')+'</div></div>':'')+
-    (rec.affectedUnits?'<div class="card-field"><div class="card-field-label">Vehicles Affected</div><div class="card-field-value">'+Number(rec.affectedUnits).toLocaleString()+' units</div></div>':'')+
-    (rec.bulletinRef?'<div class="card-field"><div class="card-field-label">Bulletin Reference</div><div class="card-field-value" style="color:var(--muted)">'+rec.bulletinRef+'</div></div>':'')+
-    (rec.confirmations?'<div class="confirmation-bar"><span class="conf-count">'+rec.confirmations+'</span> owner confirmations</div>':'')+
-    '<div class="card-links">'+nhtsaLink+links+'</div>'+
-    '</div></div>';
+async function fetchIssues() {
+  if (!selectedEV || !yearSelect.value) return;
+  issueList.innerHTML = '<p>Loading...</p>';
+  const res = await fetch(`/api/get-data?vkey=${selectedEV}&year=${yearSelect.value}`);
+  const issues = await res.json();
+  if (!issues.length) { issueList.innerHTML = '<p>No issues found.</p>'; return; }
+  issueList.innerHTML = '';
+  issues.forEach(i => {
+    const div = document.createElement('div');
+    div.className = 'issue';
+    div.innerHTML = `<h4>${i.title || i.type}</h4>
+                     <p>${i.summary || ''}</p>
+                     <p><strong>Severity:</strong> ${i.severity || 'N/A'} | <strong>Source:</strong> ${i.source || 'N/A'}</p>`;
+    issueList.appendChild(div);
+  });
 }
 
-// UI helpers
-function cap(s){return s.charAt(0).toUpperCase()+s.slice(1);}
-function toggleSection(n){const b=document.getElementById('body'+cap(n)),c=document.getElementById('chv'+cap(n));b.classList.toggle('open');c.classList.toggle('open');}
-function openSection(n){document.getElementById('body'+cap(n)).classList.add('open');document.getElementById('chv'+cap(n)).classList.add('open');}
-function toggleCard(id){const el=document.getElementById(id);if(el)el.classList.toggle('open');}
+document.getElementById('run-sweep').onclick = runSweep;
+document.getElementById('refresh-data').onclick = fetchIssues;
 
-// Init — load from cache
-async function init(){
-  const vkey=getVehicle(), year=getYear();
-  const cached=await dbGet('sweep:'+vkey+':'+year);
-  if(cached){
-    document.getElementById('lastSweepLabel').textContent='Last sweep: '+new Date(cached.ts).toLocaleString();
-    document.getElementById('sweepStatus').textContent='Cached data — run sweep to refresh';
-    const load=async(prefix,sId,cId,type)=>{
-      const keys=await dbList(prefix);
-      const data=(await Promise.all(keys.map(k=>dbGet(k)))).filter(Boolean);
-      renderSection(sId,cId,data,type); return data.length;
-    };
-    const [rc,tb,pp,cm]=await Promise.all([
-      load('recall:'+vkey+':'+year+':','recallCards','cntRecall','recall'),
-      load('tsb:'+vkey+':'+year+':','tsbCards','cntTsb','tsb'),
-      load('pip:'+vkey+':'+year+':','pipCards','cntPip','pip'),
-      load('community:'+vkey+':'+year+':','communityCards','cntCommunity','community'),
-    ]);
-    document.getElementById('statRecall').textContent=rc;
-    document.getElementById('statTsb').textContent=tb||'—';
-    document.getElementById('statPip').textContent=pp||'—';
-    document.getElementById('statCommunity').textContent=cm;
-    if(rc) openSection('recall');
-    if(cm) openSection('community');
-  }
-}
-
-document.getElementById('selModel').addEventListener('change',init);
-document.getElementById('selYear').addEventListener('change',init);
-window.addEventListener('load',init);
+renderEVs();
 </script>
+
 </body>
 </html>
