@@ -1,9 +1,10 @@
 [build]
-  publish = "public"
-  functions = "netlify/functions"
+  publish = "."
+  functions = "functions"
 
-[functions]
-  node_bundler = "esbuild"
+[dev]
+  functions = "functions"
+  port = 8888
 
 [[redirects]]
   from = "/api/*"
