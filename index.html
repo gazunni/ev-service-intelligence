@@ -1,75 +1,67 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>EV Service Intelligence</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin:20px; background:#f7f8fa; color:#334155; }
-    h1 { color:#1e293b; }
-    select, button { padding: 0.5em; font-size:1em; margin:0.5em 0; }
-    .vehicle-section { border:1px solid #cbd5e1; padding:1em; margin:1em 0; border-radius:5px; background:white; }
-    .record { margin:0.5em 0; padding:0.5em; border-bottom:1px solid #e2e8f0; }
-    .severity { font-weight:bold; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EV Service Intelligence</title>
+<style>
+body { font-family: Arial, sans-serif; margin:20px; }
+header { display:flex; align-items:center; gap:1rem; margin-bottom:1rem; }
+select, button { padding:0.5rem; font-size:1rem; }
+button:disabled { opacity:0.6; cursor:not-allowed; }
+.card-section { margin-top:2rem; }
+.card { border:1px solid #ccc; padding:1rem; margin-bottom:1rem; border-radius:5px; }
+.loading { display:flex; align-items:center; gap:0.5rem; color:#555; }
+.spinner { width:16px; height:16px; border:2px solid #ccc; border-top-color:#333; border-radius:50%; animation: spin 1s linear infinite; }
+@keyframes spin { from { transform: rotate(0deg);} to { transform: rotate(360deg);} }
+.stats { display:flex; gap:1rem; margin-top:1rem; }
+.stats div { font-weight:bold; }
+</style>
 </head>
 <body>
-  <h1>EV Service Intelligence</h1>
 
-  <label for="vehicle">Select Vehicle:</label>
-  <select id="vehicle">
-    <option value="equinox_ev">Chevrolet Equinox EV</option>
-    <option value="blazer_ev">Chevrolet Blazer EV</option>
-    <option value="mach_e">Ford Mustang Mach-E</option>
+<header>
+  <label for="selModel">Vehicle:</label>
+  <select id="selModel">
+    <option>Chevrolet Equinox EV</option>
+    <option>Chevrolet Blazer EV</option>
+    <option>Ford Mustang Mach-E</option>
   </select>
 
-  <label for="year">Select Year:</label>
-  <input type="number" id="year" value="2024" min="2022" max="2030">
+  <label for="selYear">Year:</label>
+  <select id="selYear">
+    <option>2024</option>
+    <option>2025</option>
+    <option>2026</option>
+  </select>
 
-  <button id="runSweep">Fetch & Summarize Issues</button>
-  <button id="refreshData">Load Stored Data</button>
+  <button id="sweepBtn">Run Sweep</button>
+  <div id="sweepDot"></div>
+  <span id="sweepStatus"></span>
+</header>
 
-  <div id="results"></div>
+<div class="stats">
+  <div>Recalls: <span id="statRecall">0</span></div>
+  <div>TSBs: <span id="statTsb">0</span></div>
+  <div>PIPs: <span id="statPip">0</span></div>
+  <div>Community: <span id="statCommunity">0</span></div>
+</div>
 
-  <script>
-    const results = document.getElementById('results');
+<div id="lastSweepLabel" style="margin-top:0.5rem;color:#666;">Last sweep: —</div>
 
-    async function runSweep() {
-      const vehicle = document.getElementById('vehicle').value;
-      const year = document.getElementById('year').value;
+<div class="card-section" id="recallCards"></div>
+<div class="card-section" id="tsbCards"></div>
+<div class="card-section" id="pipCards"></div>
+<div class="card-section" id="communityCards"></div>
 
-      results.innerHTML = '<p>Running sweep...</p>';
-      const res = await fetch(`/.netlify/functions/run-sweep?vehicle=${vehicle}&year=${year}`);
-      const data = await res.json();
-      results.innerHTML = '<h2>Sweep Complete</h2>';
-      displayRecords([...data.recalls, ...data.knownIssues]);
-    }
+<script type="module">
+import { runSweep } from './run-sweep.js';
 
-    async function refreshData() {
-      const vehicle = document.getElementById('vehicle').value;
-      const year = document.getElementById('year').value;
+document.getElementById('sweepBtn').addEventListener('click', () => runSweep());
 
-      results.innerHTML = '<p>Loading stored data...</p>';
-      const res = await fetch(`/.netlify/functions/get-data?vehicle=${vehicle}&year=${year}`);
-      const data = await res.json();
-      results.innerHTML = '<h2>Stored Records</h2>';
-      displayRecords([...data.recalls, ...data.pip, ...data.tsb, ...data.community]);
-    }
+// Optional: trigger sweep on first load
+// runSweep();
+</script>
 
-    function displayRecords(records) {
-      if(!records.length) { results.innerHTML += '<p>No records found.</p>'; return; }
-      results.innerHTML += records.map(r => `
-        <div class="record">
-          <div><strong>${r.title||r.id}</strong> (${r.severity||'INFO'})</div>
-          <div>${r.summary||r.description||''}</div>
-          <div>Component: ${r.component||'N/A'}</div>
-          ${r.remedy?'<div>Remedy: '+r.remedy+'</div>':''}
-        </div>
-      `).join('');
-    }
-
-    document.getElementById('runSweep').addEventListener('click', runSweep);
-    document.getElementById('refreshData').addEventListener('click', refreshData);
-  </script>
 </body>
 </html>
