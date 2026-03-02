@@ -1,8 +1,20 @@
 {
   "name": "ev-service-intelligence",
   "version": "1.0.0",
-  "type": "module",
+  "description": "EV Service Intelligence App for Netlify + Neon",
+  "main": "index.js",
+  "scripts": {
+    "start": "netlify dev",
+    "build": "echo 'No build required for HTML project'"
+  },
   "dependencies": {
-    "pg": "^8.11.3"
-  }
+    "node-fetch": "^3.4.1",
+    "neon-js": "^1.0.0"
+  },
+  "devDependencies": {
+    "netlify-cli": "^15.0.0"
+  },
+  "type": "module",
+  "author": "Your Name",
+  "license": "MIT"
 }
