@@ -1,12 +1,13 @@
 [build]
-  publish = "."
-  functions = "functions"
+  publish = "/"        # root folder contains index.html
+  command = ""         # no build required for static HTML
 
 [dev]
-  functions = "functions"
+  command = "npx live-server --port=8888"
   port = 8888
+  targetPort = 8888
 
 [[redirects]]
-  from = "/api/*"
-  to = "/.netlify/functions/:splat"
+  from = "/*"
+  to = "/index.html"
   status = 200
