@@ -1,20 +1,20 @@
 {
   "name": "ev-service-intelligence",
   "version": "1.0.0",
-  "description": "EV Service Intelligence App for Netlify + Neon",
-  "main": "index.js",
+  "description": "EV Service Intelligence — recalls, TSBs, PIPs, community issues",
+  "main": "index.html",
   "scripts": {
-    "start": "netlify dev",
-    "build": "echo 'No build required for HTML project'"
+    "start": "live-server --port=8080",
+    "build": "echo 'No build required for static site'",
+    "deploy": "echo 'Deploy handled by Netlify'"
   },
-  "dependencies": {
-    "node-fetch": "^3.4.1",
-    "neon-js": "^1.0.0"
-  },
-  "devDependencies": {
-    "netlify-cli": "^15.0.0"
-  },
-  "type": "module",
   "author": "Your Name",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
 }
