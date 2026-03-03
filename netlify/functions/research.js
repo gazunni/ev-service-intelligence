@@ -69,7 +69,7 @@ const rows = await query(
 `INSERT INTO review_queue (vehicle_key, year, extracted, source_type, source_url, confidence, likely_match_id) VALUES ($1,$2,$3,$4,$5,$6,$7) RETURNING id`,
 [vehicle, yr, JSON.stringify(issue), srcType || ‘unknown’, srcUrl || null, issue.confidence || ‘MEDIUM’, issue.likelyMatchId || null]
 );
-queued.push({ …issue, queueId: rows[0]?.id });
+queued.push({ ...issue, queueId: rows[0]?.id });
 }
 
 return ok({ issues: queued, count: queued.length });

@@ -1,7 +1,7 @@
-– EV Service Intelligence — Neon Database Schema
-– Run this once against your Neon database to create all tables
+-- EV Service Intelligence - Neon Database Schema
+-- Run this once against your Neon database to create all tables
 
-– Official recalls from NHTSA
+-- Official recalls from NHTSA
 CREATE TABLE IF NOT EXISTS recalls (
 id              TEXT PRIMARY KEY,
 vehicle_key     TEXT NOT NULL,
@@ -18,7 +18,7 @@ created_at      TIMESTAMPTZ DEFAULT NOW(),
 updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
-– TSBs from NHTSA manufacturer communications
+-- TSBs from NHTSA manufacturer communications
 CREATE TABLE IF NOT EXISTS tsbs (
 id              TEXT PRIMARY KEY,
 vehicle_key     TEXT NOT NULL,
@@ -34,7 +34,7 @@ created_at      TIMESTAMPTZ DEFAULT NOW(),
 updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
-– Community issues: seeded + user submitted + AI sweep
+-- Community issues: seeded + user submitted + AI sweep
 CREATE TABLE IF NOT EXISTS community (
 id              TEXT PRIMARY KEY,
 vehicle_key     TEXT NOT NULL,
@@ -56,7 +56,7 @@ created_at      TIMESTAMPTZ DEFAULT NOW(),
 updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
-– Review queue: AI sweep results waiting for human approval
+-- Review queue: AI sweep results waiting for human approval
 CREATE TABLE IF NOT EXISTS review_queue (
 id              SERIAL PRIMARY KEY,
 vehicle_key     TEXT NOT NULL,
@@ -71,7 +71,7 @@ reviewed_at     TIMESTAMPTZ,
 created_at      TIMESTAMPTZ DEFAULT NOW()
 );
 
-– Sweep log: track when NHTSA was last fetched per vehicle/year
+-- Sweep log: track when NHTSA was last fetched per vehicle/year
 CREATE TABLE IF NOT EXISTS sweep_log (
 id              SERIAL PRIMARY KEY,
 vehicle_key     TEXT NOT NULL,
@@ -82,7 +82,7 @@ swept_at        TIMESTAMPTZ DEFAULT NOW(),
 UNIQUE(vehicle_key, year)
 );
 
-– Indexes for common query patterns
+-- Indexes for common query patterns
 CREATE INDEX IF NOT EXISTS idx_recalls_vehicle_year    ON recalls(vehicle_key, year);
 CREATE INDEX IF NOT EXISTS idx_tsbs_vehicle_year       ON tsbs(vehicle_key, year);
 CREATE INDEX IF NOT EXISTS idx_community_vehicle_year  ON community(vehicle_key, year, status);

@@ -1,8 +1,8 @@
-– EV Service Intelligence — Seed Data
-– Run this after schema.sql to populate the curated baseline issues
-– Safe to re-run — uses INSERT … ON CONFLICT DO NOTHING
+-- EV Service Intelligence - Seed Data
+-- Run this after schema.sql to populate the curated baseline issues
+-- Safe to re-run - uses INSERT ... ON CONFLICT DO NOTHING
 
-– ─── CHEVROLET EQUINOX EV ────────────────────────────────────────
+-- --- CHEVROLET EQUINOX EV ---
 
 INSERT INTO community (id, vehicle_key, year, component, severity, title, summary, symptoms, remedy, bulletin_ref, source_pills, links, confirmations, is_seeded, status)
 VALUES (
@@ -127,7 +127,7 @@ ARRAY[‘TSB Filed’,‘NHTSA Complaints’,‘Forum’,‘Dealer Confirmed’]
 312, TRUE, ‘active’
 ) ON CONFLICT (id) DO NOTHING;
 
-– ─── CHEVROLET BLAZER EV ─────────────────────────────────────────
+-- --- CHEVROLET BLAZER EV ---
 
 INSERT INTO community (id, vehicle_key, year, component, severity, title, summary, symptoms, remedy, bulletin_ref, source_pills, links, confirmations, is_seeded, status)
 VALUES (
@@ -142,7 +142,7 @@ ARRAY[‘Forum’,‘Reddit’,‘Dealer Confirmed’],
 ‘[]’::JSONB, 89, TRUE, ‘active’
 ) ON CONFLICT (id) DO NOTHING;
 
-– ─── FORD MUSTANG MACH-E ─────────────────────────────────────────
+-- --- FORD MUSTANG MACH-E ---
 
 INSERT INTO community (id, vehicle_key, year, component, severity, title, summary, symptoms, remedy, bulletin_ref, source_pills, links, confirmations, is_seeded, status)
 VALUES (
