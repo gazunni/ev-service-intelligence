@@ -361,7 +361,7 @@ async function loadSection(type, vkey, year){
   document.getElementById(cardId).innerHTML = '<div class="loading"><div class="spin"></div><span>Loading…</span></div>';
 
   try {
-    const rows = await apiGet(`/.netlify/functions/${type}?vehicle=${vkey}&year=${year}`);
+    const rows = await apiGet(`/api/${type}?vehicle=${vkey}&year=${year}`);
     renderSection(cardId, countId, statId, rows, secType);
     if(type==='community' && rows.length) openSec('comm');
   } catch(e){
@@ -401,7 +401,7 @@ async function runSweep(){
   setStatus('Fetching NHTSA data and running AI summarization…','live');
 
   try {
-    const result = await apiPost('/.netlify/functions/sweep', { vehicle:vkey, year:parseInt(year) });
+    const result = await apiPost('/api/sweep', { vehicle:vkey, year:parseInt(year) });
     document.getElementById('lastSw').textContent = 'Last sweep: '+new Date().toLocaleString();
     setStatus('Sweep done — '+result.recalls+' recalls · '+result.tsbs+' TSBs updated');
     // Reload recall and TSB sections with fresh data
@@ -433,7 +433,7 @@ async function submitIssue(){
   document.getElementById('aiBox').style.display = 'none';
 
   try {
-    const result = await apiPost('/.netlify/functions/submit', { vehicle:vkey, year:parseInt(year), title, detail, bulletin, sourceUrl, srcType });
+    const result = await apiPost('/api/submit', { vehicle:vkey, year:parseInt(year), title, detail, bulletin, sourceUrl, srcType });
     const aiBox = document.getElementById('aiBox');
     const aiResult = document.getElementById('aiResult');
     aiBox.style.display = 'block';
@@ -470,7 +470,7 @@ async function runResearchSweep(){
   document.getElementById('rpQueue').innerHTML = '';
 
   try {
-    const result = await apiPost('/.netlify/functions/research', { vehicle:vkey, year:parseInt(year), text, srcType:srctype, srcUrl:srcurl });
+    const result = await apiPost('/api/research', { vehicle:vkey, year:parseInt(year), text, srcType:srctype, srcUrl:srcurl });
 
     if(!result.issues?.length){
       document.getElementById('rpStatus').textContent = '✓ Analysis complete — no new vehicle issues found in this text.';
@@ -515,7 +515,7 @@ async function approveIssue(idx, queueId, vkey, year){
   if(el) el.querySelector('.rq-actions').innerHTML = '<span style="color:var(--muted);font-size:10px">Adding…</span>';
 
   try {
-    await apiPost('/.netlify/functions/approve', { queueId, vehicle:vkey, year });
+    await apiPost('/api/approve', { queueId, vehicle:vkey, year });
     if(el){
       el.style.opacity='0.5';
       el.style.pointerEvents='none';
