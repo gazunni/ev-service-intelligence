@@ -1,0 +1,10 @@
+{
+“name”: “ev-service-intelligence”,
+“version”: “1.0.0”,
+“description”: “EV Service Intelligence — Recalls, TSBs, PIPs, Community Issues”,
+“private”: true,
+“dependencies”: {
+“@anthropic-ai/sdk”: “^0.36.3”,
+“pg”: “^8.13.3”
+}
+}
