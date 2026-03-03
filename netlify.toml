@@ -6,51 +6,14 @@
   node_bundler = "esbuild"
 
 [[headers]]
-  for = "/api/*"
+  for = "/*"
   [headers.values]
     Access-Control-Allow-Origin = "*"
     Access-Control-Allow-Methods = "GET, POST, OPTIONS"
     Access-Control-Allow-Headers = "Content-Type"
 
 [[redirects]]
-  from = "/api/recalls"
-  to = "/.netlify/functions/recalls"
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
   status = 200
   force = true
-
-[[redirects]]
-  from = "/api/tsbs"
-  to = "/.netlify/functions/tsbs"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/community"
-  to = "/.netlify/functions/community"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/sweep"
-  to = "/.netlify/functions/sweep"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/submit"
-  to = "/.netlify/functions/submit"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/research"
-  to = "/.netlify/functions/research"
-  status = 200
-  force = true
-
-[[redirects]]
-  from = "/api/approve"
-  to = "/.netlify/functions/approve"
-  status = 200
-  force = true
-  
