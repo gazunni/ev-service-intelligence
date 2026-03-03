@@ -316,26 +316,46 @@ function setStatus(msg, state=''){
 }
 
 // ── API HELPERS ──────────────────────────────
+const API_TIMEOUT_MS = 20000; // 20 second timeout for all API calls
+
 async function apiFetch(path, opts={}){
-  const r = await fetch(path, { headers:{'Content-Type':'application/json'}, ...opts });
-  if(!r.ok){ const e=await r.json().catch(()=>({error:r.statusText})); throw new Error(e.error||r.statusText); }
-  return r.json();
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  try {
+    const r = await fetch(path, { headers:{'Content-Type':'application/json'}, signal: controller.signal, ...opts });
+    clearTimeout(timeoutId);
+    if(!r.ok){ const e=await r.json().catch(()=>({error:r.statusText})); throw new Error(e.error||r.statusText); }
+    return r.json();
+  } catch(e) {
+    clearTimeout(timeoutId);
+    if(e.name === 'AbortError') throw new Error('Request timed out. The server may be starting up — try again in a moment.');
+    throw e;
+  }
 }
 const apiGet  = (path) => apiFetch(path);
 const apiPost = (path, body) => apiFetch(path, { method:'POST', body:JSON.stringify(body) });
 
 // ── LOAD ALL SECTIONS ────────────────────────
+let loadErrors = [];
+
 async function loadAll(){
   const vkey = getVehicle();
   const year = getYear();
   setStatus('Loading…','live');
+  loadErrors = [];
 
-  // Community loads immediately from DB (always has seeded data)
-  loadSection('community', vkey, year);
+  // Load all three sections in parallel and wait for ALL to complete
+  const results = await Promise.allSettled([
+    loadSection('community', vkey, year),
+    loadSection('recalls', vkey, year),
+    loadSection('tsbs',    vkey, year),
+  ]);
 
-  // Recalls and TSBs load in parallel
-  loadSection('recalls', vkey, year);
-  loadSection('tsbs',    vkey, year);
+  // Count errors
+  loadErrors = results.filter(r => r.status === 'rejected').map(r => r.reason?.message || 'Unknown error');
+
+  // Always update status when all loads finish
+  finalizeStatus();
 }
 
 async function loadSection(type, vkey, year){
@@ -350,18 +370,32 @@ async function loadSection(type, vkey, year){
     const rows = await apiGet(`/api/${type}?vehicle=${vkey}&year=${year}`);
     renderSection(cardId, countId, statId, rows, secType);
     if(type==='community' && rows.length) openSec('comm');
-    updateStatus();
   } catch(e){
-    document.getElementById(cardId).innerHTML = '<div class="empty"><div class="ei">⚠️</div><div class="et">'+esc(e.message)+'</div></div>';
-    setStatus('Error loading '+type+': '+e.message, 'err');
+    document.getElementById(countId).textContent = '0';
+    document.getElementById(statId).textContent = '—';
+    document.getElementById(cardId).innerHTML = '<div class="empty"><div class="ei">⚠️</div><div class="et">'+esc(e.message)+'<br><button class="sweep-btn" style="margin-top:10px;font-size:10px" onclick="loadAll()">↻ Retry</button></div></div>';
+    throw e; // re-throw so Promise.allSettled captures it
   }
 }
 
-function updateStatus(){
+function finalizeStatus(){
   const rc = parseInt(document.getElementById('sn-recall').textContent)||0;
   const tc = parseInt(document.getElementById('sn-tsb').textContent)||0;
   const cc = parseInt(document.getElementById('sn-comm').textContent)||0;
-  if(rc||tc||cc) setStatus('Loaded — '+rc+' recalls · '+tc+' TSBs · '+cc+' community issues');
+  const total = rc + tc + cc;
+
+  if(loadErrors.length === 3){
+    // All three sections failed
+    setStatus('Connection error — click Retry or refresh the page.', 'err');
+  } else if(loadErrors.length > 0){
+    // Some sections failed
+    setStatus('Partial load — '+total+' items. Some sections had errors.', 'err');
+  } else if(total > 0){
+    setStatus('Loaded — '+rc+' recalls · '+tc+' TSBs · '+cc+' community issues', 'live');
+  } else {
+    // All loaded OK but no data found
+    setStatus('Connected — no data found. Run an AI Sweep to fetch NHTSA data.', '');
+  }
 }
 
 // ── SWEEP ────────────────────────────────────
