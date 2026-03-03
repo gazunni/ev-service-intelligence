@@ -3,29 +3,29 @@
 // Body: { queueId, vehicle, year }
 // Moves a review_queue item into the live community table
 
-import { query, ok, err, preflight } from ‘./_db.js’;
+import { query, ok, err, preflight } from './_db.js';
 
 export async function handler(event) {
-if (event.httpMethod === ‘OPTIONS’) return preflight();
-if (event.httpMethod !== ‘POST’) return err(‘POST required’, 405);
+if (event.httpMethod === 'OPTIONS') return preflight();
+if (event.httpMethod !== 'POST') return err('POST required', 405);
 
 let body;
-try { body = JSON.parse(event.body || ‘{}’); }
-catch { return err(‘Invalid JSON’, 400); }
+try { body = JSON.parse(event.body || '{}'); }
+catch { return err('Invalid JSON', 400); }
 
 const { queueId, vehicle, year } = body;
-if (!queueId || !vehicle || !year) return err(‘queueId, vehicle and year required’, 400);
+if (!queueId || !vehicle || !year) return err('queueId, vehicle and year required', 400);
 
 // Load the queue item
 const rows = await query(
 `SELECT * FROM review_queue WHERE id = $1 AND status = 'pending'`,
 [queueId]
 );
-if (!rows.length) return err(‘Queue item not found or already processed’, 404);
+if (!rows.length) return err('Queue item not found or already processed', 404);
 
 const item = rows[0];
-const issue = typeof item.extracted === ‘string’ ? JSON.parse(item.extracted) : item.extracted;
-const newId = ‘sweep-’ + Date.now();
+const issue = typeof item.extracted === 'string' ? JSON.parse(item.extracted) : item.extracted;
+const newId = 'sweep-' + Date.now();
 
 // Insert into community
 await query(
@@ -34,15 +34,15 @@ await query(
 newId,
 vehicle,
 parseInt(year),
-issue.component || ‘Unknown’,
-issue.severity  || ‘LOW’,
-issue.title     || ‘Unknown Issue’,
-issue.summary   || ‘’,
+issue.component || 'Unknown',
+issue.severity  || 'LOW',
+issue.title     || 'Unknown Issue',
+issue.summary   || '',
 issue.symptoms  || [],
-issue.remedy    || ‘’,
-issue.bulletinRef || ‘Surfaced via AI research sweep’,
-[((item.source_type || ‘AI sweep’).charAt(0).toUpperCase() + (item.source_type || ‘sweep’).slice(1)) + ’ — AI sweep’, ‘Needs verification’],
-item.source_url ? JSON.stringify([{ label: ‘Source’, type: item.source_type, url: item.source_url }]) : ‘[]’,
+issue.remedy    || '',
+issue.bulletinRef || 'Surfaced via AI research sweep',
+[((item.source_type || 'AI sweep').charAt(0).toUpperCase() + (item.source_type || 'sweep').slice(1)) + ' — AI sweep', 'Needs verification'],
+item.source_url ? JSON.stringify([{ label: 'Source', type: item.source_type, url: item.source_url }]) : '[]',
 ]
 );
 
