@@ -31,7 +31,6 @@ let analysis = null;
 try {
 const sys = `Vehicle service bulletin analyst. Semantically match a new owner report against existing records. "wet carpet", "soaked floor", "water under seat" = same issue. Be semantic not literal. Return ONLY valid JSON, no markdown: {"matchFound":true/false,"matchId":"id of match or null","matchConfidence":0.0-1.0,"component":"component","severity":"CRITICAL|MODERATE|LOW","cleanTitle":"max 8 words","summary":"2-3 sentence plain English summary"}`;
 
-```
 const msg = await ai.messages.create({
   model: 'claude-haiku-4-5-20251001',
   max_tokens: 600,
@@ -46,7 +45,6 @@ const msg = await ai.messages.create({
 const text = msg.content[0]?.text || '';
 const match = text.match(/\{[\s\S]*?\}/);
 if (match) analysis = JSON.parse(match[0]);
-```
 
 } catch (e) {
 console.error(‘Dedup AI error:’, e);
