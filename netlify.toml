@@ -1,48 +1,48 @@
 [build]
-publish = “public”
-functions = “netlify/functions”
+  publish = "public"
+  functions = "netlify/functions"
 
 [functions]
-node_bundler = “esbuild”
+  node_bundler = "esbuild"
 
 [[headers]]
-for = “/api/*”
-[headers.values]
-Access-Control-Allow-Origin = “*”
-Access-Control-Allow-Methods = “GET, POST, OPTIONS”
-Access-Control-Allow-Headers = “Content-Type”
+  for = "/api/*"
+  [headers.values]
+    Access-Control-Allow-Origin = "*"
+    Access-Control-Allow-Methods = "GET, POST, OPTIONS"
+    Access-Control-Allow-Headers = "Content-Type"
 
 [[redirects]]
-from = “/api/recalls”
-to = “/.netlify/functions/recalls”
-status = 200
+  from = "/api/recalls"
+  to = "/.netlify/functions/recalls"
+  status = 200
 
 [[redirects]]
-from = “/api/tsbs”
-to = “/.netlify/functions/tsbs”
-status = 200
+  from = "/api/tsbs"
+  to = "/.netlify/functions/tsbs"
+  status = 200
 
 [[redirects]]
-from = “/api/community”
-to = “/.netlify/functions/community”
-status = 200
+  from = "/api/community"
+  to = "/.netlify/functions/community"
+  status = 200
 
 [[redirects]]
-from = “/api/sweep”
-to = “/.netlify/functions/sweep”
-status = 200
+  from = "/api/sweep"
+  to = "/.netlify/functions/sweep"
+  status = 200
 
 [[redirects]]
-from = “/api/submit”
-to = “/.netlify/functions/submit”
-status = 200
+  from = "/api/submit"
+  to = "/.netlify/functions/submit"
+  status = 200
 
 [[redirects]]
-from = “/api/research”
-to = “/.netlify/functions/research”
-status = 200
+  from = "/api/research"
+  to = "/.netlify/functions/research"
+  status = 200
 
 [[redirects]]
-from = “/api/approve”
-to = “/.netlify/functions/approve”
-status = 200
+  from = "/api/approve"
+  to = "/.netlify/functions/approve"
+  status = 200
