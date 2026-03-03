@@ -316,7 +316,7 @@ function setStatus(msg, state=''){
 }
 
 // ── API HELPERS ──────────────────────────────
-const API_TIMEOUT_MS = 20000; // 20 second timeout for all API calls
+const API_TIMEOUT_MS = 15000; // 20 second timeout for all API calls
 
 async function apiFetch(path, opts={}){
   const controller = new AbortController();
@@ -341,20 +341,14 @@ let loadErrors = [];
 async function loadAll(){
   const vkey = getVehicle();
   const year = getYear();
-  setStatus('Loading…','live');
+  setStatus('Loading community issues…','live');
   loadErrors = [];
 
-  // Load all three sections in parallel and wait for ALL to complete
-  const results = await Promise.allSettled([
-    loadSection('community', vkey, year),
-    loadSection('recalls', vkey, year),
-    loadSection('tsbs',    vkey, year),
-  ]);
-
-  // Count errors
-  loadErrors = results.filter(r => r.status === 'rejected').map(r => r.reason?.message || 'Unknown error');
-
-  // Always update status when all loads finish
+  // Load community first — it has seeded data and responds fast
+  // Recalls and TSBs load independently in background
+  await loadSection('community', vkey, year).catch(()=>{});
+  loadSection('recalls', vkey, year).catch(()=>{});
+  loadSection('tsbs',    vkey, year).catch(()=>{});
   finalizeStatus();
 }
 
