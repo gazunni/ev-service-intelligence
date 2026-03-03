@@ -1,4 +1,4 @@
- netlify/functions/_db.js
+// netlify/functions/_db.js
 import pg from 'pg';
 const { Pool } = pg;
 
