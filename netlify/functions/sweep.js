@@ -17,12 +17,21 @@ const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 async function fetchNHTSA(endpoint, make, model, year) {
 const url = `https://api.nhtsa.gov/${endpoint}?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&modelYear=${year}`;
 try {
-const r = await fetch(url);
-if (!r.ok) return [];
+const controller = new AbortController();
+const timeoutId = setTimeout(() => controller.abort(), 15000);
+const r = await fetch(url, { signal: controller.signal });
+clearTimeout(timeoutId);
+if (!r.ok) {
+  console.error('NHTSA API error:', r.status, r.statusText, 'URL:', url);
+  return [];
+}
 const d = await r.json();
-return d.results || [];
+// NHTSA API may use 'results' or 'Results' depending on endpoint
+const results = d.results || d.Results || d.result || d.Result || [];
+console.log('NHTSA response for', endpoint, ':', Array.isArray(results) ? results.length + ' results' : 'non-array response');
+return Array.isArray(results) ? results : [];
 } catch (e) {
-console.error('NHTSA fetch error:', e);
+console.error('NHTSA fetch error:', e.message, 'URL:', url);
 return [];
 }
 }
@@ -70,53 +79,80 @@ const yr = parseInt(year);
 let recallsStored = 0;
 let tsbsStored = 0;
 
-// ── RECALLS ──
-const rawRecalls = await fetchNHTSA('recalls/recallsByVehicle', v.nhtsa_make, v.nhtsa_model, yr);
+// ── FETCH NHTSA DATA (recalls and TSBs in parallel) ──
+const [rawRecalls, rawTSBs] = await Promise.all([
+  fetchNHTSA('recalls/recallsByVehicle', v.nhtsa_make, v.nhtsa_model, yr),
+  fetchNHTSA('tsbs/tsbsByVehicle', v.nhtsa_make, v.nhtsa_model, yr),
+]);
+
+// ── STORE RECALLS — store basic data first, then try AI enhancement ──
 for (const r of rawRecalls) {
-const ai_data = await summarizeOne(r, `${v.make} ${v.model}`, 'recall');
-await query(
-`INSERT INTO recalls (id, vehicle_key, year, component, severity, title, risk, remedy, affected_units, source_pills, raw_nhtsa, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW()) ON CONFLICT (id) DO UPDATE SET title=EXCLUDED.title, risk=EXCLUDED.risk, remedy=EXCLUDED.remedy, severity=EXCLUDED.severity, updated_at=NOW()`,
-[
-r.NHTSACampaignNumber || ('r-' + Date.now()),
-vehicle, yr,
-ai_data?.component || r.Component || 'Unknown',
-ai_data?.severity  || 'MODERATE',
-ai_data?.title     || (r.Summary || 'Safety Recall').substring(0, 100),
-ai_data?.risk      || r.Consequence || '',
-ai_data?.remedy    || r.Remedy || '',
-r.PotentialNumberOfUnitsAffected || null,
-['NHTSA Official'],
-JSON.stringify(r),
-]
-);
-recallsStored++;
+  const recallId = r.NHTSACampaignNumber || r.nhtsa_campaign_number || ('r-' + Date.now() + '-' + recallsStored);
+  // Store basic data immediately (no AI needed)
+  const basicTitle = (r.Summary || r.summary || 'Safety Recall').substring(0, 100);
+  const basicComponent = r.Component || r.component || 'Unknown';
+  const basicConsequence = r.Consequence || r.consequence || '';
+  const basicRemedy = r.Remedy || r.remedy || '';
+  const units = r.PotentialNumberOfUnitsAffected || r.potential_number_of_units_affected || null;
+
+  await query(
+    `INSERT INTO recalls (id, vehicle_key, year, component, severity, title, risk, remedy, affected_units, source_pills, raw_nhtsa, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW()) ON CONFLICT (id) DO UPDATE SET title=EXCLUDED.title, risk=EXCLUDED.risk, remedy=EXCLUDED.remedy, severity=EXCLUDED.severity, component=EXCLUDED.component, updated_at=NOW()`,
+    [
+      recallId, vehicle, yr,
+      basicComponent, 'CRITICAL',
+      basicTitle, basicConsequence, basicRemedy,
+      units, ['NHTSA Official'], JSON.stringify(r),
+    ]
+  );
+  recallsStored++;
 }
 
-// ── TSBs ──
-const rawTSBs = await fetchNHTSA('tsbs/tsbsByVehicle', v.nhtsa_make, v.nhtsa_model, yr);
+// ── STORE TSBs — same pattern, store basic data first ──
 for (const t of rawTSBs) {
-const ai_data = await summarizeOne(t, `${v.make} ${v.model}`, 'tsb');
-await query(
-`INSERT INTO tsbs (id, vehicle_key, year, component, severity, title, summary, remedy, source_pills, raw_nhtsa, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW()) ON CONFLICT (id) DO UPDATE SET title=EXCLUDED.title, summary=EXCLUDED.summary, remedy=EXCLUDED.remedy, updated_at=NOW()`,
-[
-t.tsbNumber || t.bulletinNumber || ('tsb-' + Date.now()),
-vehicle, yr,
-ai_data?.component || t.Component || 'Unknown',
-ai_data?.severity  || 'MODERATE',
-ai_data?.title     || t.tsbNumber || 'TSB',
-ai_data?.summary   || t.Summary || '',
-ai_data?.remedy    || t.Summary || '',
-['NHTSA Filed'],
-JSON.stringify(t),
-]
-);
-tsbsStored++;
+  const tsbId = t.tsbNumber || t.tsb_number || t.bulletinNumber || t.bulletin_number || ('tsb-' + Date.now() + '-' + tsbsStored);
+  const basicTitle = t.tsbNumber || t.tsb_number || 'TSB';
+  const basicSummary = t.Summary || t.summary || '';
+  const basicComponent = t.Component || t.component || 'Unknown';
+
+  await query(
+    `INSERT INTO tsbs (id, vehicle_key, year, component, severity, title, summary, remedy, source_pills, raw_nhtsa, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,NOW()) ON CONFLICT (id) DO UPDATE SET title=EXCLUDED.title, summary=EXCLUDED.summary, remedy=EXCLUDED.remedy, updated_at=NOW()`,
+    [
+      tsbId, vehicle, yr,
+      basicComponent, 'MODERATE',
+      basicTitle, basicSummary, basicSummary,
+      ['NHTSA Filed'], JSON.stringify(t),
+    ]
+  );
+  tsbsStored++;
+}
+
+// ── Try AI enhancement for stored records (best-effort, don't block) ──
+try {
+  const recallsToEnhance = rawRecalls.slice(0, 5); // Limit to prevent timeout
+  const aiPromises = recallsToEnhance.map(r => {
+    const recallId = r.NHTSACampaignNumber || r.nhtsa_campaign_number;
+    if (!recallId) return Promise.resolve();
+    return summarizeOne(r, `${v.make} ${v.model}`, 'recall').then(async (ai_data) => {
+      if (!ai_data) return;
+      await query(
+        `UPDATE recalls SET component=COALESCE($2,component), severity=COALESCE($3,severity), title=COALESCE($4,title), risk=COALESCE($5,risk), remedy=COALESCE($6,remedy) WHERE id=$1`,
+        [recallId, ai_data.component, ai_data.severity, ai_data.title, ai_data.risk, ai_data.remedy]
+      );
+    }).catch(e => console.error('AI enhance error:', e.message));
+  });
+  // Run AI enhancement with a 6-second budget
+  await Promise.race([
+    Promise.allSettled(aiPromises),
+    new Promise(resolve => setTimeout(resolve, 6000)),
+  ]);
+} catch (e) {
+  console.error('AI enhancement phase error (non-blocking):', e.message);
 }
 
 // ── LOG ──
 await query(
-`INSERT INTO sweep_log (vehicle_key, year, recalls_found, tsbs_found, swept_at) VALUES ($1,$2,$3,$4,NOW()) ON CONFLICT (vehicle_key, year) DO UPDATE SET recalls_found=$3, tsbs_found=$4, swept_at=NOW()`,
-[vehicle, yr, recallsStored, tsbsStored]
+  `INSERT INTO sweep_log (vehicle_key, year, recalls_found, tsbs_found, swept_at) VALUES ($1,$2,$3,$4,NOW()) ON CONFLICT (vehicle_key, year) DO UPDATE SET recalls_found=$3, tsbs_found=$4, swept_at=NOW()`,
+  [vehicle, yr, recallsStored, tsbsStored]
 );
 
 return ok({ success: true, recalls: recallsStored, tsbs: tsbsStored });
