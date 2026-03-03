@@ -16,33 +16,41 @@
   from = "/api/recalls"
   to = "/.netlify/functions/recalls"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/api/tsbs"
   to = "/.netlify/functions/tsbs"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/api/community"
   to = "/.netlify/functions/community"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/api/sweep"
   to = "/.netlify/functions/sweep"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/api/submit"
   to = "/.netlify/functions/submit"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/api/research"
   to = "/.netlify/functions/research"
   status = 200
+  force = true
 
 [[redirects]]
   from = "/api/approve"
   to = "/.netlify/functions/approve"
   status = 200
+  force = true
+  
