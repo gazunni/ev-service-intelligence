@@ -1,6 +1,6 @@
 {
 "name": "ev-service-intelligence",
-“version”: "1.0.0",
+"version": "1.0.0",
 "description": "EV Service Intelligence — Recalls, TSBs, PIPs, Community Issues",
 "private": true,
 "dependencies": {
