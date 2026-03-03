@@ -1,5 +1,5 @@
--- EV Service Intelligence - Neon Database Schema
--- Run this once against your Neon database to create all tables
+-- EV Service Intelligence - Database Schema
+-- Run this once against your database to create all tables
 
 -- Official recalls from NHTSA
 CREATE TABLE IF NOT EXISTS recalls (
