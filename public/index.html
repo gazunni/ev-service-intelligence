@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>EV Service Intelligence</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap');
+:root{
+  --bg:#050e08;--surface:#081a0c;--surface2:#0c2010;--border:#1a3a20;
+  --text:#b8e8c8;--muted:#4a8060;
+  --recall:#ef4444;--recall-bg:#1a0808;
+  --tsb:#f59e0b;--tsb-bg:#1a1208;
+  --pip:#a78bfa;--pip-bg:#120f1a;
+  --comm:#22d3ee;--comm-bg:#041418;
+  --green:#22c55e;
+  --mono:'JetBrains Mono',monospace;
+  --sans:'Syne',sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;min-height:100vh;line-height:1.6}
+.hdr{background:linear-gradient(135deg,#061a0a,#050e08);border-bottom:1px solid var(--border);padding:18px 24px 14px;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px)}
+.hdr-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.hdr-icon{font-size:20px}
+.hdr-title{font-family:var(--sans);font-size:17px;font-weight:800;letter-spacing:-.02em;background:linear-gradient(90deg,#ef4444,#f59e0b,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr-sub{font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.status-bar{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--muted);margin-top:8px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .3s}
+.dot.live{background:var(--green);animation:blink 1.4s infinite}
+.dot.err{background:var(--recall)}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.selbar{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;padding:12px 24px;background:var(--surface);border-bottom:1px solid var(--border)}
+.sg{display:flex;flex-direction:column;gap:3px}
+.sg label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+select,input.vin{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:6px 10px;border-radius:4px;cursor:pointer}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%234a8060'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:26px}
+select:focus,input.vin:focus{outline:none;border-color:var(--comm)}
+input.vin{width:190px;letter-spacing:.05em;text-transform:uppercase}
+input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
+.sweep-btn{background:linear-gradient(135deg,#0a3a1a,#062010);border:1px solid #1a5a2a;color:#6ee89a;font-family:var(--mono);font-size:11px;font-weight:600;padding:7px 16px;border-radius:4px;cursor:pointer;letter-spacing:.04em;transition:all .2s;white-space:nowrap;align-self:flex-end}
+.sweep-btn:hover{background:linear-gradient(135deg,#0f4d22,#082a14)}
+.sweep-btn:disabled{opacity:.4;cursor:not-allowed}
+.last-sw{font-size:9px;color:var(--muted);align-self:flex-end;padding-bottom:7px}
+.stats{display:flex;border-bottom:1px solid var(--border)}
+.stat{flex:1;text-align:center;padding:10px 6px;border-right:1px solid var(--border)}
+.stat:last-child{border-right:none}
+.sn{font-family:var(--sans);font-size:22px;font-weight:800;line-height:1}
+.sl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+#sn-recall{color:var(--recall)}#sn-tsb{color:var(--tsb)}#sn-pip{color:var(--pip)}#sn-comm{color:var(--comm)}
+.sec{border-bottom:1px solid var(--border)}
+.sec-hdr{display:flex;align-items:center;gap:10px;padding:13px 24px;cursor:pointer;user-select:none;transition:background .15s}
+.sec-hdr:hover{background:rgba(255,255,255,.015)}
+.badge{font-family:var(--sans);font-size:10px;font-weight:700;padding:3px 9px;border-radius:3px;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
+.b-recall{background:var(--recall-bg);color:var(--recall);border:1px solid #3a1010}
+.b-tsb{background:var(--tsb-bg);color:var(--tsb);border:1px solid #3a2810}
+.b-pip{background:var(--pip-bg);color:var(--pip);border:1px solid #251a3a}
+.b-comm{background:var(--comm-bg);color:var(--comm);border:1px solid #0a2830}
+.sec-title{font-family:var(--sans);font-size:14px;font-weight:700;flex:1}
+.sec-count{font-size:10px;color:var(--muted);background:var(--surface2);padding:2px 8px;border-radius:10px}
+.chv{font-size:10px;color:var(--muted);transition:transform .2s}
+.chv.open{transform:rotate(180deg)}
+.sec-body{display:none;padding:0 24px 16px}
+.sec-body.open{display:block}
+.pill-row{display:flex;gap:8px;flex-wrap:wrap;padding:8px 0 12px;border-bottom:1px solid var(--border);margin-bottom:12px}
+.pill{font-size:9px;padding:2px 7px;border-radius:3px;font-weight:600;letter-spacing:.05em;text-transform:uppercase}
+.p-nhtsa{background:#0c2340;color:#60a5fa;border:1px solid #1a3a60}
+.p-tc{background:#0c2a1a;color:#4ade80;border:1px solid #1a4a30}
+.p-reddit{background:#2a1a0a;color:#fb923c;border:1px solid #4a2a10}
+.p-forum{background:#1a1230;color:#a78bfa;border:1px solid #2a1a50}
+.p-submitted{background:#0f1f0f;color:#86efac;border:1px solid #1a3a1a}
+.p-dealer{background:#1a100a;color:#fcd34d;border:1px solid #3a2810}
+.p-facebook{background:#0c1a2a;color:#93c5fd;border:1px solid #1a3050}
+.sec-note{font-size:9px;color:var(--muted);line-height:1.6;margin-bottom:12px}
+.card{background:var(--surface2);border:1px solid var(--border);border-radius:5px;margin-bottom:8px;overflow:hidden;transition:border-color .15s}
+.card:hover{border-color:#2a6040}
+.card-hdr{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;cursor:pointer}
+.sev-bar{width:3px;border-radius:2px;align-self:stretch;flex-shrink:0;min-height:18px}
+.sv-critical{background:var(--recall)}.sv-moderate{background:var(--tsb)}.sv-low{background:var(--pip)}
+.card-meta{flex:1;min-width:0}
+.card-title{font-family:var(--sans);font-size:12px;font-weight:700;color:#e2f5e8;line-height:1.3;margin-bottom:3px}
+.card-sub{display:flex;gap:8px;align-items:center;font-size:9px;color:var(--muted);margin-bottom:5px;flex-wrap:wrap}
+.card-pills{display:flex;gap:4px;flex-wrap:wrap}
+.card-chv{font-size:10px;color:var(--muted);flex-shrink:0;padding-top:2px}
+.card-body{display:none;padding:10px 14px 12px 27px;border-top:1px solid var(--border)}
+.card-body.open{display:block}
+.cf{margin-bottom:8px}
+.cf-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:2px}
+.cf-val{font-size:11px;color:var(--text);line-height:1.5}
+.cf-risk{color:#fca5a5!important}.cf-remedy{color:#86efac!important}.cf-ref{color:var(--muted)!important}
+.card-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.cl{font-size:10px;padding:4px 10px;border-radius:4px;text-decoration:none;font-weight:600;transition:opacity .15s}
+.cl:hover{opacity:.8}
+.cl-nhtsa{background:#0c1f3a;color:#60a5fa;border:1px solid #1a3060}
+.cl-forum{background:#1a1230;color:#a78bfa;border:1px solid #2a1a50}
+.cl-reddit{background:#2a1a0a;color:#fb923c;border:1px solid #3a2010}
+.conf-row{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:10px;color:var(--muted)}
+.conf-n{background:var(--comm-bg);color:var(--comm);border:1px solid #0a2830;padding:1px 8px;border-radius:10px;font-weight:700;font-size:10px}
+.empty{text-align:center;padding:28px;color:var(--muted)}
+.ei{font-size:26px;margin-bottom:8px}.et{font-size:11px;line-height:1.6}
+.loading{display:flex;align-items:center;gap:8px;padding:20px;color:var(--muted);font-size:11px}
+.spin{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--comm);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.submit{border-top:2px solid var(--border);padding:20px 24px;background:var(--surface)}
+.sub-title{font-family:var(--sans);font-size:13px;font-weight:700;color:#e2f5e8;margin-bottom:3px}
+.sub-note{font-size:10px;color:var(--muted);margin-bottom:14px;line-height:1.5}
+.sub-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+@media(max-width:580px){.sub-grid{grid-template-columns:1fr}}
+.field{display:flex;flex-direction:column;gap:3px}
+.field label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
+.field input,.field textarea,.field select{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:7px 10px;border-radius:4px;transition:border-color .15s}
+.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--green)}
+.field textarea{resize:vertical;min-height:64px}
+.f-full{grid-column:1/-1}
+.sub-actions{display:flex;gap:10px;align-items:center;margin-top:8px}
+.sub-btn{background:linear-gradient(135deg,#0a2a1a,#061812);border:1px solid #1a4a30;color:#4ade80;font-family:var(--mono);font-size:11px;font-weight:600;padding:8px 16px;border-radius:4px;cursor:pointer;letter-spacing:.04em;transition:all .2s}
+.sub-btn:hover{background:linear-gradient(135deg,#0f3520,#091c14)}
+.sub-btn:disabled{opacity:.4;cursor:not-allowed}
+.sub-status{font-size:10px;color:var(--muted)}
+.ai-box{background:#050e08;border:1px solid #1a3a20;border-left:3px solid var(--green);border-radius:5px;padding:12px;margin-top:10px;font-size:11px;line-height:1.6;color:#86efac;display:none}
+.research-panel{border-top:2px solid var(--border);padding:20px 24px;background:#040c06}
+.rp-title{font-family:var(--sans);font-size:13px;font-weight:700;color:#e2f5e8;margin-bottom:3px;display:flex;align-items:center;gap:8px}
+.rp-note{font-size:10px;color:var(--muted);margin-bottom:14px;line-height:1.5}
+.rp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
+@media(max-width:580px){.rp-grid{grid-template-columns:1fr}}
+.rp-btn{background:linear-gradient(135deg,#1a1a3a,#0d0d28);border:1px solid #2a2a5a;color:#a78bfa;font-family:var(--mono);font-size:11px;font-weight:600;padding:8px 16px;border-radius:4px;cursor:pointer;letter-spacing:.04em;transition:all .2s}
+.rp-btn:hover{background:linear-gradient(135deg,#222250,#141438)}
+.rp-btn:disabled{opacity:.4;cursor:not-allowed}
+.rp-clear-btn{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:10px;padding:7px 12px;border-radius:4px;cursor:pointer;transition:all .2s}
+.rp-clear-btn:hover{border-color:var(--recall);color:var(--recall)}
+.review-queue{margin-top:14px}
+.rq-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:8px}
+.rq-item{background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--pip);border-radius:5px;padding:12px 14px;margin-bottom:8px}
+.rq-item-title{font-family:var(--sans);font-size:12px;font-weight:700;color:#e2f5e8;margin-bottom:4px}
+.rq-item-meta{font-size:10px;color:var(--muted);margin-bottom:8px}
+.rq-item-summary{font-size:11px;color:var(--text);line-height:1.5;margin-bottom:10px}
+.rq-actions{display:flex;gap:8px}
+.rq-approve{background:#0a2a1a;border:1px solid #1a4a30;color:#4ade80;font-family:var(--mono);font-size:10px;font-weight:600;padding:5px 12px;border-radius:4px;cursor:pointer}
+.rq-reject{background:#1a0808;border:1px solid #3a1010;color:#f87171;font-family:var(--mono);font-size:10px;font-weight:600;padding:5px 12px;border-radius:4px;cursor:pointer}
+.rq-confidence{font-size:9px;padding:2px 7px;border-radius:3px;font-weight:600;border:1px solid}
+.rq-high{color:#4ade80;border-color:#1a4a30;background:#0a2a1a}
+.rq-medium{color:#fbbf24;border-color:#3a2810;background:#1a1208}
+.rq-low{color:#f87171;border-color:#3a1010;background:#1a0808}
+.disc{font-size:9px;color:var(--muted);line-height:1.6;padding:10px 24px;border-top:1px solid var(--border);background:var(--surface)}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-top">
+    <span class="hdr-icon">⚡</span>
+    <span class="hdr-title">EV SERVICE INTELLIGENCE</span>
+  </div>
+  <div class="hdr-sub">Recalls · TSBs · PIPs · Community Issues</div>
+  <div class="status-bar"><div class="dot" id="dot"></div><span id="statusMsg">Loading…</span></div>
+</div>
+
+<div class="selbar">
+  <div class="sg">
+    <label>Vehicle</label>
+    <select id="selModel">
+      <option value="equinox_ev">Chevrolet Equinox EV</option>
+      <option value="blazer_ev">Chevrolet Blazer EV</option>
+      <option value="mach_e">Ford Mustang Mach-E</option>
+    </select>
+  </div>
+  <div class="sg">
+    <label>Year</label>
+    <select id="selYear">
+      <option value="2025">2025</option>
+      <option value="2024">2024</option>
+    </select>
+  </div>
+  <div class="sg">
+    <label>VIN (optional)</label>
+    <input class="vin" id="vinInput" type="text" maxlength="17" placeholder="17-character VIN">
+  </div>
+  <button class="sweep-btn" id="sweepBtn" onclick="runSweep()">⚡ Run AI Sweep</button>
+  <div class="last-sw" id="lastSw"></div>
+</div>
+
+<div class="stats">
+  <div class="stat"><div class="sn" id="sn-recall">—</div><div class="sl">Recalls</div></div>
+  <div class="stat"><div class="sn" id="sn-tsb">—</div><div class="sl">TSBs</div></div>
+  <div class="stat"><div class="sn" id="sn-pip">—</div><div class="sl">PIPs</div></div>
+  <div class="stat"><div class="sn" id="sn-comm">—</div><div class="sl">Community</div></div>
+</div>
+
+<div class="sec">
+  <div class="sec-hdr" onclick="toggleSec('recall')">
+    <span class="badge b-recall">🔴 Recall</span>
+    <span class="sec-title">Official Safety Recalls</span>
+    <span class="sec-count" id="cnt-recall">—</span>
+    <span class="chv" id="chv-recall">▼</span>
+  </div>
+  <div class="sec-body" id="body-recall">
+    <div class="pill-row"><span class="pill p-nhtsa">NHTSA Official</span><span class="pill p-tc">Transport Canada</span></div>
+    <div id="cards-recall"><div class="empty"><div class="ei">🔍</div><div class="et">Run a sweep to fetch live recall data from NHTSA</div></div></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-hdr" onclick="toggleSec('tsb')">
+    <span class="badge b-tsb">🟡 TSB</span>
+    <span class="sec-title">Technical Service Bulletins</span>
+    <span class="sec-count" id="cnt-tsb">—</span>
+    <span class="chv" id="chv-tsb">▼</span>
+  </div>
+  <div class="sec-body" id="body-tsb">
+    <div class="pill-row"><span class="pill p-nhtsa">NHTSA Filed</span><span class="pill p-dealer">Dealer Confirmed</span></div>
+    <div class="sec-note">TSBs filed by manufacturers with NHTSA. GM PIPs and early-stage bulletins often aren't filed publicly — check Community for those.</div>
+    <div id="cards-tsb"><div class="empty"><div class="ei">📋</div><div class="et">Run a sweep to load TSB data</div></div></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-hdr" onclick="toggleSec('pip')">
+    <span class="badge b-pip">🟣 PIP</span>
+    <span class="sec-title">Preliminary Information (PIPs)</span>
+    <span class="sec-count" id="cnt-pip">—</span>
+    <span class="chv" id="chv-pip">▼</span>
+  </div>
+  <div class="sec-body" id="body-pip">
+    <div class="pill-row"><span class="pill p-forum">Forum-surfaced</span><span class="pill p-reddit">Reddit</span><span class="pill p-facebook">Facebook Groups</span></div>
+    <div class="sec-note">PIPs are internal GM dealer communications — pre-TSB, not publicly filed. They surface via owner communities.</div>
+    <div id="cards-pip"><div class="empty"><div class="ei">📨</div><div class="et">No PIPs yet — submit one below if you have a bulletin number</div></div></div>
+  </div>
+</div>
+
+<div class="sec">
+  <div class="sec-hdr" onclick="toggleSec('comm')">
+    <span class="badge b-comm">🔵 Community</span>
+    <span class="sec-title">Community-Reported Issues</span>
+    <span class="sec-count" id="cnt-comm">—</span>
+    <span class="chv" id="chv-comm">▼</span>
+  </div>
+  <div class="sec-body" id="body-comm">
+    <div class="pill-row"><span class="pill p-forum">Forum</span><span class="pill p-reddit">Reddit</span><span class="pill p-facebook">Facebook</span><span class="pill p-submitted">User Submitted</span></div>
+    <div class="sec-note">Issues reported by owners before an official bulletin exists. AI clusters similar reports to prevent duplication.</div>
+    <div id="cards-comm"><div class="loading"><div class="spin"></div><span>Loading community issues…</span></div></div>
+  </div>
+</div>
+
+<div class="research-panel">
+  <div class="rp-title">🔬 AI Research Sweep</div>
+  <div class="rp-note">Paste raw text from forums, GM Authority articles, Reddit threads, or Facebook posts. Claude extracts structured issues into a review queue before anything goes live.</div>
+  <div class="rp-grid">
+    <div class="field">
+      <label>Source Type</label>
+      <select id="rp-srctype">
+        <option value="forum">Forum thread</option>
+        <option value="reddit">Reddit</option>
+        <option value="facebook">Facebook group</option>
+        <option value="article">News article</option>
+        <option value="nhtsa_complaints">NHTSA complaints</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Source URL (optional)</label>
+      <input type="text" id="rp-url" placeholder="https://...">
+    </div>
+    <div class="field f-full">
+      <label>Paste Raw Text</label>
+      <textarea id="rp-text" style="min-height:120px" placeholder="Paste forum posts, article text, Reddit comments — Claude will extract vehicle issues and structure them..."></textarea>
+    </div>
+  </div>
+  <div class="sub-actions">
+    <button class="rp-btn" id="rpBtn" onclick="runResearchSweep()">🤖 Extract Issues</button>
+    <button class="rp-clear-btn" onclick="clearResearch()">✕ Clear</button>
+    <span class="sub-status" id="rpStatus"></span>
+  </div>
+  <div id="rpQueue"></div>
+</div>
+
+<div class="submit">
+  <div class="sub-title">➕ Submit a Known Issue</div>
+  <div class="sub-note">Found something in a Facebook group, forum, or from personal experience?<br>AI checks for duplicates — matching reports add community confirmation weight.</div>
+  <div class="sub-grid">
+    <div class="field"><label>Issue Title</label><input type="text" id="f-title" placeholder="e.g. Passenger floor water ingress"></div>
+    <div class="field"><label>Bulletin / TSB # (if known)</label><input type="text" id="f-bulletin" placeholder="e.g. PIP6241A or leave blank"></div>
+    <div class="field f-full"><label>Symptoms &amp; Details</label><textarea id="f-detail" placeholder="Describe symptoms, root cause if known, what the fix was..."></textarea></div>
+    <div class="field"><label>Source Link</label><input type="text" id="f-source" placeholder="https://... or leave blank"></div>
+    <div class="field"><label>Source Type</label>
+      <select id="f-srctype">
+        <option value="forum">Forum post</option>
+        <option value="reddit">Reddit</option>
+        <option value="facebook">Facebook group</option>
+        <option value="dealer">Dealer confirmed</option>
+        <option value="personal">Personal experience</option>
+      </select>
+    </div>
+  </div>
+  <div class="sub-actions">
+    <button class="sub-btn" id="subBtn" onclick="submitIssue()">🤖 Check &amp; Submit</button>
+    <span class="sub-status" id="subStatus"></span>
+  </div>
+  <div class="ai-box" id="aiBox"><div id="aiResult"></div></div>
+</div>
+
+<div class="disc">Recall data from NHTSA public API. Community issues are curated/user-submitted and not manufacturer-verified. Always confirm with a qualified dealer before acting on any information here.</div>
+
+<script>
+// ═══════════════════════════════════════════
+// PRODUCTION — all data via /api/* endpoints
+// No in-memory storage, no API key in browser
+// Claude runs server-side in Netlify functions
+// ═══════════════════════════════════════════
+
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+const getVehicle = () => ['equinox_ev','blazer_ev','mach_e'][document.getElementById('selModel').selectedIndex];
+const getYear    = () => document.getElementById('selYear').value;
+
+function setStatus(msg, state=''){
+  document.getElementById('statusMsg').textContent = msg;
+  document.getElementById('dot').className = 'dot'+(state?' '+state:'');
+}
+
+// ── API HELPERS ──────────────────────────────
+async function apiFetch(path, opts={}){
+  const r = await fetch(path, { headers:{'Content-Type':'application/json'}, ...opts });
+  if(!r.ok){ const e=await r.json().catch(()=>({error:r.statusText})); throw new Error(e.error||r.statusText); }
+  return r.json();
+}
+const apiGet  = (path) => apiFetch(path);
+const apiPost = (path, body) => apiFetch(path, { method:'POST', body:JSON.stringify(body) });
+
+// ── LOAD ALL SECTIONS ────────────────────────
+async function loadAll(){
+  const vkey = getVehicle();
+  const year = getYear();
+  setStatus('Loading…','live');
+
+  // Community loads immediately from DB (always has seeded data)
+  loadSection('community', vkey, year);
+
+  // Recalls and TSBs load in parallel
+  loadSection('recalls', vkey, year);
+  loadSection('tsbs',    vkey, year);
+}
+
+async function loadSection(type, vkey, year){
+  const cardId  = 'cards-'+(type==='community'?'comm':type==='recalls'?'recall':'tsb');
+  const countId = 'cnt-'  +(type==='community'?'comm':type==='recalls'?'recall':'tsb');
+  const statId  = 'sn-'   +(type==='community'?'comm':type==='recalls'?'recall':'tsb');
+  const secType =           type==='community'?'comm':type==='recalls'?'recall':'tsb';
+
+  document.getElementById(cardId).innerHTML = '<div class="loading"><div class="spin"></div><span>Loading…</span></div>';
+
+  try {
+    const rows = await apiGet(`/api/${type}?vehicle=${vkey}&year=${year}`);
+    renderSection(cardId, countId, statId, rows, secType);
+    if(type==='community' && rows.length) openSec('comm');
+    updateStatus();
+  } catch(e){
+    document.getElementById(cardId).innerHTML = '<div class="empty"><div class="ei">⚠️</div><div class="et">'+esc(e.message)+'</div></div>';
+    setStatus('Error loading '+type+': '+e.message, 'err');
+  }
+}
+
+function updateStatus(){
+  const rc = parseInt(document.getElementById('sn-recall').textContent)||0;
+  const tc = parseInt(document.getElementById('sn-tsb').textContent)||0;
+  const cc = parseInt(document.getElementById('sn-comm').textContent)||0;
+  if(rc||tc||cc) setStatus('Loaded — '+rc+' recalls · '+tc+' TSBs · '+cc+' community issues');
+}
+
+// ── SWEEP ────────────────────────────────────
+async function runSweep(){
+  const vkey = getVehicle();
+  const year = getYear();
+  const btn  = document.getElementById('sweepBtn');
+  btn.disabled = true;
+  setStatus('Fetching NHTSA data and running AI summarization…','live');
+
+  try {
+    const result = await apiPost('/api/sweep', { vehicle:vkey, year:parseInt(year) });
+    document.getElementById('lastSw').textContent = 'Last sweep: '+new Date().toLocaleString();
+    setStatus('Sweep done — '+result.recalls+' recalls · '+result.tsbs+' TSBs updated');
+    // Reload recall and TSB sections with fresh data
+    loadSection('recalls', vkey, year);
+    loadSection('tsbs',    vkey, year);
+    if(result.recalls) openSec('recall');
+    if(result.tsbs)    openSec('tsb');
+  } catch(e){
+    setStatus('Sweep error: '+e.message, 'err');
+  }
+  btn.disabled = false;
+}
+
+// ── SUBMIT ───────────────────────────────────
+async function submitIssue(){
+  const vkey    = getVehicle();
+  const year    = getYear();
+  const title   = document.getElementById('f-title').value.trim();
+  const detail  = document.getElementById('f-detail').value.trim();
+  const bulletin = document.getElementById('f-bulletin').value.trim();
+  const sourceUrl = document.getElementById('f-source').value.trim();
+  const srcType  = document.getElementById('f-srctype').value;
+
+  if(!title||!detail){ document.getElementById('subStatus').textContent='⚠️ Title and details required.'; return; }
+
+  const btn = document.getElementById('subBtn');
+  btn.disabled = true;
+  document.getElementById('subStatus').textContent = '🤖 Checking for duplicates…';
+  document.getElementById('aiBox').style.display = 'none';
+
+  try {
+    const result = await apiPost('/api/submit', { vehicle:vkey, year:parseInt(year), title, detail, bulletin, sourceUrl, srcType });
+    const aiBox = document.getElementById('aiBox');
+    const aiResult = document.getElementById('aiResult');
+    aiBox.style.display = 'block';
+
+    if(result.action==='confirmed'){
+      aiResult.innerHTML = '<b style="color:var(--tsb)">Duplicate detected</b> ('+Math.round((result.confidence||0)*100)+'% match)<br>Added as confirmation to existing record.';
+    } else {
+      aiResult.innerHTML = '<b style="color:var(--green)">New issue created</b> — no match found. Added to community section.';
+    }
+
+    document.getElementById('subStatus').textContent = result.action==='confirmed' ? '✅ Confirmation added.' : '✅ Issue submitted.';
+    ['f-title','f-detail','f-bulletin','f-source'].forEach(id=>{ document.getElementById(id).value=''; });
+    // Reload community section
+    loadSection('community', vkey, year);
+  } catch(e){
+    document.getElementById('subStatus').textContent = '❌ Error: '+e.message;
+  }
+  btn.disabled = false;
+}
+
+// ── RESEARCH SWEEP ───────────────────────────
+async function runResearchSweep(){
+  const text    = document.getElementById('rp-text').value.trim();
+  const srctype = document.getElementById('rp-srctype').value;
+  const srcurl  = document.getElementById('rp-url').value.trim();
+  const vkey    = getVehicle();
+  const year    = getYear();
+
+  if(!text){ document.getElementById('rpStatus').textContent='⚠️ Paste some text to analyze.'; return; }
+
+  const btn = document.getElementById('rpBtn');
+  btn.disabled = true;
+  document.getElementById('rpStatus').textContent = '🤖 Analyzing text for vehicle issues…';
+  document.getElementById('rpQueue').innerHTML = '';
+
+  try {
+    const result = await apiPost('/api/research', { vehicle:vkey, year:parseInt(year), text, srcType:srctype, srcUrl:srcurl });
+
+    if(!result.issues?.length){
+      document.getElementById('rpStatus').textContent = '✓ Analysis complete — no new vehicle issues found in this text.';
+      btn.disabled = false;
+      return;
+    }
+
+    document.getElementById('rpStatus').textContent = result.count+' issue'+(result.count>1?'s':'')+' found — review below before adding:';
+
+    const queueEl = document.getElementById('rpQueue');
+    queueEl.innerHTML = '<div class="review-queue"><div class="rq-title">Review Queue — approve to add to Community section</div>'
+      + result.issues.map((issue, i) => {
+          const confCls = issue.confidence==='HIGH'?'rq-high':issue.confidence==='MEDIUM'?'rq-medium':'rq-low';
+          const dupWarn = issue.likelyMatchId
+            ? `<div style="font-size:10px;color:var(--tsb);margin-bottom:6px">⚠️ Possible duplicate: ${esc(issue.likelyMatchReason||'')}</div>`
+            : '';
+          return `<div class="rq-item" id="rqi-${i}">
+  <div class="rq-item-title">${esc(issue.title||'Untitled')}</div>
+  <div class="rq-item-meta">
+    <span>${esc(issue.component||'Unknown')}</span> · <span>${esc(issue.severity||'LOW')}</span> ·
+    <span class="rq-confidence ${confCls}">${esc(issue.confidence||'LOW')} confidence</span>
+    ${issue.bulletinRef ? ' · <span style="color:var(--pip)">'+esc(issue.bulletinRef)+'</span>' : ''}
+  </div>
+  ${dupWarn}
+  <div class="rq-item-summary">${esc(issue.summary||'')}</div>
+  ${issue.symptoms?.length ? '<div style="font-size:10px;color:var(--muted);margin-bottom:8px">'+issue.symptoms.map(s=>'• '+esc(s)).join(' &nbsp;')+'</div>' : ''}
+  <div class="rq-actions">
+    <button class="rq-approve" onclick="approveIssue(${i}, ${issue.queueId}, '${vkey}', ${year})">✓ Add to Community</button>
+    <button class="rq-reject"  onclick="rejectIssue(${i})">✕ Discard</button>
+  </div>
+</div>`;
+        }).join('')
+      + '</div>';
+  } catch(e){
+    document.getElementById('rpStatus').textContent = '❌ Error: '+e.message;
+  }
+  btn.disabled = false;
+}
+
+async function approveIssue(idx, queueId, vkey, year){
+  const el = document.getElementById('rqi-'+idx);
+  if(el) el.querySelector('.rq-actions').innerHTML = '<span style="color:var(--muted);font-size:10px">Adding…</span>';
+
+  try {
+    await apiPost('/api/approve', { queueId, vehicle:vkey, year });
+    if(el){
+      el.style.opacity='0.5';
+      el.style.pointerEvents='none';
+      el.querySelector('.rq-actions').innerHTML = '<span style="color:var(--green);font-size:10px">✓ Added to Community section</span>';
+    }
+    loadSection('community', vkey, year);
+  } catch(e){
+    if(el) el.querySelector('.rq-actions').innerHTML = '<span style="color:var(--recall);font-size:10px">❌ '+esc(e.message)+'</span>';
+  }
+}
+
+function rejectIssue(idx){
+  const el = document.getElementById('rqi-'+idx);
+  if(el){
+    el.style.opacity='0.3';
+    el.style.pointerEvents='none';
+    el.querySelector('.rq-actions').innerHTML = '<span style="color:var(--muted);font-size:10px">Discarded</span>';
+  }
+}
+
+function clearResearch(){
+  document.getElementById('rp-text').value='';
+  document.getElementById('rp-url').value='';
+  document.getElementById('rpStatus').textContent='';
+  document.getElementById('rpQueue').innerHTML='';
+}
+
+// ── RENDER ───────────────────────────────────
+function renderSection(cId, countId, statId, items, type){
+  document.getElementById(countId).textContent = items.length;
+  document.getElementById(statId).textContent  = items.length||'—';
+  if(!items.length){
+    const cfg={
+      recall:{icon:'✅',text:'No open recalls found for this vehicle and year.'},
+      tsb:   {icon:'📋',text:'No TSBs found — run a sweep to check NHTSA.'},
+      pip:   {icon:'📨',text:'No PIPs yet — submit one below.'},
+      comm:  {icon:'💬',text:'No community issues yet.'},
+    };
+    const c=cfg[type]||{icon:'🔍',text:'No data.'};
+    document.getElementById(cId).innerHTML='<div class="empty"><div class="ei">'+c.icon+'</div><div class="et">'+c.text+'</div></div>';
+    return;
+  }
+  document.getElementById(cId).innerHTML = items.map((item,i)=>buildCard(item,type,i)).join('');
+}
+
+function buildCard(rec, type, idx){
+  if(!rec) return '';
+  const sc = rec.severity==='CRITICAL'?'sv-critical':rec.severity==='LOW'?'sv-low':'sv-moderate';
+  const pills = (rec.source_pills||rec.sourcePills||[]).map(p=>{
+    const c=/nhtsa/i.test(p)?'p-nhtsa':/reddit/i.test(p)?'p-reddit':/forum/i.test(p)?'p-forum':/dealer/i.test(p)?'p-dealer':/facebook/i.test(p)?'p-facebook':/transport/i.test(p)?'p-tc':'p-submitted';
+    return '<span class="pill '+c+'">'+esc(p)+'</span>';
+  }).join('');
+  const links = (typeof rec.links==='string'?JSON.parse(rec.links):rec.links||[]).map(l=>{
+    const c=l.type==='reddit'?'cl-reddit':l.type==='nhtsa'?'cl-nhtsa':'cl-forum';
+    return '<a class="cl '+c+'" href="'+esc(l.url)+'" target="_blank" rel="noopener">'+esc(l.label)+'</a>';
+  }).join('');
+  const nhtsaLink = (type==='recall'&&rec.id)
+    ? '<a class="cl cl-nhtsa" href="https://www.nhtsa.gov/vehicle-recall/'+encodeURIComponent(rec.id)+'" target="_blank" rel="noopener">🔗 NHTSA Record</a>' : '';
+  const id='card-'+type+'-'+idx;
+  const symptoms = typeof rec.symptoms==='string'?JSON.parse(rec.symptoms):rec.symptoms||[];
+  return `<div class="card">
+<div class="card-hdr" onclick="toggleCard('${id}')">
+  <div class="sev-bar ${sc}"></div>
+  <div class="card-meta">
+    <div class="card-title">${esc(rec.title||'Unknown Issue')}</div>
+    <div class="card-sub">
+      ${rec.id?'<span>'+esc(String(rec.id))+'</span>':''}
+      ${rec.date||(rec.created_at?'<span>· '+esc(String(rec.created_at).substring(0,10))+'</span>':''):''}
+      ${rec.severity?'<span>· '+esc(rec.severity)+'</span>':''}
+    </div>
+    <div class="card-pills">${pills}</div>
+  </div>
+  <span class="card-chv">▼</span>
+</div>
+<div class="card-body" id="${id}">
+  <div class="cf"><div class="cf-label">Component</div><div class="cf-val">${esc(rec.component||'—')}</div></div>
+  ${rec.summary?'<div class="cf"><div class="cf-label">Summary</div><div class="cf-val">'+esc(rec.summary)+'</div></div>':''}
+  ${rec.risk?'<div class="cf"><div class="cf-label">Safety Risk</div><div class="cf-val cf-risk">'+esc(rec.risk)+'</div></div>':''}
+  ${rec.remedy?'<div class="cf"><div class="cf-label">Remedy / Fix</div><div class="cf-val cf-remedy">'+esc(rec.remedy)+'</div></div>':''}
+  ${symptoms.length?'<div class="cf"><div class="cf-label">Symptoms</div><div class="cf-val">'+symptoms.map(s=>'• '+esc(s)).join('<br>')+'</div></div>':''}
+  ${rec.affected_units?'<div class="cf"><div class="cf-label">Vehicles Affected</div><div class="cf-val">'+Number(rec.affected_units).toLocaleString()+' units</div></div>':''}
+  ${rec.bulletin_ref||rec.bulletinRef?'<div class="cf"><div class="cf-label">Bulletin Reference</div><div class="cf-val cf-ref">'+esc(rec.bulletin_ref||rec.bulletinRef)+'</div></div>':''}
+  ${rec.confirmations?'<div class="conf-row"><span class="conf-n">'+rec.confirmations+'</span> owner confirmations</div>':''}
+  <div class="card-links">${nhtsaLink}${links}</div>
+</div>
+</div>`;
+}
+
+// ── UI HELPERS ───────────────────────────────
+function toggleSec(n){ document.getElementById('body-'+n).classList.toggle('open'); document.getElementById('chv-'+n).classList.toggle('open'); }
+function openSec(n){ document.getElementById('body-'+n).classList.add('open'); document.getElementById('chv-'+n).classList.add('open'); }
+function toggleCard(id){ const el=document.getElementById(id); if(el) el.classList.toggle('open'); }
+
+// ── INIT ─────────────────────────────────────
+document.getElementById('selModel').addEventListener('change', loadAll);
+document.getElementById('selYear').addEventListener('change', loadAll);
+window.addEventListener('load', () => { openSec('comm'); loadAll(); });
+</script>
+
+</body>
+</html>
