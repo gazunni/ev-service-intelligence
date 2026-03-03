@@ -1,13 +1,13 @@
 // netlify/functions/tsbs.js
 // GET /api/tsbs?vehicle=equinox_ev&year=2025
 
-import { query, ok, err, preflight } from ‘./_db.js’;
+import { query, ok, err, preflight } from './_db.js';
 
 export async function handler(event) {
-if (event.httpMethod === ‘OPTIONS’) return preflight();
+if (event.httpMethod === 'OPTIONS') return preflight();
 
 const { vehicle, year } = event.queryStringParameters || {};
-if (!vehicle || !year) return err(‘vehicle and year required’, 400);
+if (!vehicle || !year) return err('vehicle and year required', 400);
 
 try {
 const rows = await query(
@@ -16,7 +16,7 @@ const rows = await query(
 );
 return ok(rows);
 } catch (e) {
-console.error(‘tsbs error:’, e);
-return err(’Database error: ’ + e.message);
+console.error('tsbs error:', e);
+return err('Database error: ' + e.message);
 }
 }
