@@ -970,8 +970,28 @@ async function adminAction(endpoint, resultId, btnId) {
   } finally { btn.disabled = false; }
 }
 
+// ── YEAR OPTIONS BY VEHICLE ──────────────────
+const vehicleYears = {
+  equinox_ev: [2026, 2025, 2024],
+  blazer_ev:  [2026, 2025, 2024],
+  mach_e:     [2026, 2025, 2024, 2023, 2022],
+};
+
+function updateYearOptions() {
+  const vkey = getVehicle();
+  const sel = document.getElementById('selYear');
+  const current = sel.value;
+  const years = vehicleYears[vkey] || [2026, 2025, 2024, 2023];
+  sel.innerHTML = years.map(y => `<option value="${y}"${String(y)===current?'selected':''}>${y}</option>`).join('');
+  // If current year not valid for this vehicle, default to first
+  if (!years.includes(parseInt(current))) sel.value = years[0];
+}
+
 // ── INIT ─────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  // Set correct years for default vehicle on load
+  updateYearOptions();
+
   // G logo hold-to-admin
   const gzEl = document.getElementById('gzIcon');
   gzEl.addEventListener('mousedown', startGzHold);
@@ -980,7 +1000,7 @@ document.addEventListener('DOMContentLoaded', () => {
   gzEl.addEventListener('mouseleave', cancelGzHold);
   gzEl.addEventListener('touchend', cancelGzHold);
 
-  document.getElementById('selModel').addEventListener('change', loadAll);
+  document.getElementById('selModel').addEventListener('change', () => { updateYearOptions(); loadAll(); });
   document.getElementById('selYear').addEventListener('change', loadAll);
   document.getElementById('sweepBtn').addEventListener('click', runSweep);
 
