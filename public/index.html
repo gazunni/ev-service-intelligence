@@ -285,7 +285,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
     </div>
   </div>
   <div class="btn-row">
-    <button class="submit-btn" id="subBtn" id="submitIssueBtn">Submit Issue</button>
+    <button class="submit-btn" id="submitIssueBtn">Submit Issue</button>
     <button class="cancel-btn" data-panel="submitPanel">Cancel</button>
   </div>
   <div id="subResult" style="margin-top:10px;font-size:11px;color:var(--muted)"></div>
@@ -313,8 +313,8 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
     <textarea id="resText" style="min-height:120px" placeholder="Paste forum posts, article text, Reddit comments — Claude will extract vehicle issues and structure them…"></textarea>
   </div>
   <div class="btn-row">
-    <button class="submit-btn" id="resBtn" id="researchSweepBtn">🧠 Extract Issues</button>
-    <button class="cancel-btn" id="clearResearchBtn">✕ Clear</button>
+    <button class="submit-btn" id="researchSweepBtn">🧠 Extract Issues</button>
+    <button class="cancel-btn" id="clearResearchBtn" data-panel="researchPanel">✕ Clear</button>
   </div>
   <div id="resResults" style="margin-top:12px"></div>
 </div>
@@ -646,6 +646,8 @@ async function approveIssue(idx, queueId, vkey, year) {
 function clearResearch() {
   document.getElementById('resText').value='';
   document.getElementById('resResults').innerHTML='';
+  const panel = document.getElementById('researchPanel');
+  if (panel) panel.classList.remove('open');
 }
 
 // ── COPY & PRINT ─────────────────────────────
