@@ -46,6 +46,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
   .sec:not(.print-target){display:none}
   .print-target{display:block!important}
 }
+/* ── TSB VEHICLE CHECKBOXES ── */
+.tsb-vehicles{display:flex;flex-direction:column;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:12px}
+.tsb-veh-group{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.tsb-veh-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;min-width:160px}
+.tsb-veh-years{display:flex;gap:8px;flex-wrap:wrap}
+.tsb-cb{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text);cursor:pointer}
+.tsb-cb input{accent-color:var(--comm);cursor:pointer;width:13px;height:13px}
 /* ── EFF LINK ── */
 .eff-link{font-size:9px;font-weight:700;letter-spacing:.08em;color:#38bdf8;border:1px solid #0e3a4a;background:#020c14;padding:3px 9px;border-radius:3px;text-decoration:none;transition:all .2s;white-space:nowrap}
 .eff-link:hover{background:#0a2030;border-color:#38bdf8;box-shadow:0 0 8px #38bdf840}
@@ -334,6 +341,35 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
       <input id="tsbBulletin" placeholder="e.g. 24-NA-143">
     </div>
   </div>
+  <div class="form-group" style="margin-bottom:10px">
+    <label>Affected Vehicles &amp; Years</label>
+    <div class="tsb-vehicles">
+      <div class="tsb-veh-group">
+        <div class="tsb-veh-label">Chevrolet Equinox EV</div>
+        <div class="tsb-veh-years">
+          <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="equinox_ev|2023"> 2023</label>
+          <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="equinox_ev|2024"> 2024</label>
+          <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="equinox_ev|2025" checked> 2025</label>
+        </div>
+      </div>
+      <div class="tsb-veh-group">
+        <div class="tsb-veh-label">Chevrolet Blazer EV</div>
+        <div class="tsb-veh-years">
+          <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="blazer_ev|2023"> 2023</label>
+          <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="blazer_ev|2024"> 2024</label>
+          <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="blazer_ev|2025"> 2025</label>
+        </div>
+      </div>
+      <div class="tsb-veh-group">
+        <div class="tsb-veh-label">Ford Mustang Mach-E</div>
+        <div class="tsb-veh-years">
+          <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="mach_e|2023"> 2023</label>
+          <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="mach_e|2024"> 2024</label>
+          <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="mach_e|2025"> 2025</label>
+        </div>
+      </div>
+    </div>
+  </div>
   <div class="form-row">
     <div class="form-group">
       <label>Component</label>
@@ -559,7 +595,7 @@ function buildCard(rec, type, idx) {
     <div class="card-meta">
       <div class="card-title">${esc(rec.title||'Unknown Issue')}</div>
       <div class="card-sub">
-        ${rec.id ? '<span>'+esc(String(rec.id))+'</span>' : ''}
+        ${rec.bulletin_ref ? '<span>'+esc(rec.bulletin_ref)+'</span>' : (rec.raw_nhtsa&&rec.raw_nhtsa.bulletin_ref ? '<span>'+esc(rec.raw_nhtsa.bulletin_ref)+'</span>' : '')}
         ${dateStr ? '<span>· '+dateStr+'</span>' : ''}
         ${rec.severity ? '<span>· '+esc(rec.severity)+'</span>' : ''}
       </div>
@@ -581,7 +617,9 @@ function buildCard(rec, type, idx) {
     <div class="card-actions">
       <button class="act-btn act-copy" data-copy="${id}">⎘ Copy</button>
       <button class="act-btn act-print" data-print="${id}">⎙ Print</button>
+      ${type==='tsb' ? '<button class="act-btn act-apply" data-apply="'+id+'">⊕ Apply to Vehicles</button>' : ''}
     </div>
+    ${type==='tsb' ? '<div class="apply-panel" id="apply-'+id+'" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><div class="tsb-vehicles"><div class="tsb-veh-group"><div class="tsb-veh-label">Equinox EV</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+id+'" value="equinox_ev|2023"> 2023</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+id+'" value="equinox_ev|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+id+'" value="equinox_ev|2025"> 2025</label></div></div><div class="tsb-veh-group"><div class="tsb-veh-label">Blazer EV</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+id+'" value="blazer_ev|2023"> 2023</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+id+'" value="blazer_ev|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+id+'" value="blazer_ev|2025"> 2025</label></div></div><div class="tsb-veh-group"><div class="tsb-veh-label">Mach-E</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+id+'" value="mach_e|2023"> 2023</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+id+'" value="mach_e|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+id+'" value="mach_e|2025"> 2025</label></div></div></div><button class="submit-btn" style="margin-top:8px;font-size:10px" data-apply-confirm="'+id+'">＋ Apply to Selected</button><div class="apply-result" id="apply-result-'+id+'" style="font-size:11px;margin-top:6px"></div></div>' : ''}
   </div>
 </div>`;
 }
@@ -706,37 +744,76 @@ function clearResearch() {
   if (panel) panel.classList.remove('open');
 }
 
+// ── APPLY TSB TO MORE VEHICLES ───────────────
+async function applyTsb(srcId) {
+  const checked = Array.from(document.querySelectorAll(`.apply-cb[data-src="${srcId}"]:checked`))
+    .map(cb => { const [v,y] = cb.value.split('|'); return {vehicle:v, year:parseInt(y)}; });
+  const result = document.getElementById('apply-result-'+srcId);
+  if (!checked.length) { result.style.color='var(--recall)'; result.textContent='Select at least one.'; return; }
+
+  const btn = document.querySelector(`[data-apply-confirm="${srcId}"]`);
+  btn.disabled = true; btn.textContent = 'Applying…';
+  setGZ('loading', 'Applying TSB to vehicles…');
+
+  try {
+    const res = await apiFetch('/api/tsb-clone', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ src_id: srcId, targets: checked })
+    });
+    result.style.color = 'var(--green)';
+    result.textContent = `✓ Applied to ${res.count} vehicle/year combination${res.count>1?'s':''}.`;
+    setGZ('done', 'TSB applied');
+    document.querySelectorAll(`.apply-cb[data-src="${srcId}"]`).forEach(cb => cb.checked = false);
+  } catch(e) {
+    result.style.color = 'var(--recall)';
+    result.textContent = 'Error: ' + e.message;
+    setGZ('err', 'Apply failed');
+  } finally {
+    btn.disabled = false; btn.textContent = '＋ Apply to Selected';
+  }
+}
+
 // ── ADD TSB DIRECTLY ────────────────────────
 async function addTsb() {
-  const vkey = getVehicle(), year = getYear();
-  const title    = document.getElementById('tsbTitle').value.trim();
-  const bulletin = document.getElementById('tsbBulletin').value.trim();
-  const component= document.getElementById('tsbComponent').value.trim();
-  const severity = document.getElementById('tsbSeverity').value;
-  const summary  = document.getElementById('tsbSummary').value.trim();
-  const remedy   = document.getElementById('tsbRemedy').value.trim();
-  const units    = document.getElementById('tsbUnits').value.trim();
-  const url      = document.getElementById('tsbUrl').value.trim();
-  const result   = document.getElementById('tsbResult');
+  const title     = document.getElementById('tsbTitle').value.trim();
+  const bulletin  = document.getElementById('tsbBulletin').value.trim();
+  const component = document.getElementById('tsbComponent').value.trim();
+  const severity  = document.getElementById('tsbSeverity').value;
+  const summary   = document.getElementById('tsbSummary').value.trim();
+  const remedy    = document.getElementById('tsbRemedy').value.trim();
+  const units     = document.getElementById('tsbUnits').value.trim();
+  const url       = document.getElementById('tsbUrl').value.trim();
+  const result    = document.getElementById('tsbResult');
 
   if (!title || !summary) { result.style.color='var(--recall)'; result.textContent='Title and summary are required.'; return; }
 
+  // Collect checked vehicles
+  const checked = Array.from(document.querySelectorAll('input[name="tsb-vehicle"]:checked')).map(cb => {
+    const [vehicle, year] = cb.value.split('|');
+    return { vehicle, year: parseInt(year) };
+  });
+  if (!checked.length) { result.style.color='var(--recall)'; result.textContent='Select at least one vehicle and year.'; return; }
+
   const btn = document.getElementById('addTsbBtn');
   btn.disabled = true; btn.textContent = 'Adding…';
-  setGZ('loading', 'Adding TSB…');
+  setGZ('loading', `Adding TSB for ${checked.length} vehicle/year combo${checked.length>1?'s':''}…`);
   result.textContent = '';
 
   try {
-    const res = await apiFetch('/api/tsb-add', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ vehicle: vkey, year: parseInt(year), title, bulletin_ref: bulletin, component, severity, summary, remedy, affected_units: units, source_url: url })
-    });
+    // Insert one row per vehicle/year combo
+    await Promise.all(checked.map(({vehicle, year}) =>
+      apiFetch('/api/tsb-add', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ vehicle, year, title, bulletin_ref: bulletin, component, severity, summary, remedy, affected_units: units, source_url: url })
+      })
+    ));
     result.style.color = 'var(--green)';
-    result.textContent = '✓ TSB added successfully.';
+    result.textContent = `✓ TSB added for ${checked.length} vehicle/year combination${checked.length>1?'s':''}.`;
     setGZ('done', 'TSB added');
-    // Clear form
     ['tsbTitle','tsbBulletin','tsbComponent','tsbSummary','tsbRemedy','tsbUnits','tsbUrl'].forEach(id => { document.getElementById(id).value = ''; });
+    document.querySelectorAll('input[name="tsb-vehicle"]').forEach(cb => { cb.checked = false; });
     loadAll();
   } catch(e) {
     result.style.color = 'var(--recall)';
@@ -804,6 +881,17 @@ document.addEventListener('DOMContentLoaded', () => {
     if (id === 'researchSweepBtn') { e.stopPropagation(); runResearchSweep(); return; }
     if (id === 'clearResearchBtn') { e.stopPropagation(); clearResearch(); return; }
     if (id === 'addTsbBtn')        { e.stopPropagation(); addTsb(); return; }
+
+    // Apply TSB panel toggle and confirm
+    const applyBtn    = t.closest('[data-apply]');
+    const applyConfirm = t.closest('[data-apply-confirm]');
+    if (applyBtn && !applyConfirm) {
+      e.stopPropagation();
+      const panel = document.getElementById('apply-'+applyBtn.dataset.apply);
+      if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+      return;
+    }
+    if (applyConfirm) { e.stopPropagation(); applyTsb(applyConfirm.dataset.applyConfirm); return; }
 
     // Data attribute buttons
     const copyBtn    = t.closest('[data-copy]');
