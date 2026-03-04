@@ -365,6 +365,54 @@ app.post('/api/tsb-add', async (req, res) => {
   }
 });
 
+// ── ADMIN ENDPOINTS ─────────────────────────
+const ADMIN_KEY = process.env.ADMIN_KEY || 'gazunni-admin';
+
+function checkAdmin(req, res) {
+  const { key } = req.body || {};
+  if (key !== ADMIN_KEY) { res.status(403).json({ error: 'Forbidden' }); return false; }
+  return true;
+}
+
+app.post('/api/admin/dedupe', async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+  try {
+    // Delete duplicate TSBs keeping the oldest row per vehicle_key+year+title
+    const result = await query(`
+      DELETE FROM tsbs WHERE ctid NOT IN (
+        SELECT MIN(ctid) FROM tsbs GROUP BY vehicle_key, year, title
+      )
+    `);
+    const count = result.rowCount || 0;
+    res.json({ message: count > 0 ? `✓ Removed ${count} duplicate TSB row${count>1?'s':''}` : '✓ No duplicates found' });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/admin/stats', async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+  try {
+    const tables = ['recalls','tsbs','community','review_queue','sweep_log'];
+    const counts = await Promise.all(tables.map(t => query(`SELECT COUNT(*) FROM ${t}`).then(r => `${t}: ${r[0].count}`)));
+    res.json({ message: counts.join(' · ') });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/admin/clear-sweep', async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+  try {
+    const result = await query(`DELETE FROM sweep_log`);
+    res.json({ message: `✓ Sweep log cleared (${result.rowCount || 0} rows)` });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.post('/api/admin/clear-queue', async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+  try {
+    const result = await query(`DELETE FROM review_queue WHERE status='pending'`);
+    res.json({ message: `✓ Cleared ${result.rowCount || 0} pending queue items` });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── START ─────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`EV Service Intelligence running on port ${PORT}`));
