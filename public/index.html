@@ -720,7 +720,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.addEventListener('load', async () => {
   const vkey = getVehicle(), year = getYear();
-  await autoSweepIfEmpty(vkey, year);
+  try {
+    await Promise.race([
+      autoSweepIfEmpty(vkey, year),
+      new Promise(resolve => setTimeout(resolve, 5000))
+    ]);
+  } catch(e) { /* silent fail, proceed to load */ }
   loadAll();
 });
 </script>
