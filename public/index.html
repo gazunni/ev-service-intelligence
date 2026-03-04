@@ -19,6 +19,33 @@
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;min-height:100vh;line-height:1.6}
 
+/* ── CARD ACTIONS ── */
+.card-actions{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.act-btn{font-size:10px;font-weight:600;font-family:var(--mono);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.04em;transition:all .2s;border:1px solid var(--border);background:transparent}
+.act-copy{color:var(--green);border-color:var(--border)}
+.act-copy:hover{border-color:var(--green);background:#0a1f0a}
+.act-copy.copied{color:#22c55e;border-color:#22c55e}
+.act-print{color:#38bdf8;border-color:var(--border)}
+.act-print:hover{border-color:#38bdf8;background:#020c14}
+@media print{
+  body{background:#fff;color:#000;font-size:12px}
+  .hdr,.selbar,.stats,.footer-cta{display:none!important}
+  .sec{border:none}
+  .sec-hdr{display:none}
+  .sec-body{display:block!important}
+  .card{border:1px solid #ccc;margin-bottom:16px;page-break-inside:avoid;background:#fff}
+  .card-hdr{background:#fff!important}
+  .card-body{display:block!important;background:#fff}
+  .card-actions,.act-btn,.card-chv{display:none!important}
+  .cf-label{color:#666}
+  .cf-val{color:#000}
+  .type-badge{border:1px solid #999;color:#000!important;background:#eee!important}
+  .pill{border:1px solid #999;color:#000!important;background:#eee!important}
+  .card-title{color:#000}
+  .card-sub{color:#666}
+  .sec:not(.print-target){display:none}
+  .print-target{display:block!important}
+}
 /* ── EFF LINK ── */
 .eff-link{font-size:9px;font-weight:700;letter-spacing:.08em;color:#38bdf8;border:1px solid #0e3a4a;background:#020c14;padding:3px 9px;border-radius:3px;text-decoration:none;transition:all .2s;white-space:nowrap}
 .eff-link:hover{background:#0a2030;border-color:#38bdf8;box-shadow:0 0 8px #38bdf840}
@@ -496,6 +523,10 @@ function buildCard(rec, type, idx) {
     ${rec.affected_units ? '<div class="cf"><div class="cf-label">Units Affected</div><div class="cf-val">'+esc(String(rec.affected_units))+'</div></div>' : ''}
     ${linkHtml ? '<div class="link-row">'+linkHtml+'</div>' : ''}
     ${type==='comm' ? `<div class="conf-bar"><div><div class="conf-num">${esc(String(rec.confirmations||1))}</div><div class="conf-label">Confirmations</div></div><button class="confirm-btn" onclick="confirmIssue('${esc(rec.id)}',this)">＋ Confirm</button></div>` : ''}
+    <div class="card-actions">
+      <button class="act-btn act-copy" data-copy="${id}">⎘ Copy</button>
+      <button class="act-btn act-print" data-print="${id}">⎙ Print</button>
+    </div>
   </div>
 </div>`;
 }
@@ -616,6 +647,48 @@ function clearResearch() {
   document.getElementById('resResults').innerHTML='';
 }
 
+// ── COPY & PRINT ─────────────────────────────
+function getCardText(cardBodyId) {
+  const body = document.getElementById(cardBodyId);
+  if (!body) return '';
+  const title = body.closest('.card').querySelector('.card-title');
+  const fields = body.querySelectorAll('.cf');
+  let lines = [];
+  if (title) lines.push(title.textContent.trim());
+  lines.push('----------------------------------------');
+  fields.forEach(f => {
+    const label = f.querySelector('.cf-label');
+    const val = f.querySelector('.cf-val');
+    if (label && val) lines.push(label.textContent.trim()+': '+val.textContent.trim());
+  });
+  lines.push('----------------------------------------');
+  lines.push('Source: '+window.location.href);
+  lines.push('2026 Gazunni / EV Service Intelligence');
+  return lines.join('
+');
+}
+
+function copyIssue(cardBodyId) {
+  const text = getCardText(cardBodyId);
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = document.querySelector('[data-copy="'+cardBodyId+'"]');
+    if (btn) { btn.textContent = '✓ Copied!'; btn.classList.add('copied'); setTimeout(()=>{ btn.textContent='⎘ Copy'; btn.classList.remove('copied'); }, 2000); }
+  }).catch(() => {
+    const btn = document.querySelector('[data-copy="'+cardBodyId+'"]');
+    if (btn) btn.textContent = 'Copy failed';
+  });
+}
+
+function printIssue(cardBodyId) {
+  const card = document.getElementById(cardBodyId).closest('.card');
+  const sec = card.closest('.sec');
+  document.querySelectorAll('.sec').forEach(s => s.classList.remove('print-target'));
+  sec.classList.add('print-target');
+  document.getElementById(cardBodyId).classList.add('open');
+  window.print();
+  sec.classList.remove('print-target');
+}
+
 // ── INIT ─────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('selModel').addEventListener('change', loadAll);
@@ -632,12 +705,16 @@ document.addEventListener('DOMContentLoaded', () => {
     el.addEventListener('click', () => togglePanel(el.dataset.panel));
   });
 
-  // Card expand — event delegation on document so it works for dynamically rendered cards
+  // Card expand + copy/print — event delegation for dynamically rendered cards
   document.addEventListener('click', e => {
+    const copyBtn = e.target.closest('[data-copy]');
+    const printBtn = e.target.closest('[data-print]');
+    const expandBtn = e.target.closest('[data-btn]');
     const hdr = e.target.closest('[data-card]');
-    const btn = e.target.closest('[data-btn]');
-    if (btn) { e.stopPropagation(); toggleCard(btn.dataset.btn); return; }
-    if (hdr) { toggleCard(hdr.dataset.card); }
+    if (copyBtn)  { e.stopPropagation(); copyIssue(copyBtn.dataset.copy); return; }
+    if (printBtn) { e.stopPropagation(); printIssue(printBtn.dataset.print); return; }
+    if (expandBtn){ e.stopPropagation(); toggleCard(expandBtn.dataset.btn); return; }
+    if (hdr)      { toggleCard(hdr.dataset.card); }
   });
 });
 
