@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -12,24 +11,55 @@
   --text:#b8e8c8;--muted:#4a8060;
   --recall:#ef4444;--recall-bg:#1a0808;
   --tsb:#f59e0b;--tsb-bg:#1a1208;
-  --pip:#a78bfa;--pip-bg:#120f1a;
   --comm:#22d3ee;--comm-bg:#041418;
-  --green:#22c55e;
+  --green:#22c55e;--blue:#38bdf8;
   --mono:'JetBrains Mono',monospace;
   --sans:'Syne',sans-serif;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13px;min-height:100vh;line-height:1.6}
+
+/* ── EFF LINK ── */
+.eff-link{font-size:9px;font-weight:700;letter-spacing:.08em;color:#38bdf8;border:1px solid #0e3a4a;background:#020c14;padding:3px 9px;border-radius:3px;text-decoration:none;transition:all .2s;white-space:nowrap}
+.eff-link:hover{background:#0a2030;border-color:#38bdf8;box-shadow:0 0 8px #38bdf840}
+.footer-cta{background:linear-gradient(135deg,#020c14,#050e08);border-top:1px solid #0e3a4a;padding:18px 24px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-top:20px}
+.footer-disclaimers{display:flex;flex-direction:column;gap:8px;flex:1;min-width:200px}
+.disc-row{display:flex;flex-wrap:wrap;gap:8px 20px}
+.disc-item{font-size:9px;color:#2a5040;letter-spacing:.04em}
+.disc-copy{font-size:9px;color:#1a3028;letter-spacing:.06em;margin-top:2px}
+.footer-btn{font-size:11px;font-weight:700;color:#38bdf8;border:1px solid #0e3a4a;background:#020c14;padding:8px 18px;border-radius:4px;text-decoration:none;letter-spacing:.05em;transition:all .2s;white-space:nowrap;align-self:center}
+.footer-btn:hover{background:#0a2030;border-color:#38bdf8;box-shadow:0 0 12px #38bdf840}
+/* ── HEADER ── */
 .hdr{background:linear-gradient(135deg,#061a0a,#050e08);border-bottom:1px solid var(--border);padding:18px 24px 14px;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px)}
-.hdr-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
-.hdr-icon{font-size:20px}
+.hdr-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
 .hdr-title{font-family:var(--sans);font-size:17px;font-weight:800;letter-spacing:-.02em;background:linear-gradient(90deg,#ef4444,#f59e0b,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .hdr-sub{font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
-.status-bar{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--muted);margin-top:8px}
-.dot{width:6px;height:6px;border-radius:50%;background:var(--muted);flex-shrink:0;transition:background .3s}
-.dot.live{background:var(--green);animation:blink 1.4s infinite}
-.dot.err{background:var(--recall)}
-@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── GAZUNNI BRAND LOADER ── */
+.gazunni-loader{display:flex;flex-direction:column;align-items:center;gap:6px}
+.gz-icon{position:relative;width:48px;height:48px;flex-shrink:0}
+.gz-icon svg{width:48px;height:48px}
+.gz-ring{fill:none;stroke:#0e3a4a;stroke-width:3;transition:stroke .4s}
+.gz-ring-pulse{fill:none;stroke:#38bdf8;stroke-width:3;stroke-dasharray:120;stroke-dashoffset:120;transition:stroke-dashoffset .8s ease,stroke .4s;transform-origin:center;transform:rotate(-90deg)}
+.gz-g{fill:#1a5a6a;font-family:var(--sans);font-size:20px;font-weight:800;transition:fill .4s}
+.gz-icon.loading .gz-ring{stroke:#0e3a4a}
+.gz-icon.loading .gz-ring-pulse{animation:gz-pulse 1.8s ease-in-out infinite;stroke:#38bdf8}
+.gz-icon.loading .gz-g{fill:#38bdf8;filter:drop-shadow(0 0 6px #38bdf8)}
+.gz-icon.done .gz-ring{stroke:#38bdf8}
+.gz-icon.done .gz-ring-pulse{stroke-dashoffset:0;stroke:#38bdf8}
+.gz-icon.done .gz-g{fill:#38bdf8;filter:drop-shadow(0 0 8px #38bdf8)}
+.gz-icon.err .gz-ring{stroke:#7f1d1d}
+.gz-icon.err .gz-g{fill:#ef4444}
+@keyframes gz-pulse{
+  0%,100%{filter:drop-shadow(0 0 2px #38bdf8);opacity:.7}
+  50%{filter:drop-shadow(0 0 12px #38bdf8) drop-shadow(0 0 20px #38bdf8);opacity:1}
+}
+.gz-status{font-size:10px;color:var(--muted);letter-spacing:.06em;transition:color .3s;text-align:center;min-width:160px}
+.gz-status.live{color:#38bdf8}
+.gz-status.err{color:var(--recall)}
+.gz-status.ok{color:var(--green)}
+
+/* ── SELBAR ── */
 .selbar{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;padding:12px 24px;background:var(--surface);border-bottom:1px solid var(--border)}
 .sg{display:flex;flex-direction:column;gap:3px}
 .sg label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
@@ -41,120 +71,128 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 .sweep-btn{background:linear-gradient(135deg,#0a3a1a,#062010);border:1px solid #1a5a2a;color:#6ee89a;font-family:var(--mono);font-size:11px;font-weight:600;padding:7px 16px;border-radius:4px;cursor:pointer;letter-spacing:.04em;transition:all .2s;white-space:nowrap;align-self:flex-end}
 .sweep-btn:hover{background:linear-gradient(135deg,#0f4d22,#082a14)}
 .sweep-btn:disabled{opacity:.4;cursor:not-allowed}
-.last-sw{font-size:9px;color:var(--muted);align-self:flex-end;padding-bottom:7px}
+.tool-btn{background:linear-gradient(135deg,#0a1a3a,#060e20);border:1px solid #1a2a5a;color:#6ea8e8;font-family:var(--mono);font-size:11px;font-weight:600;padding:7px 16px;border-radius:4px;cursor:pointer;letter-spacing:.04em;transition:all .2s;white-space:nowrap;align-self:flex-end}
+.tool-btn:hover{background:linear-gradient(135deg,#0f224d,#081428)}
+
+/* ── STATS ── */
 .stats{display:flex;border-bottom:1px solid var(--border)}
-.stat{flex:1;text-align:center;padding:10px 6px;border-right:1px solid var(--border)}
+.stat{flex:1;text-align:center;padding:10px 6px;border-right:1px solid var(--border);cursor:pointer;transition:background .2s}
 .stat:last-child{border-right:none}
+.stat:hover{background:var(--surface)}
 .sn{font-family:var(--sans);font-size:22px;font-weight:800;line-height:1}
 .sl{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
-#sn-recall{color:var(--recall)}#sn-tsb{color:var(--tsb)}#sn-pip{color:var(--pip)}#sn-comm{color:var(--comm)}
+#sn-recall{color:var(--recall)}#sn-tsb{color:var(--tsb)}#sn-comm{color:var(--comm)}
+
+/* ── SECTIONS ── */
 .sec{border-bottom:1px solid var(--border)}
-.sec-hdr{display:flex;align-items:center;gap:10px;padding:13px 24px;cursor:pointer;user-select:none;transition:background .15s}
-.sec-hdr:hover{background:rgba(255,255,255,.015)}
-.badge{font-family:var(--sans);font-size:10px;font-weight:700;padding:3px 9px;border-radius:3px;letter-spacing:.05em;text-transform:uppercase;white-space:nowrap}
-.b-recall{background:var(--recall-bg);color:var(--recall);border:1px solid #3a1010}
-.b-tsb{background:var(--tsb-bg);color:var(--tsb);border:1px solid #3a2810}
-.b-pip{background:var(--pip-bg);color:var(--pip);border:1px solid #251a3a}
-.b-comm{background:var(--comm-bg);color:var(--comm);border:1px solid #0a2830}
-.sec-title{font-family:var(--sans);font-size:14px;font-weight:700;flex:1}
-.sec-count{font-size:10px;color:var(--muted);background:var(--surface2);padding:2px 8px;border-radius:10px}
-.chv{font-size:10px;color:var(--muted);transition:transform .2s}
-.chv.open{transform:rotate(180deg)}
-.sec-body{display:none;padding:0 24px 16px}
+.sec-hdr{display:flex;align-items:center;gap:10px;padding:12px 20px;cursor:pointer;user-select:none;transition:background .2s}
+.sec-hdr:hover{background:var(--surface)}
+.type-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:3px;letter-spacing:.08em}
+.tb-recall{background:var(--recall-bg);color:var(--recall);border:1px solid var(--recall)}
+.tb-tsb{background:var(--tsb-bg);color:var(--tsb);border:1px solid var(--tsb)}
+.tb-comm{background:var(--comm-bg);color:var(--comm);border:1px solid var(--comm)}
+.sec-title{font-family:var(--sans);font-size:13px;font-weight:700;flex:1}
+.sec-cnt{font-size:11px;color:var(--muted);margin-right:6px}
+.chv{color:var(--muted);font-size:11px;transition:transform .25s}
+.sec-body{display:none;padding:0 20px 16px}
 .sec-body.open{display:block}
-.pill-row{display:flex;gap:8px;flex-wrap:wrap;padding:8px 0 12px;border-bottom:1px solid var(--border);margin-bottom:12px}
-.pill{font-size:9px;padding:2px 7px;border-radius:3px;font-weight:600;letter-spacing:.05em;text-transform:uppercase}
-.p-nhtsa{background:#0c2340;color:#60a5fa;border:1px solid #1a3a60}
-.p-tc{background:#0c2a1a;color:#4ade80;border:1px solid #1a4a30}
-.p-reddit{background:#2a1a0a;color:#fb923c;border:1px solid #4a2a10}
-.p-forum{background:#1a1230;color:#a78bfa;border:1px solid #2a1a50}
-.p-submitted{background:#0f1f0f;color:#86efac;border:1px solid #1a3a1a}
-.p-dealer{background:#1a100a;color:#fcd34d;border:1px solid #3a2810}
-.p-facebook{background:#0c1a2a;color:#93c5fd;border:1px solid #1a3050}
-.sec-note{font-size:9px;color:var(--muted);line-height:1.6;margin-bottom:12px}
-.card{background:var(--surface2);border:1px solid var(--border);border-radius:5px;margin-bottom:8px;overflow:hidden;transition:border-color .15s}
-.card:hover{border-color:#2a6040}
-.card-hdr{display:flex;align-items:flex-start;gap:10px;padding:11px 14px;cursor:pointer}
-.sev-bar{width:3px;border-radius:2px;align-self:stretch;flex-shrink:0;min-height:18px}
-.sv-critical{background:var(--recall)}.sv-moderate{background:var(--tsb)}.sv-low{background:var(--pip)}
+.chv.open{transform:rotate(180deg)}
+
+/* ── CARDS ── */
+.card{border:1px solid var(--border);border-radius:6px;margin-bottom:10px;overflow:hidden;background:var(--surface)}
+.card-hdr{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;cursor:pointer;transition:background .2s}
+.card-hdr:hover{background:var(--surface2)}
+.sev-bar{width:3px;height:100%;border-radius:2px;flex-shrink:0;min-height:40px}
+.sv-critical{background:var(--recall)}
+.sv-moderate{background:var(--tsb)}
+.sv-low{background:var(--green)}
 .card-meta{flex:1;min-width:0}
-.card-title{font-family:var(--sans);font-size:12px;font-weight:700;color:#e2f5e8;line-height:1.3;margin-bottom:3px}
-.card-sub{display:flex;gap:8px;align-items:center;font-size:9px;color:var(--muted);margin-bottom:5px;flex-wrap:wrap}
-.card-pills{display:flex;gap:4px;flex-wrap:wrap}
-.card-chv{font-size:10px;color:var(--muted);flex-shrink:0;padding-top:2px}
-.card-body{display:none;padding:10px 14px 12px 27px;border-top:1px solid var(--border)}
+.card-title{font-family:var(--sans);font-size:12px;font-weight:700;line-height:1.3;margin-bottom:3px}
+.card-sub{font-size:9px;color:var(--muted);display:flex;flex-wrap:wrap;gap:4px;margin-bottom:5px}
+.card-sub span{background:var(--surface2);padding:1px 5px;border-radius:2px}
+.card-pills{display:flex;flex-wrap:wrap;gap:4px;margin-top:4px}
+.pill{font-size:8px;padding:2px 6px;border-radius:3px;letter-spacing:.04em;font-weight:600}
+.p-nhtsa{background:#1a0a08;color:#f87171;border:1px solid #7f1d1d}
+.p-forum{background:#0a1a0a;color:#86efac;border:1px solid #166534}
+.p-reddit{background:#1a0e08;color:#fdba74;border:1px solid #92400e}
+.p-dealer{background:#0a0a1a;color:#a5b4fc;border:1px solid #3730a3}
+.p-facebook{background:#080f1a;color:#7dd3fc;border:1px solid #0c4a6e}
+.p-submitted{background:#0f0f0f;color:#9ca3af;border:1px solid #374151}
+.p-tsb{background:#1a1208;color:#fcd34d;border:1px solid #92400e}
+.card-chv{color:var(--muted);font-size:10px;flex-shrink:0;margin-top:2px}
+.card-body{display:none;padding:0 14px 12px 14px;border-top:1px solid var(--border)}
 .card-body.open{display:block}
-.cf{margin-bottom:8px}
-.cf-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:2px}
-.cf-val{font-size:11px;color:var(--text);line-height:1.5}
-.cf-risk{color:#fca5a5!important}.cf-remedy{color:#86efac!important}.cf-ref{color:var(--muted)!important}
-.card-links{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
-.cl{font-size:10px;padding:4px 10px;border-radius:4px;text-decoration:none;font-weight:600;transition:opacity .15s}
-.cl:hover{opacity:.8}
-.cl-nhtsa{background:#0c1f3a;color:#60a5fa;border:1px solid #1a3060}
-.cl-forum{background:#1a1230;color:#a78bfa;border:1px solid #2a1a50}
-.cl-reddit{background:#2a1a0a;color:#fb923c;border:1px solid #3a2010}
-.conf-row{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:10px;color:var(--muted)}
-.conf-n{background:var(--comm-bg);color:var(--comm);border:1px solid #0a2830;padding:1px 8px;border-radius:10px;font-weight:700;font-size:10px}
-.empty{text-align:center;padding:28px;color:var(--muted)}
-.ei{font-size:26px;margin-bottom:8px}.et{font-size:11px;line-height:1.6}
-.loading{display:flex;align-items:center;gap:8px;padding:20px;color:var(--muted);font-size:11px}
-.spin{width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--comm);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+.cf{display:flex;gap:8px;margin-top:8px;font-size:11px}
+.cf-label{color:var(--muted);min-width:80px;flex-shrink:0;font-size:10px;text-transform:uppercase;letter-spacing:.05em;padding-top:1px}
+.cf-val{color:var(--text);flex:1}
+.symp-list{list-style:none;padding:0}
+.symp-list li{padding:2px 0;color:var(--text)}
+.symp-list li::before{content:'› ';color:var(--comm)}
+.conf-bar{display:flex;align-items:center;gap:8px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
+.conf-num{font-family:var(--sans);font-size:18px;font-weight:800;color:var(--comm)}
+.conf-label{font-size:9px;color:var(--muted);text-transform:uppercase}
+.confirm-btn{margin-left:auto;background:var(--comm-bg);border:1px solid var(--comm);color:var(--comm);font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:3px;cursor:pointer}
+.link-row{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.ext-link{font-size:10px;color:var(--comm);text-decoration:none;border:1px solid var(--comm-bg);padding:2px 7px;border-radius:3px;background:var(--comm-bg)}
+.ext-link:hover{background:#0a2830}
+
+/* ── TOOL PANELS ── */
+.tool-panel{display:none;background:var(--surface);border:1px solid var(--border);border-radius:6px;margin:12px 20px;padding:16px}
+.tool-panel.open{display:block}
+.tool-panel h3{font-family:var(--sans);font-size:13px;font-weight:700;margin-bottom:4px;color:var(--comm)}
+.tool-note{font-size:10px;color:var(--muted);margin-bottom:12px}
+.form-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.form-group{display:flex;flex-direction:column;gap:3px;flex:1;min-width:140px}
+.form-group label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.form-group input,.form-group select,.form-group textarea{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:6px 9px;border-radius:4px}
+.form-group textarea{resize:vertical;min-height:80px;line-height:1.5}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:var(--comm)}
+.btn-row{display:flex;gap:8px;margin-top:8px}
+.submit-btn{background:linear-gradient(135deg,#0a1a3a,#060e20);border:1px solid #1a3a6a;color:#7dd3fc;font-family:var(--mono);font-size:11px;font-weight:600;padding:7px 14px;border-radius:4px;cursor:pointer;transition:all .2s}
+.submit-btn:hover{background:linear-gradient(135deg,#0f2550,#081828)}
+.submit-btn:disabled{opacity:.4;cursor:not-allowed}
+.cancel-btn{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:11px;padding:7px 14px;border-radius:4px;cursor:pointer}
+
+/* ── RESEARCH RESULTS ── */
+.rq-item{border:1px solid var(--border);border-radius:5px;padding:12px;margin-bottom:8px;background:var(--surface2)}
+.rq-title{font-weight:700;font-size:12px;margin-bottom:4px}
+.rq-meta{font-size:10px;color:var(--muted);margin-bottom:8px}
+.rq-actions{display:flex;gap:6px}
+.approve-btn{background:#0a2010;border:1px solid var(--green);color:var(--green);font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:3px;cursor:pointer}
+.reject-btn{background:#1a0808;border:1px solid var(--recall);color:var(--recall);font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:3px;cursor:pointer}
+
+/* ── EMPTY / LOADING ── */
+.empty{text-align:center;padding:30px 20px;color:var(--muted)}
+.ei{font-size:28px;margin-bottom:8px}
+.et{font-size:11px;line-height:1.6}
+.loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:30px;color:var(--muted);font-size:11px}
+.spin{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--comm);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
-.submit{border-top:2px solid var(--border);padding:20px 24px;background:var(--surface)}
-.sub-title{font-family:var(--sans);font-size:13px;font-weight:700;color:#e2f5e8;margin-bottom:3px}
-.sub-note{font-size:10px;color:var(--muted);margin-bottom:14px;line-height:1.5}
-.sub-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
-@media(max-width:580px){.sub-grid{grid-template-columns:1fr}}
-.field{display:flex;flex-direction:column;gap:3px}
-.field label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600}
-.field input,.field textarea,.field select{background:var(--bg);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:11px;padding:7px 10px;border-radius:4px;transition:border-color .15s}
-.field input:focus,.field textarea:focus,.field select:focus{outline:none;border-color:var(--green)}
-.field textarea{resize:vertical;min-height:64px}
-.f-full{grid-column:1/-1}
-.sub-actions{display:flex;gap:10px;align-items:center;margin-top:8px}
-.sub-btn{background:linear-gradient(135deg,#0a2a1a,#061812);border:1px solid #1a4a30;color:#4ade80;font-family:var(--mono);font-size:11px;font-weight:600;padding:8px 16px;border-radius:4px;cursor:pointer;letter-spacing:.04em;transition:all .2s}
-.sub-btn:hover{background:linear-gradient(135deg,#0f3520,#091c14)}
-.sub-btn:disabled{opacity:.4;cursor:not-allowed}
-.sub-status{font-size:10px;color:var(--muted)}
-.ai-box{background:#050e08;border:1px solid #1a3a20;border-left:3px solid var(--green);border-radius:5px;padding:12px;margin-top:10px;font-size:11px;line-height:1.6;color:#86efac;display:none}
-.research-panel{border-top:2px solid var(--border);padding:20px 24px;background:#040c06}
-.rp-title{font-family:var(--sans);font-size:13px;font-weight:700;color:#e2f5e8;margin-bottom:3px;display:flex;align-items:center;gap:8px}
-.rp-note{font-size:10px;color:var(--muted);margin-bottom:14px;line-height:1.5}
-.rp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}
-@media(max-width:580px){.rp-grid{grid-template-columns:1fr}}
-.rp-btn{background:linear-gradient(135deg,#1a1a3a,#0d0d28);border:1px solid #2a2a5a;color:#a78bfa;font-family:var(--mono);font-size:11px;font-weight:600;padding:8px 16px;border-radius:4px;cursor:pointer;letter-spacing:.04em;transition:all .2s}
-.rp-btn:hover{background:linear-gradient(135deg,#222250,#141438)}
-.rp-btn:disabled{opacity:.4;cursor:not-allowed}
-.rp-clear-btn{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--mono);font-size:10px;padding:7px 12px;border-radius:4px;cursor:pointer;transition:all .2s}
-.rp-clear-btn:hover{border-color:var(--recall);color:var(--recall)}
-.review-queue{margin-top:14px}
-.rq-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:600;margin-bottom:8px}
-.rq-item{background:var(--surface2);border:1px solid var(--border);border-left:3px solid var(--pip);border-radius:5px;padding:12px 14px;margin-bottom:8px}
-.rq-item-title{font-family:var(--sans);font-size:12px;font-weight:700;color:#e2f5e8;margin-bottom:4px}
-.rq-item-meta{font-size:10px;color:var(--muted);margin-bottom:8px}
-.rq-item-summary{font-size:11px;color:var(--text);line-height:1.5;margin-bottom:10px}
-.rq-actions{display:flex;gap:8px}
-.rq-approve{background:#0a2a1a;border:1px solid #1a4a30;color:#4ade80;font-family:var(--mono);font-size:10px;font-weight:600;padding:5px 12px;border-radius:4px;cursor:pointer}
-.rq-reject{background:#1a0808;border:1px solid #3a1010;color:#f87171;font-family:var(--mono);font-size:10px;font-weight:600;padding:5px 12px;border-radius:4px;cursor:pointer}
-.rq-confidence{font-size:9px;padding:2px 7px;border-radius:3px;font-weight:600;border:1px solid}
-.rq-high{color:#4ade80;border-color:#1a4a30;background:#0a2a1a}
-.rq-medium{color:#fbbf24;border-color:#3a2810;background:#1a1208}
-.rq-low{color:#f87171;border-color:#3a1010;background:#1a0808}
-.disc{font-size:9px;color:var(--muted);line-height:1.6;padding:10px 24px;border-top:1px solid var(--border);background:var(--surface)}
 </style>
 </head>
 <body>
 
+<!-- HEADER -->
 <div class="hdr">
   <div class="hdr-top">
-    <span class="hdr-icon">⚡</span>
-    <span class="hdr-title">EV SERVICE INTELLIGENCE</span>
+    <div class="gazunni-loader">
+      <div class="gz-icon loading" id="gzIcon">
+        <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+          <circle class="gz-ring" cx="24" cy="24" r="20"/>
+          <circle class="gz-ring-pulse" id="gzRing" cx="24" cy="24" r="20"/>
+          <text class="gz-g" id="gzG" x="24" y="31" text-anchor="middle">G</text>
+        </svg>
+      </div>
+    </div>
+    <div style="flex:1">
+      <div class="hdr-title">EV SERVICE INTELLIGENCE</div>
+      <div class="hdr-sub">RECALLS · TSBS · COMMUNITY ISSUES</div>
+      <div class="gz-status live" id="gzStatus">Initializing…</div>
+    </div>
   </div>
-  <div class="hdr-sub">Recalls · TSBs · PIPs · Community Issues</div>
-  <div class="status-bar"><div class="dot" id="dot"></div><span id="statusMsg">Loading…</span></div>
 </div>
 
+<!-- SELBAR -->
 <div class="selbar">
   <div class="sg">
     <label>Vehicle</label>
@@ -169,451 +207,429 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
     <select id="selYear">
       <option value="2025">2025</option>
       <option value="2024">2024</option>
+      <option value="2023">2023</option>
     </select>
   </div>
   <div class="sg">
-    <label>VIN (optional)</label>
-    <input class="vin" id="vinInput" type="text" maxlength="17" placeholder="17-character VIN">
+    <label>VIN (Optional)</label>
+    <input class="vin" id="vinInput" placeholder="17-character VIN" maxlength="17">
   </div>
   <button class="sweep-btn" id="sweepBtn" onclick="runSweep()">⚡ Run AI Sweep</button>
-  <div class="last-sw" id="lastSw"></div>
+  <button class="tool-btn" onclick="togglePanel('submitPanel')">＋ Submit Issue</button>
+  <button class="tool-btn" onclick="togglePanel('researchPanel')">🔬 Research Sweep</button>
 </div>
 
+<!-- STATS -->
 <div class="stats">
-  <div class="stat"><div class="sn" id="sn-recall">—</div><div class="sl">Recalls</div></div>
-  <div class="stat"><div class="sn" id="sn-tsb">—</div><div class="sl">TSBs</div></div>
-  <div class="stat"><div class="sn" id="sn-pip">—</div><div class="sl">PIPs</div></div>
-  <div class="stat"><div class="sn" id="sn-comm">—</div><div class="sl">Community</div></div>
+  <div class="stat" onclick="toggleSec('recall')"><div class="sn" id="sn-recall">—</div><div class="sl">Recalls</div></div>
+  <div class="stat" onclick="toggleSec('tsb')"><div class="sn" id="sn-tsb">—</div><div class="sl">TSBs</div></div>
+  <div class="stat" onclick="toggleSec('comm')"><div class="sn" id="sn-comm">—</div><div class="sl">Community</div></div>
 </div>
 
-<div class="sec">
+<!-- SUBMIT PANEL -->
+<div class="tool-panel" id="submitPanel">
+  <h3>＋ Submit Community Issue</h3>
+  <p class="tool-note">AI checks for duplicates — matching reports add confirmation weight.</p>
+  <div class="form-row">
+    <div class="form-group" style="flex:2;min-width:200px">
+      <label>Issue Title</label>
+      <input id="subTitle" placeholder="Brief description of the issue">
+    </div>
+    <div class="form-group">
+      <label>Bulletin / Ref #</label>
+      <input id="subBulletin" placeholder="e.g. PIT6411B">
+    </div>
+  </div>
+  <div class="form-group" style="margin-bottom:10px">
+    <label>Detail</label>
+    <textarea id="subDetail" placeholder="Describe the issue, symptoms, and any fixes you've found…"></textarea>
+  </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label>Source Type</label>
+      <select id="subSrcType">
+        <option>Forum thread</option><option>Reddit</option><option>Facebook Group</option>
+        <option>Personal experience</option><option>Dealer confirmed</option><option>Other</option>
+      </select>
+    </div>
+    <div class="form-group" style="flex:2">
+      <label>Source URL (optional)</label>
+      <input id="subSrcUrl" placeholder="https://…">
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="submit-btn" id="subBtn" onclick="submitIssue()">Submit Issue</button>
+    <button class="cancel-btn" onclick="togglePanel('submitPanel')">Cancel</button>
+  </div>
+  <div id="subResult" style="margin-top:10px;font-size:11px;color:var(--muted)"></div>
+</div>
+
+<!-- RESEARCH PANEL -->
+<div class="tool-panel" id="researchPanel">
+  <h3>🔬 AI Research Sweep</h3>
+  <p class="tool-note">Paste raw text from forums, GM Authority articles, Reddit threads, or Facebook posts. Claude extracts structured issues into a review queue before anything goes live.</p>
+  <div class="form-row">
+    <div class="form-group">
+      <label>Source Type</label>
+      <select id="resSrcType">
+        <option>Forum thread</option><option>Reddit</option><option>Facebook Group</option>
+        <option>News article</option><option>Owner review</option><option>Other</option>
+      </select>
+    </div>
+    <div class="form-group" style="flex:2">
+      <label>Source URL (optional)</label>
+      <input id="resSrcUrl" placeholder="https://…">
+    </div>
+  </div>
+  <div class="form-group" style="margin-bottom:10px">
+    <label>Paste Raw Text</label>
+    <textarea id="resText" style="min-height:120px" placeholder="Paste forum posts, article text, Reddit comments — Claude will extract vehicle issues and structure them…"></textarea>
+  </div>
+  <div class="btn-row">
+    <button class="submit-btn" id="resBtn" onclick="runResearchSweep()">🧠 Extract Issues</button>
+    <button class="cancel-btn" onclick="clearResearch()">✕ Clear</button>
+  </div>
+  <div id="resResults" style="margin-top:12px"></div>
+</div>
+
+<!-- RECALLS SECTION -->
+<div class="sec" id="sec-recall">
   <div class="sec-hdr" onclick="toggleSec('recall')">
-    <span class="badge b-recall">🔴 Recall</span>
+    <span class="type-badge tb-recall">RECALL</span>
     <span class="sec-title">Official Safety Recalls</span>
-    <span class="sec-count" id="cnt-recall">—</span>
+    <span class="sec-cnt" id="cnt-recall">0</span>
     <span class="chv" id="chv-recall">▼</span>
   </div>
   <div class="sec-body" id="body-recall">
-    <div class="pill-row"><span class="pill p-nhtsa">NHTSA Official</span><span class="pill p-tc">Transport Canada</span></div>
-    <div id="cards-recall"><div class="empty"><div class="ei">🔍</div><div class="et">Run a sweep to fetch live recall data from NHTSA</div></div></div>
+    <div id="cards-recall"><div class="loading"><div class="spin"></div><span>Loading…</span></div></div>
   </div>
 </div>
 
-<div class="sec">
+<!-- TSB SECTION -->
+<div class="sec" id="sec-tsb">
   <div class="sec-hdr" onclick="toggleSec('tsb')">
-    <span class="badge b-tsb">🟡 TSB</span>
+    <span class="type-badge tb-tsb">TSB</span>
     <span class="sec-title">Technical Service Bulletins</span>
-    <span class="sec-count" id="cnt-tsb">—</span>
+    <span class="sec-cnt" id="cnt-tsb">0</span>
     <span class="chv" id="chv-tsb">▼</span>
   </div>
   <div class="sec-body" id="body-tsb">
-    <div class="pill-row"><span class="pill p-nhtsa">NHTSA Filed</span><span class="pill p-dealer">Dealer Confirmed</span></div>
-    <div class="sec-note">TSBs filed by manufacturers with NHTSA. GM PIPs and early-stage bulletins often aren't filed publicly — check Community for those.</div>
-    <div id="cards-tsb"><div class="empty"><div class="ei">📋</div><div class="et">Run a sweep to load TSB data</div></div></div>
+    <div id="cards-tsb"><div class="loading"><div class="spin"></div><span>Loading…</span></div></div>
   </div>
 </div>
 
-<div class="sec">
-  <div class="sec-hdr" onclick="toggleSec('pip')">
-    <span class="badge b-pip">🟣 PIP</span>
-    <span class="sec-title">Preliminary Information (PIPs)</span>
-    <span class="sec-count" id="cnt-pip">—</span>
-    <span class="chv" id="chv-pip">▼</span>
-  </div>
-  <div class="sec-body" id="body-pip">
-    <div class="pill-row"><span class="pill p-forum">Forum-surfaced</span><span class="pill p-reddit">Reddit</span><span class="pill p-facebook">Facebook Groups</span></div>
-    <div class="sec-note">PIPs are internal GM dealer communications — pre-TSB, not publicly filed. They surface via owner communities.</div>
-    <div id="cards-pip"><div class="empty"><div class="ei">📨</div><div class="et">No PIPs yet — submit one below if you have a bulletin number</div></div></div>
-  </div>
-</div>
-
-<div class="sec">
+<!-- COMMUNITY SECTION -->
+<div class="sec" id="sec-comm">
   <div class="sec-hdr" onclick="toggleSec('comm')">
-    <span class="badge b-comm">🔵 Community</span>
+    <span class="type-badge tb-comm">COMMUNITY</span>
     <span class="sec-title">Community-Reported Issues</span>
-    <span class="sec-count" id="cnt-comm">—</span>
+    <span class="sec-cnt" id="cnt-comm">0</span>
     <span class="chv" id="chv-comm">▼</span>
   </div>
   <div class="sec-body" id="body-comm">
-    <div class="pill-row"><span class="pill p-forum">Forum</span><span class="pill p-reddit">Reddit</span><span class="pill p-facebook">Facebook</span><span class="pill p-submitted">User Submitted</span></div>
-    <div class="sec-note">Issues reported by owners before an official bulletin exists. AI clusters similar reports to prevent duplication.</div>
-    <div id="cards-comm"><div class="loading"><div class="spin"></div><span>Loading community issues…</span></div></div>
+    <div class="empty" style="font-size:10px;color:var(--muted);padding:12px 0 4px">
+      <span style="color:var(--comm)">FORUM</span> &nbsp;
+      <span style="color:#f97316">REDDIT</span> &nbsp;
+      <span style="color:#3b82f6">FACEBOOK</span> &nbsp;
+      <span style="color:var(--muted)">USER SUBMITTED</span>
+    </div>
+    <div style="font-size:10px;color:var(--muted);padding:4px 0 12px">Issues reported by owners before an official bulletin exists. AI clusters similar reports to prevent duplication.</div>
+    <div id="cards-comm"><div class="loading"><div class="spin"></div><span>Loading…</span></div></div>
   </div>
 </div>
-
-<div class="research-panel">
-  <div class="rp-title">🔬 AI Research Sweep</div>
-  <div class="rp-note">Paste raw text from forums, GM Authority articles, Reddit threads, or Facebook posts. Claude extracts structured issues into a review queue before anything goes live.</div>
-  <div class="rp-grid">
-    <div class="field">
-      <label>Source Type</label>
-      <select id="rp-srctype">
-        <option value="forum">Forum thread</option>
-        <option value="reddit">Reddit</option>
-        <option value="facebook">Facebook group</option>
-        <option value="article">News article</option>
-        <option value="nhtsa_complaints">NHTSA complaints</option>
-      </select>
-    </div>
-    <div class="field">
-      <label>Source URL (optional)</label>
-      <input type="text" id="rp-url" placeholder="https://...">
-    </div>
-    <div class="field f-full">
-      <label>Paste Raw Text</label>
-      <textarea id="rp-text" style="min-height:120px" placeholder="Paste forum posts, article text, Reddit comments — Claude will extract vehicle issues and structure them..."></textarea>
-    </div>
-  </div>
-  <div class="sub-actions">
-    <button class="rp-btn" id="rpBtn" onclick="runResearchSweep()">🤖 Extract Issues</button>
-    <button class="rp-clear-btn" onclick="clearResearch()">✕ Clear</button>
-    <span class="sub-status" id="rpStatus"></span>
-  </div>
-  <div id="rpQueue"></div>
-</div>
-
-<div class="submit">
-  <div class="sub-title">➕ Submit a Known Issue</div>
-  <div class="sub-note">Found something in a Facebook group, forum, or from personal experience?<br>AI checks for duplicates — matching reports add community confirmation weight.</div>
-  <div class="sub-grid">
-    <div class="field"><label>Issue Title</label><input type="text" id="f-title" placeholder="e.g. Passenger floor water ingress"></div>
-    <div class="field"><label>Bulletin / TSB # (if known)</label><input type="text" id="f-bulletin" placeholder="e.g. PIP6241A or leave blank"></div>
-    <div class="field f-full"><label>Symptoms &amp; Details</label><textarea id="f-detail" placeholder="Describe symptoms, root cause if known, what the fix was..."></textarea></div>
-    <div class="field"><label>Source Link</label><input type="text" id="f-source" placeholder="https://... or leave blank"></div>
-    <div class="field"><label>Source Type</label>
-      <select id="f-srctype">
-        <option value="forum">Forum post</option>
-        <option value="reddit">Reddit</option>
-        <option value="facebook">Facebook group</option>
-        <option value="dealer">Dealer confirmed</option>
-        <option value="personal">Personal experience</option>
-      </select>
-    </div>
-  </div>
-  <div class="sub-actions">
-    <button class="sub-btn" id="subBtn" onclick="submitIssue()">🤖 Check &amp; Submit</button>
-    <span class="sub-status" id="subStatus"></span>
-  </div>
-  <div class="ai-box" id="aiBox"><div id="aiResult"></div></div>
-</div>
-
-<div class="disc">Recall data from NHTSA public API. Community issues are curated/user-submitted and not manufacturer-verified. Always confirm with a qualified dealer before acting on any information here.</div>
 
 <script>
-// ═══════════════════════════════════════════
-// PRODUCTION — all data via /api/* endpoints
-// No in-memory storage, no API key in browser
-// Claude runs server-side in Netlify functions
-// ═══════════════════════════════════════════
-
+// ── HELPERS ──────────────────────────────────
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-const getVehicle = () => ['equinox_ev','blazer_ev','mach_e'][document.getElementById('selModel').selectedIndex];
-const getYear    = () => document.getElementById('selYear').value;
+function getVehicle(){ return document.getElementById('selModel').value; }
+function getYear(){ return document.getElementById('selYear').value; }
 
-function setStatus(msg, state=''){
-  document.getElementById('statusMsg').textContent = msg;
-  document.getElementById('dot').className = 'dot'+(state?' '+state:'');
+// ── GAZUNNI STATUS ────────────────────────────
+function setGZ(state, msg) {
+  const icon = document.getElementById('gzIcon');
+  const status = document.getElementById('gzStatus');
+  icon.className = 'gz-icon ' + (state === 'loading' ? 'loading' : state === 'err' ? 'err' : 'done');
+  status.className = 'gz-status ' + (state === 'loading' ? 'live' : state === 'err' ? 'err' : 'ok');
+  status.textContent = msg;
 }
 
-// ── API HELPERS ──────────────────────────────
-const API_TIMEOUT_MS = 15000; // 20 second timeout for all API calls
-
-async function apiFetch(path, opts={}){
+// ── API ───────────────────────────────────────
+const API_TIMEOUT_MS = 15000;
+async function apiFetch(path, opts={}) {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
+  const tid = setTimeout(() => controller.abort(), API_TIMEOUT_MS);
   try {
-    const r = await fetch(path, { headers:{'Content-Type':'application/json'}, signal: controller.signal, ...opts });
-    clearTimeout(timeoutId);
-    if(!r.ok){ const e=await r.json().catch(()=>({error:r.statusText})); throw new Error(e.error||r.statusText); }
-    return r.json();
+    const r = await fetch(path, { ...opts, signal: controller.signal });
+    clearTimeout(tid);
+    if (!r.ok) throw new Error((await r.json().catch(()=>({error:r.statusText}))).error || r.statusText);
+    return await r.json();
   } catch(e) {
-    clearTimeout(timeoutId);
-    if(e.name === 'AbortError') throw new Error('Request timed out. The server may be starting up — try again in a moment.');
-    throw e;
+    clearTimeout(tid);
+    throw new Error(e.name === 'AbortError' ? 'Request timed out' : e.message);
   }
 }
-const apiGet  = (path) => apiFetch(path);
-const apiPost = (path, body) => apiFetch(path, { method:'POST', body:JSON.stringify(body) });
 
-// ── LOAD ALL SECTIONS ────────────────────────
-let loadErrors = [];
+// ── LOAD ──────────────────────────────────────
+let loadedSections = 0;
+let totalSections = 3;
 
-async function loadAll(){
-  const vkey = getVehicle();
-  const year = getYear();
-  setStatus('Loading community issues…','live');
-  loadErrors = [];
+async function loadAll() {
+  loadedSections = 0;
+  const vkey = getVehicle(), year = getYear();
+  setGZ('loading', 'Loading data…');
+  // All sections start collapsed
+  ['recall','tsb','comm'].forEach(s => {
+    document.getElementById('cards-'+s).innerHTML = '<div class="loading"><div class="spin"></div><span>Loading…</span></div>';
+    document.getElementById('cnt-'+s).textContent = '—';
+  });
 
-  // Load community first — it has seeded data and responds fast
-  // Recalls and TSBs load independently in background
-  await loadSection('community', vkey, year).catch(()=>{});
-  loadSection('recalls', vkey, year).catch(()=>{});
-  loadSection('tsbs',    vkey, year).catch(()=>{});
-  finalizeStatus();
+  // Load all in parallel, independently
+  loadSection('community', vkey, year);
+  loadSection('recalls', vkey, year);
+  loadSection('tsbs', vkey, year);
 }
 
-async function loadSection(type, vkey, year){
-  const cardId  = 'cards-'+(type==='community'?'comm':type==='recalls'?'recall':'tsb');
-  const countId = 'cnt-'  +(type==='community'?'comm':type==='recalls'?'recall':'tsb');
-  const statId  = 'sn-'   +(type==='community'?'comm':type==='recalls'?'recall':'tsb');
-  const secType =           type==='community'?'comm':type==='recalls'?'recall':'tsb';
-
-  document.getElementById(cardId).innerHTML = '<div class="loading"><div class="spin"></div><span>Loading…</span></div>';
-
+async function loadSection(type, vkey, year) {
+  const key = type==='community'?'comm':type==='recalls'?'recall':'tsb';
   try {
-    const rows = await apiGet(`/api/${type}?vehicle=${vkey}&year=${year}`);
-    renderSection(cardId, countId, statId, rows, secType);
-    if(type==='community' && rows.length) openSec('comm');
-  } catch(e){
-    document.getElementById(countId).textContent = '0';
-    document.getElementById(statId).textContent = '—';
-    document.getElementById(cardId).innerHTML = '<div class="empty"><div class="ei">⚠️</div><div class="et">'+esc(e.message)+'<br><button class="sweep-btn" style="margin-top:10px;font-size:10px" onclick="loadAll()">↻ Retry</button></div></div>';
-    throw e; // re-throw so Promise.allSettled captures it
-  }
-}
-
-function finalizeStatus(){
-  const rc = parseInt(document.getElementById('sn-recall').textContent)||0;
-  const tc = parseInt(document.getElementById('sn-tsb').textContent)||0;
-  const cc = parseInt(document.getElementById('sn-comm').textContent)||0;
-  const total = rc + tc + cc;
-
-  if(loadErrors.length === 3){
-    // All three sections failed
-    setStatus('Connection error — click Retry or refresh the page.', 'err');
-  } else if(loadErrors.length > 0){
-    // Some sections failed
-    setStatus('Partial load — '+total+' items. Some sections had errors.', 'err');
-  } else if(total > 0){
-    setStatus('Loaded — '+rc+' recalls · '+tc+' TSBs · '+cc+' community issues', 'live');
-  } else {
-    // All loaded OK but no data found
-    setStatus('Connected — no data found. Run an AI Sweep to fetch NHTSA data.', '');
-  }
-}
-
-// ── SWEEP ────────────────────────────────────
-async function runSweep(){
-  const vkey = getVehicle();
-  const year = getYear();
-  const btn  = document.getElementById('sweepBtn');
-  btn.disabled = true;
-  setStatus('Fetching NHTSA data and running AI summarization…','live');
-
-  try {
-    const result = await apiPost('/api/sweep', { vehicle:vkey, year:parseInt(year) });
-    document.getElementById('lastSw').textContent = 'Last sweep: '+new Date().toLocaleString();
-    setStatus('Sweep done — '+result.recalls+' recalls · '+result.tsbs+' TSBs updated');
-    // Reload recall and TSB sections with fresh data
-    loadSection('recalls', vkey, year);
-    loadSection('tsbs',    vkey, year);
-    if(result.recalls) openSec('recall');
-    if(result.tsbs)    openSec('tsb');
-  } catch(e){
-    setStatus('Sweep error: '+e.message, 'err');
-  }
-  btn.disabled = false;
-}
-
-// ── SUBMIT ───────────────────────────────────
-async function submitIssue(){
-  const vkey    = getVehicle();
-  const year    = getYear();
-  const title   = document.getElementById('f-title').value.trim();
-  const detail  = document.getElementById('f-detail').value.trim();
-  const bulletin = document.getElementById('f-bulletin').value.trim();
-  const sourceUrl = document.getElementById('f-source').value.trim();
-  const srcType  = document.getElementById('f-srctype').value;
-
-  if(!title||!detail){ document.getElementById('subStatus').textContent='⚠️ Title and details required.'; return; }
-
-  const btn = document.getElementById('subBtn');
-  btn.disabled = true;
-  document.getElementById('subStatus').textContent = '🤖 Checking for duplicates…';
-  document.getElementById('aiBox').style.display = 'none';
-
-  try {
-    const result = await apiPost('/api/submit', { vehicle:vkey, year:parseInt(year), title, detail, bulletin, sourceUrl, srcType });
-    const aiBox = document.getElementById('aiBox');
-    const aiResult = document.getElementById('aiResult');
-    aiBox.style.display = 'block';
-
-    if(result.action==='confirmed'){
-      aiResult.innerHTML = '<b style="color:var(--tsb)">Duplicate detected</b> ('+Math.round((result.confidence||0)*100)+'% match)<br>Added as confirmation to existing record.';
-    } else {
-      aiResult.innerHTML = '<b style="color:var(--green)">New issue created</b> — no match found. Added to community section.';
+    const rows = await apiFetch(`/api/${type}?vehicle=${vkey}&year=${year}`);
+    renderSection('cards-'+key, 'cnt-'+key, rows, key);
+    loadedSections++;
+    if (loadedSections >= totalSections) {
+      const rc = parseInt(document.getElementById('sn-recall').textContent)||0;
+      const tc = parseInt(document.getElementById('sn-tsb').textContent)||0;
+      const cc = parseInt(document.getElementById('sn-comm').textContent)||0;
+      const total = rc+tc+cc;
+      if (total > 0) {
+        setGZ('done', `Loaded — ${rc} recalls · ${tc} TSBs · ${cc} community issues`);
+      } else {
+        setGZ('done', 'Connected — no data found. Run an AI Sweep to fetch NHTSA data.');
+      }
     }
-
-    document.getElementById('subStatus').textContent = result.action==='confirmed' ? '✅ Confirmation added.' : '✅ Issue submitted.';
-    ['f-title','f-detail','f-bulletin','f-source'].forEach(id=>{ document.getElementById(id).value=''; });
-    // Reload community section
-    loadSection('community', vkey, year);
-  } catch(e){
-    document.getElementById('subStatus').textContent = '❌ Error: '+e.message;
-  }
-  btn.disabled = false;
-}
-
-// ── RESEARCH SWEEP ───────────────────────────
-async function runResearchSweep(){
-  const text    = document.getElementById('rp-text').value.trim();
-  const srctype = document.getElementById('rp-srctype').value;
-  const srcurl  = document.getElementById('rp-url').value.trim();
-  const vkey    = getVehicle();
-  const year    = getYear();
-
-  if(!text){ document.getElementById('rpStatus').textContent='⚠️ Paste some text to analyze.'; return; }
-
-  const btn = document.getElementById('rpBtn');
-  btn.disabled = true;
-  document.getElementById('rpStatus').textContent = '🤖 Analyzing text for vehicle issues…';
-  document.getElementById('rpQueue').innerHTML = '';
-
-  try {
-    const result = await apiPost('/api/research', { vehicle:vkey, year:parseInt(year), text, srcType:srctype, srcUrl:srcurl });
-
-    if(!result.issues?.length){
-      document.getElementById('rpStatus').textContent = '✓ Analysis complete — no new vehicle issues found in this text.';
-      btn.disabled = false;
-      return;
-    }
-
-    document.getElementById('rpStatus').textContent = result.count+' issue'+(result.count>1?'s':'')+' found — review below before adding:';
-
-    const queueEl = document.getElementById('rpQueue');
-    queueEl.innerHTML = '<div class="review-queue"><div class="rq-title">Review Queue — approve to add to Community section</div>'
-      + result.issues.map((issue, i) => {
-          const confCls = issue.confidence==='HIGH'?'rq-high':issue.confidence==='MEDIUM'?'rq-medium':'rq-low';
-          const dupWarn = issue.likelyMatchId
-            ? `<div style="font-size:10px;color:var(--tsb);margin-bottom:6px">⚠️ Possible duplicate: ${esc(issue.likelyMatchReason||'')}</div>`
-            : '';
-          return `<div class="rq-item" id="rqi-${i}">
-  <div class="rq-item-title">${esc(issue.title||'Untitled')}</div>
-  <div class="rq-item-meta">
-    <span>${esc(issue.component||'Unknown')}</span> · <span>${esc(issue.severity||'LOW')}</span> ·
-    <span class="rq-confidence ${confCls}">${esc(issue.confidence||'LOW')} confidence</span>
-    ${issue.bulletinRef ? ' · <span style="color:var(--pip)">'+esc(issue.bulletinRef)+'</span>' : ''}
-  </div>
-  ${dupWarn}
-  <div class="rq-item-summary">${esc(issue.summary||'')}</div>
-  ${issue.symptoms?.length ? '<div style="font-size:10px;color:var(--muted);margin-bottom:8px">'+issue.symptoms.map(s=>'• '+esc(s)).join(' &nbsp;')+'</div>' : ''}
-  <div class="rq-actions">
-    <button class="rq-approve" onclick="approveIssue(${i}, ${issue.queueId}, '${vkey}', ${year})">✓ Add to Community</button>
-    <button class="rq-reject"  onclick="rejectIssue(${i})">✕ Discard</button>
-  </div>
-</div>`;
-        }).join('')
-      + '</div>';
-  } catch(e){
-    document.getElementById('rpStatus').textContent = '❌ Error: '+e.message;
-  }
-  btn.disabled = false;
-}
-
-async function approveIssue(idx, queueId, vkey, year){
-  const el = document.getElementById('rqi-'+idx);
-  if(el) el.querySelector('.rq-actions').innerHTML = '<span style="color:var(--muted);font-size:10px">Adding…</span>';
-
-  try {
-    await apiPost('/api/approve', { queueId, vehicle:vkey, year });
-    if(el){
-      el.style.opacity='0.5';
-      el.style.pointerEvents='none';
-      el.querySelector('.rq-actions').innerHTML = '<span style="color:var(--green);font-size:10px">✓ Added to Community section</span>';
-    }
-    loadSection('community', vkey, year);
-  } catch(e){
-    if(el) el.querySelector('.rq-actions').innerHTML = '<span style="color:var(--recall);font-size:10px">❌ '+esc(e.message)+'</span>';
+  } catch(e) {
+    loadedSections++;
+    document.getElementById('cnt-'+key).textContent = '0';
+    document.getElementById('sn-'+key).textContent = '0';
+    document.getElementById('cards-'+key).innerHTML = `<div class="empty"><div class="ei">⚠️</div><div class="et">${esc(e.message)}<br><button class="sweep-btn" style="margin-top:10px;font-size:10px" onclick="loadAll()">↻ Retry</button></div></div>`;
+    if (loadedSections >= totalSections) setGZ('err', 'Some sections failed to load');
   }
 }
 
-function rejectIssue(idx){
-  const el = document.getElementById('rqi-'+idx);
-  if(el){
-    el.style.opacity='0.3';
-    el.style.pointerEvents='none';
-    el.querySelector('.rq-actions').innerHTML = '<span style="color:var(--muted);font-size:10px">Discarded</span>';
-  }
+// ── SECTIONS TOGGLE ───────────────────────────
+function toggleSec(n) {
+  const body = document.getElementById('body-'+n);
+  const chv = document.getElementById('chv-'+n);
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  chv.classList.toggle('open', !isOpen);
+}
+function openSec(n) {
+  document.getElementById('body-'+n).classList.add('open');
+  document.getElementById('chv-'+n).classList.add('open');
+}
+function toggleCard(id) {
+  const el = document.getElementById(id);
+  if (el) el.classList.toggle('open');
 }
 
-function clearResearch(){
-  document.getElementById('rp-text').value='';
-  document.getElementById('rp-url').value='';
-  document.getElementById('rpStatus').textContent='';
-  document.getElementById('rpQueue').innerHTML='';
+// ── TOOL PANELS ───────────────────────────────
+function togglePanel(id) {
+  const panel = document.getElementById(id);
+  panel.classList.toggle('open');
 }
 
-// ── RENDER ───────────────────────────────────
-function renderSection(cId, countId, statId, items, type){
-  document.getElementById(countId).textContent = items.length;
-  document.getElementById(statId).textContent  = items.length||'—';
-  if(!items.length){
-    const cfg={
-      recall:{icon:'✅',text:'No open recalls found for this vehicle and year.'},
-      tsb:   {icon:'📋',text:'No TSBs found — run a sweep to check NHTSA.'},
-      pip:   {icon:'📨',text:'No PIPs yet — submit one below.'},
-      comm:  {icon:'💬',text:'No community issues yet.'},
-    };
-    const c=cfg[type]||{icon:'🔍',text:'No data.'};
-    document.getElementById(cId).innerHTML='<div class="empty"><div class="ei">'+c.icon+'</div><div class="et">'+c.text+'</div></div>';
+// ── RENDER ────────────────────────────────────
+function renderSection(cId, countId, items, type) {
+  const snId = 'sn-'+(type==='comm'?'comm':type==='recall'?'recall':'tsb');
+  const count = items ? items.length : 0;
+  document.getElementById(countId).textContent = count;
+  document.getElementById(snId).textContent = count;
+  if (!count) {
+    const msgs = {recall:'No recalls found. Run AI Sweep to fetch NHTSA data.',tsb:'No TSBs found. Run AI Sweep to fetch NHTSA data.',comm:'No community issues yet.'};
+    document.getElementById(cId).innerHTML = `<div class="empty"><div class="et">${msgs[type]||'No data.'}</div></div>`;
     return;
   }
   document.getElementById(cId).innerHTML = items.map((item,i)=>buildCard(item,type,i)).join('');
 }
 
-function buildCard(rec, type, idx){
+function buildCard(rec, type, idx) {
   if(!rec) return '';
+  const id = 'card-'+type+'-'+idx;
   const sc = rec.severity==='CRITICAL'?'sv-critical':rec.severity==='LOW'?'sv-low':'sv-moderate';
   const pills = (rec.source_pills||rec.sourcePills||[]).map(p=>{
-    const c=/nhtsa/i.test(p)?'p-nhtsa':/reddit/i.test(p)?'p-reddit':/forum/i.test(p)?'p-forum':/dealer/i.test(p)?'p-dealer':/facebook/i.test(p)?'p-facebook':/transport/i.test(p)?'p-tc':'p-submitted';
-    return '<span class="pill '+c+'">'+esc(p)+'</span>';
+    const c=/nhtsa/i.test(p)?'p-nhtsa':/reddit/i.test(p)?'p-reddit':/forum/i.test(p)?'p-forum':/dealer/i.test(p)?'p-dealer':/facebook/i.test(p)?'p-facebook':/tsb/i.test(p)?'p-tsb':'p-submitted';
+    return `<span class="pill ${c}">${esc(p)}</span>`;
   }).join('');
-  const links = (typeof rec.links==='string'?JSON.parse(rec.links):rec.links||[]).map(l=>{
-    const c=l.type==='reddit'?'cl-reddit':l.type==='nhtsa'?'cl-nhtsa':'cl-forum';
-    return '<a class="cl '+c+'" href="'+esc(l.url)+'" target="_blank" rel="noopener">'+esc(l.label)+'</a>';
-  }).join('');
-  const nhtsaLink = (type==='recall'&&rec.id)
-    ? '<a class="cl cl-nhtsa" href="https://www.nhtsa.gov/vehicle-recall/'+encodeURIComponent(rec.id)+'" target="_blank" rel="noopener">🔗 NHTSA Record</a>' : '';
-  const id='card-'+type+'-'+idx;
-  const symptoms = typeof rec.symptoms==='string'?JSON.parse(rec.symptoms):rec.symptoms||[];
-  return `<div class="card">
-<div class="card-hdr" onclick="toggleCard('${id}')">
-  <div class="sev-bar ${sc}"></div>
-  <div class="card-meta">
-    <div class="card-title">${esc(rec.title||'Unknown Issue')}</div>
-    <div class="card-sub">
-      ${rec.id?'<span>'+esc(String(rec.id))+'</span>':''}
-      ${rec.created_at?'<span>· '+esc(String(rec.created_at).substring(0,10))+'</span>':''}
-      ${rec.severity?'<span>· '+esc(rec.severity)+'</span>':''}
+  const symptoms = (rec.symptoms||[]).map(s=>`<li>${esc(s)}</li>`).join('');
+  const links = (() => { try { return Array.isArray(rec.links) ? rec.links : JSON.parse(rec.links||'[]'); } catch{ return []; }})();
+  const linkHtml = links.map(l=>`<a class="ext-link" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label||'Source')}</a>`).join('');
+  const dateStr = rec.created_at ? esc(String(rec.created_at).substring(0,10)) : '';
+
+  return `
+<div class="card">
+  <div class="card-hdr" onclick="toggleCard('${id}')">
+    <div class="sev-bar ${sc}"></div>
+    <div class="card-meta">
+      <div class="card-title">${esc(rec.title||'Unknown Issue')}</div>
+      <div class="card-sub">
+        ${rec.id ? '<span>'+esc(String(rec.id))+'</span>' : ''}
+        ${dateStr ? '<span>· '+dateStr+'</span>' : ''}
+        ${rec.severity ? '<span>· '+esc(rec.severity)+'</span>' : ''}
+      </div>
+      <div class="card-pills">${pills}</div>
     </div>
-    <div class="card-pills">${pills}</div>
+    <span class="card-chv">▼</span>
   </div>
-  <span class="card-chv">▼</span>
-</div>
-<div class="card-body" id="${id}">
-  <div class="cf"><div class="cf-label">Component</div><div class="cf-val">${esc(rec.component||'—')}</div></div>
-  ${rec.summary?'<div class="cf"><div class="cf-label">Summary</div><div class="cf-val">'+esc(rec.summary)+'</div></div>':''}
-  ${rec.risk?'<div class="cf"><div class="cf-label">Safety Risk</div><div class="cf-val cf-risk">'+esc(rec.risk)+'</div></div>':''}
-  ${rec.remedy?'<div class="cf"><div class="cf-label">Remedy / Fix</div><div class="cf-val cf-remedy">'+esc(rec.remedy)+'</div></div>':''}
-  ${symptoms.length?'<div class="cf"><div class="cf-label">Symptoms</div><div class="cf-val">'+symptoms.map(s=>'• '+esc(s)).join('<br>')+'</div></div>':''}
-  ${rec.affected_units?'<div class="cf"><div class="cf-label">Vehicles Affected</div><div class="cf-val">'+Number(rec.affected_units).toLocaleString()+' units</div></div>':''}
-  ${rec.bulletin_ref||rec.bulletinRef?'<div class="cf"><div class="cf-label">Bulletin Reference</div><div class="cf-val cf-ref">'+esc(rec.bulletin_ref||rec.bulletinRef)+'</div></div>':''}
-  ${rec.confirmations?'<div class="conf-row"><span class="conf-n">'+rec.confirmations+'</span> owner confirmations</div>':''}
-  <div class="card-links">${nhtsaLink}${links}</div>
-</div>
+  <div class="card-body" id="${id}">
+    <div class="cf"><div class="cf-label">Component</div><div class="cf-val">${esc(rec.component||'—')}</div></div>
+    ${rec.summary ? '<div class="cf"><div class="cf-label">Summary</div><div class="cf-val">'+esc(rec.summary)+'</div></div>' : ''}
+    ${rec.risk ? '<div class="cf"><div class="cf-label">Risk</div><div class="cf-val">'+esc(rec.risk)+'</div></div>' : ''}
+    ${symptoms ? '<div class="cf"><div class="cf-label">Symptoms</div><div class="cf-val"><ul class="symp-list">'+symptoms+'</ul></div></div>' : ''}
+    ${rec.remedy ? '<div class="cf"><div class="cf-label">Remedy</div><div class="cf-val">'+esc(rec.remedy)+'</div></div>' : ''}
+    ${rec.bulletin_ref ? '<div class="cf"><div class="cf-label">Bulletin</div><div class="cf-val">'+esc(rec.bulletin_ref)+'</div></div>' : ''}
+    ${rec.affected_units ? '<div class="cf"><div class="cf-label">Units Affected</div><div class="cf-val">'+esc(String(rec.affected_units))+'</div></div>' : ''}
+    ${linkHtml ? '<div class="link-row">'+linkHtml+'</div>' : ''}
+    ${type==='comm' ? `<div class="conf-bar"><div><div class="conf-num">${esc(String(rec.confirmations||1))}</div><div class="conf-label">Confirmations</div></div><button class="confirm-btn" onclick="confirmIssue('${esc(rec.id)}',this)">＋ Confirm</button></div>` : ''}
+  </div>
 </div>`;
 }
 
-// ── UI HELPERS ───────────────────────────────
-function toggleSec(n){ document.getElementById('body-'+n).classList.toggle('open'); document.getElementById('chv-'+n).classList.toggle('open'); }
-function openSec(n){ document.getElementById('body-'+n).classList.add('open'); document.getElementById('chv-'+n).classList.add('open'); }
-function toggleCard(id){ const el=document.getElementById(id); if(el) el.classList.toggle('open'); }
+// ── AI SWEEP ──────────────────────────────────
+async function runSweep() {
+  const vkey = getVehicle(), year = getYear();
+  const btn = document.getElementById('sweepBtn');
+  btn.disabled = true;
+  btn.textContent = '⚡ Sweeping…';
+  setGZ('loading', 'Running AI sweep against NHTSA…');
+  try {
+    const res = await apiFetch('/api/sweep', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({vehicle:vkey, year:parseInt(year)}) });
+    setGZ('done', `Sweep complete — ${res.recalls||0} recalls, ${res.tsbs||0} TSBs found`);
+    loadAll();
+  } catch(e) {
+    setGZ('err', 'Sweep error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '⚡ Run AI Sweep';
+  }
+}
+
+// ── AUTO SWEEP ────────────────────────────────
+async function autoSweepIfEmpty(vkey, year) {
+  try {
+    const [rc, tc] = await Promise.all([
+      apiFetch(`/api/recalls?vehicle=${vkey}&year=${year}`),
+      apiFetch(`/api/tsbs?vehicle=${vkey}&year=${year}`)
+    ]);
+    if ((!rc || rc.length===0) && (!tc || tc.length===0)) {
+      setGZ('loading', 'Fetching NHTSA data for first time…');
+      await apiFetch('/api/sweep', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({vehicle:vkey, year:parseInt(year)}) });
+    }
+  } catch(e) { /* silent fail */ }
+}
+
+// ── SUBMIT ISSUE ─────────────────────────────
+async function submitIssue() {
+  const vkey=getVehicle(), year=getYear();
+  const title=document.getElementById('subTitle').value.trim();
+  const detail=document.getElementById('subDetail').value.trim();
+  const bulletin=document.getElementById('subBulletin').value.trim();
+  const srcType=document.getElementById('subSrcType').value;
+  const srcUrl=document.getElementById('subSrcUrl').value.trim();
+  const result=document.getElementById('subResult');
+  if(!title||!detail){result.textContent='Title and detail required.';return;}
+  const btn=document.getElementById('subBtn');
+  btn.disabled=true; btn.textContent='Submitting…';
+  result.textContent='';
+  try {
+    const res = await apiFetch('/api/submit',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vehicle:vkey,year:parseInt(year),title,detail,bulletin,sourceUrl:srcUrl,srcType})});
+    if(res.action==='confirmed'){
+      result.style.color='var(--tsb)';
+      result.textContent=`✓ Matched existing issue — added your confirmation (confidence: ${Math.round((res.confidence||0)*100)}%)`;
+    } else {
+      result.style.color='var(--green)';
+      result.textContent='✓ New issue submitted for review.';
+    }
+    loadAll();
+  } catch(e){
+    result.style.color='var(--recall)';
+    result.textContent='Error: '+e.message;
+  } finally { btn.disabled=false; btn.textContent='Submit Issue'; }
+}
+
+// ── CONFIRM ISSUE ─────────────────────────────
+async function confirmIssue(id, btn) {
+  try {
+    btn.disabled=true; btn.textContent='…';
+    await apiFetch('/api/confirm', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+    const numEl = btn.closest('.conf-bar').querySelector('.conf-num');
+    if(numEl) numEl.textContent = parseInt(numEl.textContent||'1')+1;
+    btn.textContent='✓ Confirmed';
+  } catch(e){ btn.disabled=false; btn.textContent='＋ Confirm'; }
+}
+
+// ── RESEARCH SWEEP ───────────────────────────
+async function runResearchSweep() {
+  const vkey=getVehicle(), year=getYear();
+  const text=document.getElementById('resText').value.trim();
+  const srcType=document.getElementById('resSrcType').value;
+  const srcUrl=document.getElementById('resSrcUrl').value.trim();
+  const results=document.getElementById('resResults');
+  if(!text){results.innerHTML='<div style="color:var(--recall);font-size:11px">Please paste some text first.</div>';return;}
+  const btn=document.getElementById('resBtn');
+  btn.disabled=true; btn.textContent='🧠 Extracting…';
+  results.innerHTML='<div class="loading"><div class="spin"></div><span>AI is reading the text…</span></div>';
+  try {
+    const res = await apiFetch('/api/research',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vehicle:vkey,year:parseInt(year),text,srcType,srcUrl})});
+    if(!res.issues||!res.issues.length){results.innerHTML='<div style="color:var(--muted);font-size:11px;padding:10px 0">No distinct issues found in this text.</div>';return;}
+    results.innerHTML=res.issues.map((issue,i)=>`
+      <div class="rq-item">
+        <div class="rq-title">${esc(issue.title||'Unknown')}</div>
+        <div class="rq-meta">${esc(issue.component||'')} · ${esc(issue.severity||'')} · Confidence: ${esc(issue.confidence||'')}</div>
+        <div style="font-size:10px;color:var(--text);margin-bottom:8px">${esc(issue.summary||'')}</div>
+        ${issue.likelyMatchId?`<div style="font-size:10px;color:var(--tsb);margin-bottom:8px">⚠ Possible match: ${esc(issue.likelyMatchId)}</div>`:''}
+        <div class="rq-actions">
+          <button class="approve-btn" onclick="approveIssue(${i},'${esc(issue.queueId)}','${vkey}','${year}')">✓ Approve</button>
+          <button class="reject-btn" onclick="this.closest('.rq-item').remove()">✗ Reject</button>
+        </div>
+      </div>`).join('');
+  } catch(e){
+    results.innerHTML=`<div style="color:var(--recall);font-size:11px">Error: ${esc(e.message)}</div>`;
+  } finally { btn.disabled=false; btn.textContent='🧠 Extract Issues'; }
+}
+
+async function approveIssue(idx, queueId, vkey, year) {
+  try {
+    await apiFetch('/api/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({queueId,vehicle:vkey,year:parseInt(year)})});
+    document.querySelectorAll('.rq-item')[idx].innerHTML='<div style="color:var(--green);font-size:11px">✓ Approved and added to community issues.</div>';
+    loadAll();
+  } catch(e){ alert('Approve failed: '+e.message); }
+}
+
+function clearResearch() {
+  document.getElementById('resText').value='';
+  document.getElementById('resResults').innerHTML='';
+}
 
 // ── INIT ─────────────────────────────────────
 document.getElementById('selModel').addEventListener('change', loadAll);
 document.getElementById('selYear').addEventListener('change', loadAll);
-window.addEventListener('load', () => { openSec('comm'); loadAll(); });
+window.addEventListener('load', async () => {
+  const vkey = getVehicle(), year = getYear();
+  await autoSweepIfEmpty(vkey, year);
+  loadAll();
+});
 </script>
-
+<div class="footer-cta">
+  <div class="footer-disclaimers">
+    <div class="disc-row">
+      <span class="disc-item">⚠ Community-sourced information — not official advice</span>
+      <span class="disc-item">🔧 Always consult a qualified mechanic or dealer</span>
+      <span class="disc-item">© Not affiliated with GM, Ford, or any manufacturer</span>
+      <span class="disc-item">📅 Data may be incomplete or outdated</span>
+    </div>
+    <div class="disc-copy">© 2025 Gazunni · EV Service Intelligence</div>
+  </div>
+  <a href="https://ev-efficiency-calculator.netlify.app" target="_blank" rel="noopener" class="footer-btn">⚡ How efficient is your EV? →</a>
+</div>
 </body>
 </html>
