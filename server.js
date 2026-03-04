@@ -1,11 +1,32 @@
 import express from 'express';
 import pg from 'pg';
 import Anthropic from '@anthropic-ai/sdk';
+import helmet from 'helmet';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const app = express();
+
+// ── SECURITY HEADERS ─────────────────────────
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:      ["'self'"],
+      scriptSrc:       ["'self'", "'unsafe-inline'"],
+      styleSrc:        ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+      fontSrc:         ["'self'", "https://fonts.gstatic.com"],
+      imgSrc:          ["'self'", "data:"],
+      connectSrc:      ["'self'", "https://api.nhtsa.gov", "https://api.anthropic.com"],
+      frameSrc:        ["'none'"],
+      objectSrc:       ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  },
+  crossOriginEmbedderPolicy: false,
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
+}));
+
 app.use(express.json());
 app.use(express.static(join(__dirname, 'public')));
 
