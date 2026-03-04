@@ -574,7 +574,7 @@ async function submitIssue() {
   const srcUrl=document.getElementById('subSrcUrl').value.trim();
   const result=document.getElementById('subResult');
   if(!title||!detail){result.textContent='Title and detail required.';return;}
-  const btn=document.getElementById('subBtn');
+  const btn=document.getElementById('submitIssueBtn');
   btn.disabled=true; btn.textContent='Submitting…';
   result.textContent='';
   try {
@@ -613,9 +613,10 @@ async function runResearchSweep() {
   const results=document.getElementById('resResults');
   if(!text && !srcUrl){results.innerHTML='<div style="color:var(--recall);font-size:11px">Please paste text or enter a source URL.</div>';return;}
   if(!text && srcUrl){ results.innerHTML='<div class="loading"><div class="spin"></div><span>Fetching content from URL…</span></div>'; }
-  const btn=document.getElementById('resBtn');
+  const btn=document.getElementById('researchSweepBtn');
   btn.disabled=true; btn.textContent='🧠 Extracting…';
   results.innerHTML='<div class="loading"><div class="spin"></div><span>AI is reading the text…</span></div>';
+  setGZ('loading', 'Extracting issues from text…');
   try {
     const res = await apiFetch('/api/research',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vehicle:vkey,year:parseInt(year),text,srcType,srcUrl})});
     if(!res.issues||!res.issues.length){results.innerHTML='<div style="color:var(--muted);font-size:11px;padding:10px 0">No distinct issues found in this text.</div>';return;}
@@ -632,7 +633,7 @@ async function runResearchSweep() {
       </div>`).join('');
   } catch(e){
     results.innerHTML=`<div style="color:var(--recall);font-size:11px">Error: ${esc(e.message)}</div>`;
-  } finally { btn.disabled=false; btn.textContent='🧠 Extract Issues'; }
+  } finally { btn.disabled=false; btn.textContent='🧠 Extract Issues'; setGZ('done', 'Extraction complete'); }
 }
 
 async function approveIssue(idx, queueId, vkey, year) {
@@ -697,41 +698,38 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('selYear').addEventListener('change', loadAll);
   document.getElementById('sweepBtn').addEventListener('click', runSweep);
 
-  // Section toggles
-  document.querySelectorAll('[data-sec]').forEach(el => {
-    el.addEventListener('click', () => toggleSec(el.dataset.sec));
-  });
-
-  // Tool panel toggles
-  document.querySelectorAll('[data-panel]').forEach(el => {
-    el.addEventListener('click', () => togglePanel(el.dataset.panel));
-  });
-
-  // All dynamic button handling via event delegation
+  // Single unified click handler for all buttons
   document.addEventListener('click', e => {
-    const copyBtn    = e.target.closest('[data-copy]');
-    const printBtn   = e.target.closest('[data-print]');
-    const expandBtn  = e.target.closest('[data-btn]');
-    const confirmBtn = e.target.closest('[data-confirm]');
-    const approveBtn = e.target.closest('[data-approve-idx]');
-    const rejectBtn  = e.target.closest('[data-reject]');
-    const hdr        = e.target.closest('[data-card]');
+    const t = e.target;
+    const id = t.id;
+
+    // Static button IDs
+    if (id === 'submitIssueBtn')   { e.stopPropagation(); submitIssue(); return; }
+    if (id === 'researchSweepBtn') { e.stopPropagation(); runResearchSweep(); return; }
+    if (id === 'clearResearchBtn') { e.stopPropagation(); clearResearch(); return; }
+
+    // Data attribute buttons
+    const copyBtn    = t.closest('[data-copy]');
+    const printBtn   = t.closest('[data-print]');
+    const expandBtn  = t.closest('[data-btn]');
+    const confirmBtn = t.closest('[data-confirm]');
+    const approveBtn = t.closest('[data-approve-idx]');
+    const rejectBtn  = t.closest('[data-reject]');
+    const retryBtn   = t.closest('[data-retry]');
+    const panelBtn   = t.closest('[data-panel]');
+    const secBtn     = t.closest('[data-sec]');
+    const hdr        = t.closest('[data-card]');
+
     if (copyBtn)    { e.stopPropagation(); copyIssue(copyBtn.dataset.copy); return; }
     if (printBtn)   { e.stopPropagation(); printIssue(printBtn.dataset.print); return; }
     if (expandBtn)  { e.stopPropagation(); toggleCard(expandBtn.dataset.btn); return; }
     if (confirmBtn) { e.stopPropagation(); confirmIssue(confirmBtn.dataset.confirm, confirmBtn); return; }
     if (approveBtn) { e.stopPropagation(); approveIssue(approveBtn.dataset.approveIdx, approveBtn.dataset.queueId, approveBtn.dataset.vkey, approveBtn.dataset.year); return; }
     if (rejectBtn)  { e.stopPropagation(); rejectBtn.closest('.rq-item').remove(); return; }
-    if (hdr)        { toggleCard(hdr.dataset.card); }
-    const retryBtn = e.target.closest('[data-retry]');
     if (retryBtn)   { e.stopPropagation(); loadAll(); return; }
-  });
-
-  // Static buttons — use event delegation so hidden panel buttons work too
-  document.addEventListener('click', e => {
-    if (e.target.id === 'submitIssueBtn')  { submitIssue(); return; }
-    if (e.target.id === 'researchSweepBtn'){ runResearchSweep(); return; }
-    if (e.target.id === 'clearResearchBtn'){ clearResearch(); return; }
+    if (panelBtn)   { e.stopPropagation(); togglePanel(panelBtn.dataset.panel); return; }
+    if (secBtn)     { e.stopPropagation(); toggleSec(secBtn.dataset.sec); return; }
+    if (hdr)        { toggleCard(hdr.dataset.card); }
   });
 });
 
