@@ -25,8 +25,8 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
 .footer-cta{background:linear-gradient(135deg,#020c14,#050e08);border-top:1px solid #0e3a4a;padding:18px 24px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-top:20px}
 .footer-disclaimers{display:flex;flex-direction:column;gap:8px;flex:1;min-width:200px}
 .disc-row{display:flex;flex-wrap:wrap;gap:8px 20px}
-.disc-item{font-size:9px;color:#2a5040;letter-spacing:.04em}
-.disc-copy{font-size:9px;color:#1a3028;letter-spacing:.06em;margin-top:2px}
+.disc-item{font-size:9px;color:#4ade80;letter-spacing:.04em}
+.disc-copy{font-size:9px;color:#22c55e;letter-spacing:.06em;margin-top:2px}
 .footer-btn{font-size:11px;font-weight:700;color:#38bdf8;border:1px solid #0e3a4a;background:#020c14;padding:8px 18px;border-radius:4px;text-decoration:none;letter-spacing:.05em;transition:all .2s;white-space:nowrap;align-self:center}
 .footer-btn:hover{background:#0a2030;border-color:#38bdf8;box-shadow:0 0 12px #38bdf840}
 /* ── HEADER ── */
@@ -214,16 +214,16 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
     <label>VIN (Optional)</label>
     <input class="vin" id="vinInput" placeholder="17-character VIN" maxlength="17">
   </div>
-  <button class="sweep-btn" id="sweepBtn" onclick="runSweep()">⚡ Run AI Sweep</button>
-  <button class="tool-btn" onclick="togglePanel('submitPanel')">＋ Submit Issue</button>
-  <button class="tool-btn" onclick="togglePanel('researchPanel')">🔬 Research Sweep</button>
+  <button class="sweep-btn" id="sweepBtn">⚡ Run AI Sweep</button>
+  <button class="tool-btn" data-panel="submitPanel">＋ Submit Issue</button>
+  <button class="tool-btn" data-panel="researchPanel">🔬 Research Sweep</button>
 </div>
 
 <!-- STATS -->
 <div class="stats">
-  <div class="stat" onclick="toggleSec('recall')"><div class="sn" id="sn-recall">—</div><div class="sl">Recalls</div></div>
-  <div class="stat" onclick="toggleSec('tsb')"><div class="sn" id="sn-tsb">—</div><div class="sl">TSBs</div></div>
-  <div class="stat" onclick="toggleSec('comm')"><div class="sn" id="sn-comm">—</div><div class="sl">Community</div></div>
+  <div class="stat" data-sec="recall"><div class="sn" id="sn-recall">—</div><div class="sl">Recalls</div></div>
+  <div class="stat" data-sec="tsb"><div class="sn" id="sn-tsb">—</div><div class="sl">TSBs</div></div>
+  <div class="stat" data-sec="comm"><div class="sn" id="sn-comm">—</div><div class="sl">Community</div></div>
 </div>
 
 <!-- SUBMIT PANEL -->
@@ -259,7 +259,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
   </div>
   <div class="btn-row">
     <button class="submit-btn" id="subBtn" onclick="submitIssue()">Submit Issue</button>
-    <button class="cancel-btn" onclick="togglePanel('submitPanel')">Cancel</button>
+    <button class="cancel-btn" data-panel="submitPanel">Cancel</button>
   </div>
   <div id="subResult" style="margin-top:10px;font-size:11px;color:var(--muted)"></div>
 </div>
@@ -294,7 +294,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 
 <!-- RECALLS SECTION -->
 <div class="sec" id="sec-recall">
-  <div class="sec-hdr" onclick="toggleSec('recall')">
+  <div class="sec-hdr" data-sec="recall">
     <span class="type-badge tb-recall">RECALL</span>
     <span class="sec-title">Official Safety Recalls</span>
     <span class="sec-cnt" id="cnt-recall">0</span>
@@ -307,7 +307,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 
 <!-- TSB SECTION -->
 <div class="sec" id="sec-tsb">
-  <div class="sec-hdr" onclick="toggleSec('tsb')">
+  <div class="sec-hdr" data-sec="tsb">
     <span class="type-badge tb-tsb">TSB</span>
     <span class="sec-title">Technical Service Bulletins</span>
     <span class="sec-cnt" id="cnt-tsb">0</span>
@@ -320,7 +320,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 
 <!-- COMMUNITY SECTION -->
 <div class="sec" id="sec-comm">
-  <div class="sec-hdr" onclick="toggleSec('comm')">
+  <div class="sec-hdr" data-sec="comm">
     <span class="type-badge tb-comm">COMMUNITY</span>
     <span class="sec-title">Community-Reported Issues</span>
     <span class="sec-cnt" id="cnt-comm">0</span>
@@ -613,10 +613,26 @@ function clearResearch() {
 // ── INIT ─────────────────────────────────────
 document.getElementById('selModel').addEventListener('change', loadAll);
 document.getElementById('selYear').addEventListener('change', loadAll);
+document.getElementById('sweepBtn').addEventListener('click', runSweep);
+
+// Section toggles
+document.querySelectorAll('[data-sec]').forEach(el => {
+  el.addEventListener('click', () => toggleSec(el.dataset.sec));
+});
+
+// Tool panel toggles
+document.querySelectorAll('[data-panel]').forEach(el => {
+  el.addEventListener('click', () => togglePanel(el.dataset.panel));
+});
+
 window.addEventListener('load', async () => {
   const vkey = getVehicle(), year = getYear();
   await autoSweepIfEmpty(vkey, year);
   loadAll();
+  // Re-attach section toggles after load
+  document.querySelectorAll('[data-sec]').forEach(el => {
+    el.addEventListener('click', () => toggleSec(el.dataset.sec));
+  });
 });
 </script>
 <div class="footer-cta">
@@ -627,7 +643,7 @@ window.addEventListener('load', async () => {
       <span class="disc-item">© Not affiliated with GM, Ford, or any manufacturer</span>
       <span class="disc-item">📅 Data may be incomplete or outdated</span>
     </div>
-    <div class="disc-copy">© 2025 Gazunni · EV Service Intelligence</div>
+    <div class="disc-copy">© 2026 Gazunni · EV Service Intelligence</div>
   </div>
   <a href="https://ev-efficiency-calculator.netlify.app" target="_blank" rel="noopener" class="footer-btn">⚡ How efficient is your EV? →</a>
 </div>
