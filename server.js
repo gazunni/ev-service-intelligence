@@ -310,6 +310,36 @@ app.post('/api/approve', async (req, res) => {
   res.json({ success: true, communityId: newId });
 });
 
+// ── CLONE TSB TO MORE VEHICLES ──────────────
+app.post('/api/tsb-clone', async (req, res) => {
+  try {
+    const { src_id, targets } = req.body || {};
+    if (!src_id || !targets?.length) return res.status(400).json({ error: 'src_id and targets required' });
+
+    // Fetch the source TSB
+    const rows = await query(`SELECT * FROM tsbs WHERE id=$1`, [src_id]);
+    if (!rows.length) return res.status(404).json({ error: 'Source TSB not found' });
+    const src = rows[0];
+
+    let count = 0;
+    const bulletin = (src.raw_nhtsa && src.raw_nhtsa.bulletin_ref) ? src.raw_nhtsa.bulletin_ref.toLowerCase().replace(/[^a-z0-9]+/g,'-') : 'tsb';
+    for (const { vehicle, year } of targets) {
+      const newId = vehicle + '-' + year + '-' + bulletin + '-' + Date.now();
+      await query(
+        `INSERT INTO tsbs (id, vehicle_key, year, title, component, severity, summary, remedy, source_pills, raw_nhtsa)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+         ON CONFLICT (id) DO NOTHING`,
+        [newId, vehicle, parseInt(year), src.title, src.component, src.severity, src.summary, src.remedy, src.source_pills, src.raw_nhtsa]
+      );
+      count++;
+    }
+    res.json({ ok: true, count });
+  } catch(e) {
+    console.error('tsb-clone error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── ADD TSB DIRECTLY ────────────────────────
 app.post('/api/tsb-add', async (req, res) => {
   try {
