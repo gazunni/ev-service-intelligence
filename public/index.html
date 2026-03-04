@@ -36,23 +36,23 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
 .hdr-sub{font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
 
 /* ── GAZUNNI BRAND LOADER ── */
-.gazunni-loader{display:flex;flex-direction:column;align-items:center;gap:6px}
-.gz-icon{position:relative;width:48px;height:48px;flex-shrink:0}
-.gz-icon svg{width:48px;height:48px}
-.gz-ring{fill:none;stroke:#0e3a4a;stroke-width:3;transition:stroke .4s}
-.gz-ring-pulse{fill:none;stroke:#38bdf8;stroke-width:3;stroke-dasharray:120;stroke-dashoffset:120;transition:stroke-dashoffset .8s ease,stroke .4s;transform-origin:center;transform:rotate(-90deg)}
-.gz-g{fill:#1a5a6a;font-family:var(--sans);font-size:20px;font-weight:800;transition:fill .4s}
-.gz-icon.loading .gz-ring{stroke:#0e3a4a}
-.gz-icon.loading .gz-ring-pulse{animation:gz-pulse 1.8s ease-in-out infinite;stroke:#38bdf8}
-.gz-icon.loading .gz-g{fill:#38bdf8;filter:drop-shadow(0 0 6px #38bdf8)}
-.gz-icon.done .gz-ring{stroke:#38bdf8}
-.gz-icon.done .gz-ring-pulse{stroke-dashoffset:0;stroke:#38bdf8}
-.gz-icon.done .gz-g{fill:#38bdf8;filter:drop-shadow(0 0 8px #38bdf8)}
-.gz-icon.err .gz-ring{stroke:#7f1d1d}
-.gz-icon.err .gz-g{fill:#ef4444}
-@keyframes gz-pulse{
-  0%,100%{filter:drop-shadow(0 0 2px #38bdf8);opacity:.7}
-  50%{filter:drop-shadow(0 0 12px #38bdf8) drop-shadow(0 0 20px #38bdf8);opacity:1}
+.gazunni-loader{display:flex;align-items:center;gap:6px}
+.gz-icon{position:relative;width:48px;height:48px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.gz-ring-outer{position:absolute;inset:0;border-radius:50%;border:3px solid #0e3a4a;transition:border-color .4s}
+.gz-ring-inner{position:absolute;inset:0;border-radius:50%;border:3px solid transparent;border-top-color:#38bdf8;transition:border-color .4s}
+.gz-letter{position:relative;font-family:var(--sans);font-size:22px;font-weight:800;color:#1a5a6a;transition:color .4s, text-shadow .4s;z-index:1;line-height:1}
+.gz-icon.loading .gz-ring-inner{animation:gz-spin 1.2s linear infinite, gz-pulse-border 1.8s ease-in-out infinite}
+.gz-icon.loading .gz-letter{color:#38bdf8;text-shadow:0 0 8px #38bdf8}
+.gz-icon.done .gz-ring-outer{border-color:#38bdf8}
+.gz-icon.done .gz-ring-inner{border-color:#38bdf8;animation:none}
+.gz-icon.done .gz-letter{color:#38bdf8;text-shadow:0 0 10px #38bdf8}
+.gz-icon.err .gz-ring-outer{border-color:#7f1d1d}
+.gz-icon.err .gz-ring-inner{border-color:#ef4444;animation:none}
+.gz-icon.err .gz-letter{color:#ef4444;text-shadow:none}
+@keyframes gz-spin{to{transform:rotate(360deg)}}
+@keyframes gz-pulse-border{
+  0%,100%{box-shadow:0 0 4px #38bdf840;opacity:.8}
+  50%{box-shadow:0 0 14px #38bdf8,0 0 28px #38bdf840;opacity:1}
 }
 .gz-status{font-size:10px;color:var(--muted);letter-spacing:.06em;transition:color .3s;text-align:center;min-width:160px}
 .gz-status.live{color:#38bdf8}
@@ -177,11 +177,10 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
   <div class="hdr-top">
     <div class="gazunni-loader">
       <div class="gz-icon loading" id="gzIcon">
-        <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
-          <circle class="gz-ring" cx="24" cy="24" r="20"/>
-          <circle class="gz-ring-pulse" id="gzRing" cx="24" cy="24" r="20"/>
-          <text class="gz-g" id="gzG" x="24" y="31" text-anchor="middle">G</text>
-        </svg>
+        <div class="gz-ring-outer">
+          <div class="gz-ring-inner" id="gzRing"></div>
+        </div>
+        <div class="gz-letter" id="gzG">G</div>
       </div>
     </div>
     <div style="flex:1">
@@ -611,28 +610,26 @@ function clearResearch() {
 }
 
 // ── INIT ─────────────────────────────────────
-document.getElementById('selModel').addEventListener('change', loadAll);
-document.getElementById('selYear').addEventListener('change', loadAll);
-document.getElementById('sweepBtn').addEventListener('click', runSweep);
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('selModel').addEventListener('change', loadAll);
+  document.getElementById('selYear').addEventListener('change', loadAll);
+  document.getElementById('sweepBtn').addEventListener('click', runSweep);
 
-// Section toggles
-document.querySelectorAll('[data-sec]').forEach(el => {
-  el.addEventListener('click', () => toggleSec(el.dataset.sec));
-});
+  // Section toggles
+  document.querySelectorAll('[data-sec]').forEach(el => {
+    el.addEventListener('click', () => toggleSec(el.dataset.sec));
+  });
 
-// Tool panel toggles
-document.querySelectorAll('[data-panel]').forEach(el => {
-  el.addEventListener('click', () => togglePanel(el.dataset.panel));
+  // Tool panel toggles
+  document.querySelectorAll('[data-panel]').forEach(el => {
+    el.addEventListener('click', () => togglePanel(el.dataset.panel));
+  });
 });
 
 window.addEventListener('load', async () => {
   const vkey = getVehicle(), year = getYear();
   await autoSweepIfEmpty(vkey, year);
   loadAll();
-  // Re-attach section toggles after load
-  document.querySelectorAll('[data-sec]').forEach(el => {
-    el.addEventListener('click', () => toggleSec(el.dataset.sec));
-  });
 });
 </script>
 <div class="footer-cta">
