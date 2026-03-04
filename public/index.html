@@ -583,7 +583,7 @@ function buildCard(rec, type, idx){
     <div class="card-title">${esc(rec.title||'Unknown Issue')}</div>
     <div class="card-sub">
       ${rec.id?'<span>'+esc(String(rec.id))+'</span>':''}
-      ${rec.date||(rec.created_at?'<span>· '+esc(String(rec.created_at).substring(0,10))+'</span>':''):''}
+      ${rec.created_at?'<span>· '+esc(String(rec.created_at).substring(0,10))+'</span>':''}
       ${rec.severity?'<span>· '+esc(rec.severity)+'</span>':''}
     </div>
     <div class="card-pills">${pills}</div>
