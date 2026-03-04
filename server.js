@@ -24,19 +24,14 @@ app.use(helmet({
     },
   },
   crossOriginEmbedderPolicy: false,
-  permissionsPolicy: {
-    features: {
-      camera:         ["'none'"],
-      microphone:     ["'none'"],
-      geolocation:    ["'none'"],
-      paymentRequest: ["'none'"],
-      usb:            ["'none'"],
-      gyroscope:      ["'none'"],
-      accelerometer:  ["'none'"],
-    }
-  },
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
+
+// Permissions-Policy — not yet in helmet, set manually
+app.use((_req, res, next) => {
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=(), payment=(), usb=(), gyroscope=(), accelerometer=()');
+  next();
+});
 
 app.use(express.json());
 app.use(express.static(join(__dirname, 'public')));
