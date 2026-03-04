@@ -611,7 +611,8 @@ async function runResearchSweep() {
   const srcType=document.getElementById('resSrcType').value;
   const srcUrl=document.getElementById('resSrcUrl').value.trim();
   const results=document.getElementById('resResults');
-  if(!text){results.innerHTML='<div style="color:var(--recall);font-size:11px">Please paste some text first.</div>';return;}
+  if(!text && !srcUrl){results.innerHTML='<div style="color:var(--recall);font-size:11px">Please paste text or enter a source URL.</div>';return;}
+  if(!text && srcUrl){ results.innerHTML='<div class="loading"><div class="spin"></div><span>Fetching content from URL…</span></div>'; }
   const btn=document.getElementById('resBtn');
   btn.disabled=true; btn.textContent='🧠 Extracting…';
   results.innerHTML='<div class="loading"><div class="spin"></div><span>AI is reading the text…</span></div>';
@@ -724,10 +725,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if (retryBtn)   { e.stopPropagation(); loadAll(); return; }
   });
 
-  // Static buttons
-  document.getElementById('submitIssueBtn').addEventListener('click', submitIssue);
-  document.getElementById('researchSweepBtn').addEventListener('click', runResearchSweep);
-  document.getElementById('clearResearchBtn').addEventListener('click', clearResearch);
+  // Static buttons — use event delegation so hidden panel buttons work too
+  document.addEventListener('click', e => {
+    if (e.target.id === 'submitIssueBtn')  { submitIssue(); return; }
+    if (e.target.id === 'researchSweepBtn'){ runResearchSweep(); return; }
+    if (e.target.id === 'clearResearchBtn'){ clearResearch(); return; }
+  });
 });
 
 window.addEventListener('load', async () => {
