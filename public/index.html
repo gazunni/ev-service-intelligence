@@ -573,7 +573,8 @@ function buildCard(rec, type, idx) {
     ${rec.risk ? '<div class="cf"><div class="cf-label">Risk</div><div class="cf-val">'+esc(rec.risk)+'</div></div>' : ''}
     ${symptoms ? '<div class="cf"><div class="cf-label">Symptoms</div><div class="cf-val"><ul class="symp-list">'+symptoms+'</ul></div></div>' : ''}
     ${rec.remedy ? '<div class="cf"><div class="cf-label">Remedy</div><div class="cf-val">'+esc(rec.remedy)+'</div></div>' : ''}
-    ${rec.bulletin_ref ? '<div class="cf"><div class="cf-label">Bulletin</div><div class="cf-val">'+esc(rec.bulletin_ref)+'</div></div>' : ''}
+    ${(rec.bulletin_ref||(rec.raw_nhtsa&&rec.raw_nhtsa.bulletin_ref)) ? '<div class="cf"><div class="cf-label">Bulletin</div><div class="cf-val">'+esc(rec.bulletin_ref||rec.raw_nhtsa.bulletin_ref)+'</div></div>' : ''}
+    ${(rec.raw_nhtsa&&rec.raw_nhtsa.source_url) ? '<div class="link-row"><a class="ext-link" href="'+esc(rec.raw_nhtsa.source_url)+'" target="_blank" rel="noopener">📄 View TSB Document</a></div>' : ''}
     ${rec.affected_units ? '<div class="cf"><div class="cf-label">Units Affected</div><div class="cf-val">'+esc(String(rec.affected_units))+'</div></div>' : ''}
     ${linkHtml ? '<div class="link-row">'+linkHtml+'</div>' : ''}
     ${type==='comm' ? `<div class="conf-bar"><div><div class="conf-num">${esc(String(rec.confirmations||1))}</div><div class="conf-label">Confirmations</div></div><button class="confirm-btn" data-confirm="${esc(rec.id)}">＋ Confirm</button></div>` : ''}
