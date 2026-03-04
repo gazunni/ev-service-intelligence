@@ -119,7 +119,8 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 .p-facebook{background:#080f1a;color:#7dd3fc;border:1px solid #0c4a6e}
 .p-submitted{background:#0f0f0f;color:#9ca3af;border:1px solid #374151}
 .p-tsb{background:#1a1208;color:#fcd34d;border:1px solid #92400e}
-.card-chv{color:var(--muted);font-size:10px;flex-shrink:0;margin-top:2px}
+.card-chv{color:var(--green);font-size:10px;font-weight:600;flex-shrink:0;margin-top:2px;background:transparent;border:1px solid var(--border);padding:2px 8px;border-radius:3px;cursor:pointer;font-family:var(--mono);letter-spacing:.04em;transition:all .2s;white-space:nowrap}
+.card-chv:hover{border-color:var(--green);background:#0a1f0a}
 .card-body{display:none;padding:0 14px 12px 14px;border-top:1px solid var(--border)}
 .card-body.open{display:block}
 .cf{display:flex;gap:8px;margin-top:8px;font-size:11px}
@@ -297,7 +298,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
     <span class="type-badge tb-recall">RECALL</span>
     <span class="sec-title">Official Safety Recalls</span>
     <span class="sec-cnt" id="cnt-recall">0</span>
-    <span class="chv" id="chv-recall">▼</span>
+    <button class="chv" id="chv-recall">Show</button>
   </div>
   <div class="sec-body" id="body-recall">
     <div id="cards-recall"><div class="loading"><div class="spin"></div><span>Loading…</span></div></div>
@@ -310,7 +311,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
     <span class="type-badge tb-tsb">TSB</span>
     <span class="sec-title">Technical Service Bulletins</span>
     <span class="sec-cnt" id="cnt-tsb">0</span>
-    <span class="chv" id="chv-tsb">▼</span>
+    <button class="chv" id="chv-tsb">Show</button>
   </div>
   <div class="sec-body" id="body-tsb">
     <div id="cards-tsb"><div class="loading"><div class="spin"></div><span>Loading…</span></div></div>
@@ -323,7 +324,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
     <span class="type-badge tb-comm">COMMUNITY</span>
     <span class="sec-title">Community-Reported Issues</span>
     <span class="sec-cnt" id="cnt-comm">0</span>
-    <span class="chv" id="chv-comm">▼</span>
+    <button class="chv" id="chv-comm">Show</button>
   </div>
   <div class="sec-body" id="body-comm">
     <div class="empty" style="font-size:10px;color:var(--muted);padding:12px 0 4px">
@@ -417,18 +418,24 @@ async function loadSection(type, vkey, year) {
 // ── SECTIONS TOGGLE ───────────────────────────
 function toggleSec(n) {
   const body = document.getElementById('body-'+n);
-  const chv = document.getElementById('chv-'+n);
+  const btn = document.getElementById('chv-'+n);
   const isOpen = body.classList.contains('open');
   body.classList.toggle('open', !isOpen);
-  chv.classList.toggle('open', !isOpen);
+  if (btn) btn.textContent = isOpen ? 'Show' : 'Hide';
 }
 function openSec(n) {
-  document.getElementById('body-'+n).classList.add('open');
-  document.getElementById('chv-'+n).classList.add('open');
+  const body = document.getElementById('body-'+n);
+  const btn = document.getElementById('chv-'+n);
+  body.classList.add('open');
+  if (btn) btn.textContent = 'Hide';
 }
 function toggleCard(id) {
   const el = document.getElementById(id);
-  if (el) el.classList.toggle('open');
+  const btn = document.getElementById('btn-'+id);
+  if (el) {
+    const isOpen = el.classList.toggle('open');
+    if (btn) btn.textContent = isOpen ? 'Close' : 'More Info';
+  }
 }
 
 // ── TOOL PANELS ───────────────────────────────
@@ -477,7 +484,7 @@ function buildCard(rec, type, idx) {
       </div>
       <div class="card-pills">${pills}</div>
     </div>
-    <span class="card-chv">▼</span>
+    <button class="card-chv" id="btn-${id}">More Info</button>
   </div>
   <div class="card-body" id="${id}">
     <div class="cf"><div class="cf-label">Component</div><div class="cf-val">${esc(rec.component||'—')}</div></div>
