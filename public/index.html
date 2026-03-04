@@ -431,7 +431,7 @@ function openSec(n) {
 }
 function toggleCard(id) {
   const el = document.getElementById(id);
-  const btn = document.getElementById('btn-'+id);
+  const btn = document.querySelector('[data-btn="'+id+'"]');
   if (el) {
     const isOpen = el.classList.toggle('open');
     if (btn) btn.textContent = isOpen ? 'Close' : 'More Info';
@@ -473,7 +473,7 @@ function buildCard(rec, type, idx) {
 
   return `
 <div class="card">
-  <div class="card-hdr" onclick="toggleCard('${id}')">
+  <div class="card-hdr" data-card="${id}">
     <div class="sev-bar ${sc}"></div>
     <div class="card-meta">
       <div class="card-title">${esc(rec.title||'Unknown Issue')}</div>
@@ -484,7 +484,7 @@ function buildCard(rec, type, idx) {
       </div>
       <div class="card-pills">${pills}</div>
     </div>
-    <button class="card-chv" id="btn-${id}">More Info</button>
+    <button class="card-chv" data-btn="${id}">More Info</button>
   </div>
   <div class="card-body" id="${id}">
     <div class="cf"><div class="cf-label">Component</div><div class="cf-val">${esc(rec.component||'—')}</div></div>
@@ -630,6 +630,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Tool panel toggles
   document.querySelectorAll('[data-panel]').forEach(el => {
     el.addEventListener('click', () => togglePanel(el.dataset.panel));
+  });
+
+  // Card expand — event delegation on document so it works for dynamically rendered cards
+  document.addEventListener('click', e => {
+    const hdr = e.target.closest('[data-card]');
+    const btn = e.target.closest('[data-btn]');
+    if (btn) { e.stopPropagation(); toggleCard(btn.dataset.btn); return; }
+    if (hdr) { toggleCard(hdr.dataset.card); }
   });
 });
 
