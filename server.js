@@ -324,7 +324,7 @@ app.post('/api/tsb-clone', async (req, res) => {
     let count = 0;
     const bulletin = (src.raw_nhtsa && src.raw_nhtsa.bulletin_ref) ? src.raw_nhtsa.bulletin_ref.toLowerCase().replace(/[^a-z0-9]+/g,'-') : 'tsb';
     for (const { vehicle, year } of targets) {
-      const newId = vehicle + '-' + year + '-' + bulletin + '-' + Date.now();
+      const newId = (vehicle + '-' + year + '-' + bulletin).toLowerCase().replace(/[^a-z0-9]+/g,'-').substring(0,60);
       await query(
         `INSERT INTO tsbs (id, vehicle_key, year, title, component, severity, summary, remedy, source_pills, raw_nhtsa)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
@@ -346,8 +346,9 @@ app.post('/api/tsb-add', async (req, res) => {
     const { vehicle, year, title, bulletin_ref, component, severity, summary, remedy, source_url } = req.body || {};
     if (!vehicle || !year || !title || !summary) return res.status(400).json({ error: 'vehicle, year, title and summary required' });
     const yr = parseInt(year);
-    // Build id from bulletin ref or title
-    const id = (bulletin_ref || title).toLowerCase().replace(/[^a-z0-9]+/g,'-').substring(0,40) + '-' + Date.now();
+    // Deterministic ID: vehicle + year + bulletin (no timestamp = no duplicates)
+    const idBase = (vehicle + '-' + yr + '-' + (bulletin_ref || title)).toLowerCase().replace(/[^a-z0-9]+/g,'-').substring(0,60);
+    const id = idBase;
     // Store source_url and bulletin_ref in raw_nhtsa JSONB
     const raw = JSON.stringify({ bulletin_ref: bulletin_ref||null, source_url: source_url||null, remedy: remedy||null });
     const pills = '{NHTSA}';
