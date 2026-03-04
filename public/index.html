@@ -53,6 +53,25 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
 .tsb-veh-years{display:flex;gap:8px;flex-wrap:wrap}
 .tsb-cb{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text);cursor:pointer}
 .tsb-cb input{accent-color:var(--comm);cursor:pointer;width:13px;height:13px}
+/* ── ADMIN PANEL ── */
+.admin-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:600px){.admin-grid{grid-template-columns:1fr}}
+.admin-card{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:12px}
+.admin-card-title{font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
+.admin-card-desc{font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.5}
+.admin-btn{font-size:10px;font-weight:600;font-family:var(--mono);padding:4px 12px;border-radius:3px;cursor:pointer;border:1px solid var(--green);background:transparent;color:var(--green);transition:all .2s}
+.admin-btn:hover{background:#0a1f0a}
+.admin-btn-warn{border-color:#b45309;color:#b45309}
+.admin-btn-warn:hover{background:#1a0e00}
+.admin-result{font-size:10px;margin-top:6px;min-height:14px}
+
+/* ── G LOGO HOLD ── */
+.gz-icon{cursor:pointer;user-select:none}
+.gz-icon.holding .gz-ring-outer{border-color:#38bdf8;animation:gz-hold-ring 3s linear forwards}
+@keyframes gz-hold-ring{
+  0%{box-shadow:none}
+  100%{box-shadow:0 0 0 3px #38bdf840,0 0 12px #38bdf8}
+}
 /* ── EFF LINK ── */
 .eff-link{font-size:9px;font-weight:700;letter-spacing:.08em;color:#38bdf8;border:1px solid #0e3a4a;background:#020c14;padding:3px 9px;border-radius:3px;text-decoration:none;transition:all .2s;white-space:nowrap}
 .eff-link:hover{background:#0a2030;border-color:#38bdf8;box-shadow:0 0 8px #38bdf840}
@@ -211,7 +230,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 <div class="hdr">
   <div class="hdr-top">
     <div class="gazunni-loader">
-      <div class="gz-icon loading" id="gzIcon">
+      <div class="gz-icon loading" id="gzIcon" data-holdable="1">
         <div class="gz-ring-outer">
           <div class="gz-ring-inner" id="gzRing"></div>
         </div>
@@ -411,6 +430,41 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
     <button class="cancel-btn" data-panel="tsbPanel">Cancel</button>
   </div>
   <div id="tsbResult" style="margin-top:10px;font-size:11px;color:var(--muted)"></div>
+</div>
+
+<!-- ADMIN PANEL -->
+<div class="tool-panel" id="adminPanel">
+  <h3>⚙ Database Maintenance</h3>
+  <p class="tool-note">Admin tools — changes are immediate and irreversible.</p>
+  <div class="admin-grid">
+    <div class="admin-card">
+      <div class="admin-card-title">Deduplicate TSBs</div>
+      <div class="admin-card-desc">Remove duplicate TSB records keeping the oldest entry per vehicle/year/bulletin combination.</div>
+      <button class="admin-btn" id="adminDedupeBtn">⊘ Run Deduplication</button>
+      <div class="admin-result" id="adminDedupeResult"></div>
+    </div>
+    <div class="admin-card">
+      <div class="admin-card-title">Database Stats</div>
+      <div class="admin-card-desc">Current row counts across all tables.</div>
+      <button class="admin-btn" id="adminStatsBtn">⊞ Refresh Stats</button>
+      <div class="admin-result" id="adminStatsResult"></div>
+    </div>
+    <div class="admin-card">
+      <div class="admin-card-title">Clear Sweep Log</div>
+      <div class="admin-card-desc">Reset the sweep log to force a fresh NHTSA fetch on next load.</div>
+      <button class="admin-btn admin-btn-warn" id="adminClearSweepBtn">↺ Clear Sweep Log</button>
+      <div class="admin-result" id="adminClearSweepResult"></div>
+    </div>
+    <div class="admin-card">
+      <div class="admin-card-title">Clear Review Queue</div>
+      <div class="admin-card-desc">Delete all pending items from the AI research review queue.</div>
+      <button class="admin-btn admin-btn-warn" id="adminClearQueueBtn">⊗ Clear Queue</button>
+      <div class="admin-result" id="adminClearQueueResult"></div>
+    </div>
+  </div>
+  <div style="margin-top:12px;text-align:right">
+    <button class="cancel-btn" data-panel="adminPanel">✕ Close Admin</button>
+  </div>
 </div>
 
 <!-- RECALLS SECTION -->
@@ -869,8 +923,56 @@ function printIssue(cardBodyId) {
   sec.classList.remove('print-target');
 }
 
+// ── ADMIN ────────────────────────────────────
+let gzHoldTimer = null;
+
+function startGzHold() {
+  const icon = document.getElementById('gzIcon');
+  icon.classList.add('holding');
+  gzHoldTimer = setTimeout(() => {
+    icon.classList.remove('holding');
+    const pw = prompt('Admin passphrase:');
+    if (pw === null) return;
+    if (pw === (window.__adminKey || 'gazunni-admin')) {
+      togglePanel('adminPanel');
+    } else {
+      setGZ('err', 'Invalid passphrase');
+      setTimeout(() => setGZ('done', ''), 2000);
+    }
+  }, 3000);
+}
+
+function cancelGzHold() {
+  if (gzHoldTimer) { clearTimeout(gzHoldTimer); gzHoldTimer = null; }
+  document.getElementById('gzIcon').classList.remove('holding');
+}
+
+async function adminAction(endpoint, resultId, btnId) {
+  const result = document.getElementById(resultId);
+  const btn = document.getElementById(btnId);
+  btn.disabled = true;
+  result.style.color = 'var(--muted)';
+  result.textContent = 'Running…';
+  try {
+    const res = await apiFetch('/api/admin/' + endpoint, { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({key: window.__adminKey || 'gazunni-admin'}) });
+    result.style.color = 'var(--green)';
+    result.textContent = res.message || '✓ Done';
+  } catch(e) {
+    result.style.color = 'var(--recall)';
+    result.textContent = 'Error: ' + e.message;
+  } finally { btn.disabled = false; }
+}
+
 // ── INIT ─────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  // G logo hold-to-admin
+  const gzEl = document.getElementById('gzIcon');
+  gzEl.addEventListener('mousedown', startGzHold);
+  gzEl.addEventListener('touchstart', startGzHold, {passive:true});
+  gzEl.addEventListener('mouseup', cancelGzHold);
+  gzEl.addEventListener('mouseleave', cancelGzHold);
+  gzEl.addEventListener('touchend', cancelGzHold);
+
   document.getElementById('selModel').addEventListener('change', loadAll);
   document.getElementById('selYear').addEventListener('change', loadAll);
   document.getElementById('sweepBtn').addEventListener('click', runSweep);
@@ -885,6 +987,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (id === 'researchSweepBtn') { e.stopPropagation(); runResearchSweep(); return; }
     if (id === 'clearResearchBtn') { e.stopPropagation(); clearResearch(); return; }
     if (id === 'addTsbBtn')        { e.stopPropagation(); addTsb(); return; }
+    if (id === 'adminDedupeBtn')   { e.stopPropagation(); adminAction('dedupe', 'adminDedupeResult', 'adminDedupeBtn'); return; }
+    if (id === 'adminStatsBtn')    { e.stopPropagation(); adminAction('stats', 'adminStatsResult', 'adminStatsBtn'); return; }
+    if (id === 'adminClearSweepBtn'){ e.stopPropagation(); adminAction('clear-sweep', 'adminClearSweepResult', 'adminClearSweepBtn'); return; }
+    if (id === 'adminClearQueueBtn'){ e.stopPropagation(); adminAction('clear-queue', 'adminClearQueueResult', 'adminClearQueueBtn'); return; }
 
     // Apply TSB panel toggle and confirm
     const applyBtn    = t.closest('[data-apply]');
