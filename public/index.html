@@ -285,7 +285,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
     </div>
   </div>
   <div class="btn-row">
-    <button class="submit-btn" id="subBtn" onclick="submitIssue()">Submit Issue</button>
+    <button class="submit-btn" id="subBtn" id="submitIssueBtn">Submit Issue</button>
     <button class="cancel-btn" data-panel="submitPanel">Cancel</button>
   </div>
   <div id="subResult" style="margin-top:10px;font-size:11px;color:var(--muted)"></div>
@@ -313,8 +313,8 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
     <textarea id="resText" style="min-height:120px" placeholder="Paste forum posts, article text, Reddit comments — Claude will extract vehicle issues and structure them…"></textarea>
   </div>
   <div class="btn-row">
-    <button class="submit-btn" id="resBtn" onclick="runResearchSweep()">🧠 Extract Issues</button>
-    <button class="cancel-btn" onclick="clearResearch()">✕ Clear</button>
+    <button class="submit-btn" id="resBtn" id="researchSweepBtn">🧠 Extract Issues</button>
+    <button class="cancel-btn" id="clearResearchBtn">✕ Clear</button>
   </div>
   <div id="resResults" style="margin-top:12px"></div>
 </div>
@@ -437,7 +437,7 @@ async function loadSection(type, vkey, year) {
     loadedSections++;
     document.getElementById('cnt-'+key).textContent = '0';
     document.getElementById('sn-'+key).textContent = '0';
-    document.getElementById('cards-'+key).innerHTML = `<div class="empty"><div class="ei">⚠️</div><div class="et">${esc(e.message)}<br><button class="sweep-btn" style="margin-top:10px;font-size:10px" onclick="loadAll()">↻ Retry</button></div></div>`;
+    document.getElementById('cards-'+key).innerHTML = `<div class="empty"><div class="ei">⚠️</div><div class="et">${esc(e.message)}<br><button class="sweep-btn" style="margin-top:10px;font-size:10px" data-retry="1">↻ Retry</button></div></div>`;
     if (loadedSections >= totalSections) setGZ('err', 'Some sections failed to load');
   }
 }
@@ -522,7 +522,7 @@ function buildCard(rec, type, idx) {
     ${rec.bulletin_ref ? '<div class="cf"><div class="cf-label">Bulletin</div><div class="cf-val">'+esc(rec.bulletin_ref)+'</div></div>' : ''}
     ${rec.affected_units ? '<div class="cf"><div class="cf-label">Units Affected</div><div class="cf-val">'+esc(String(rec.affected_units))+'</div></div>' : ''}
     ${linkHtml ? '<div class="link-row">'+linkHtml+'</div>' : ''}
-    ${type==='comm' ? `<div class="conf-bar"><div><div class="conf-num">${esc(String(rec.confirmations||1))}</div><div class="conf-label">Confirmations</div></div><button class="confirm-btn" onclick="confirmIssue('${esc(rec.id)}',this)">＋ Confirm</button></div>` : ''}
+    ${type==='comm' ? `<div class="conf-bar"><div><div class="conf-num">${esc(String(rec.confirmations||1))}</div><div class="conf-label">Confirmations</div></div><button class="confirm-btn" data-confirm="${esc(rec.id)}">＋ Confirm</button></div>` : ''}
     <div class="card-actions">
       <button class="act-btn act-copy" data-copy="${id}">⎘ Copy</button>
       <button class="act-btn act-print" data-print="${id}">⎙ Print</button>
@@ -625,8 +625,8 @@ async function runResearchSweep() {
         <div style="font-size:10px;color:var(--text);margin-bottom:8px">${esc(issue.summary||'')}</div>
         ${issue.likelyMatchId?`<div style="font-size:10px;color:var(--tsb);margin-bottom:8px">⚠ Possible match: ${esc(issue.likelyMatchId)}</div>`:''}
         <div class="rq-actions">
-          <button class="approve-btn" onclick="approveIssue(${i},'${esc(issue.queueId)}','${vkey}','${year}')">✓ Approve</button>
-          <button class="reject-btn" onclick="this.closest('.rq-item').remove()">✗ Reject</button>
+          <button class="approve-btn" data-approve-idx="${i}" data-queue-id="${esc(issue.queueId)}" data-vkey="${vkey}" data-year="${year}">✓ Approve</button>
+          <button class="reject-btn" data-reject="1">✗ Reject</button>
         </div>
       </div>`).join('');
   } catch(e){
@@ -704,17 +704,30 @@ document.addEventListener('DOMContentLoaded', () => {
     el.addEventListener('click', () => togglePanel(el.dataset.panel));
   });
 
-  // Card expand + copy/print — event delegation for dynamically rendered cards
+  // All dynamic button handling via event delegation
   document.addEventListener('click', e => {
-    const copyBtn = e.target.closest('[data-copy]');
-    const printBtn = e.target.closest('[data-print]');
-    const expandBtn = e.target.closest('[data-btn]');
-    const hdr = e.target.closest('[data-card]');
-    if (copyBtn)  { e.stopPropagation(); copyIssue(copyBtn.dataset.copy); return; }
-    if (printBtn) { e.stopPropagation(); printIssue(printBtn.dataset.print); return; }
-    if (expandBtn){ e.stopPropagation(); toggleCard(expandBtn.dataset.btn); return; }
-    if (hdr)      { toggleCard(hdr.dataset.card); }
+    const copyBtn    = e.target.closest('[data-copy]');
+    const printBtn   = e.target.closest('[data-print]');
+    const expandBtn  = e.target.closest('[data-btn]');
+    const confirmBtn = e.target.closest('[data-confirm]');
+    const approveBtn = e.target.closest('[data-approve-idx]');
+    const rejectBtn  = e.target.closest('[data-reject]');
+    const hdr        = e.target.closest('[data-card]');
+    if (copyBtn)    { e.stopPropagation(); copyIssue(copyBtn.dataset.copy); return; }
+    if (printBtn)   { e.stopPropagation(); printIssue(printBtn.dataset.print); return; }
+    if (expandBtn)  { e.stopPropagation(); toggleCard(expandBtn.dataset.btn); return; }
+    if (confirmBtn) { e.stopPropagation(); confirmIssue(confirmBtn.dataset.confirm, confirmBtn); return; }
+    if (approveBtn) { e.stopPropagation(); approveIssue(approveBtn.dataset.approveIdx, approveBtn.dataset.queueId, approveBtn.dataset.vkey, approveBtn.dataset.year); return; }
+    if (rejectBtn)  { e.stopPropagation(); rejectBtn.closest('.rq-item').remove(); return; }
+    if (hdr)        { toggleCard(hdr.dataset.card); }
+    const retryBtn = e.target.closest('[data-retry]');
+    if (retryBtn)   { e.stopPropagation(); loadAll(); return; }
   });
+
+  // Static buttons
+  document.getElementById('submitIssueBtn').addEventListener('click', submitIssue);
+  document.getElementById('researchSweepBtn').addEventListener('click', runResearchSweep);
+  document.getElementById('clearResearchBtn').addEventListener('click', clearResearch);
 });
 
 window.addEventListener('load', async () => {
