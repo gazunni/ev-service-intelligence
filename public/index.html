@@ -239,6 +239,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
   <div class="sg">
     <label>Year</label>
     <select id="selYear">
+      <option value="2026">2026</option>
       <option value="2025">2025</option>
       <option value="2024">2024</option>
       <option value="2023">2023</option>
@@ -347,17 +348,19 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
       <div class="tsb-veh-group">
         <div class="tsb-veh-label">Chevrolet Equinox EV</div>
         <div class="tsb-veh-years">
-          <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="equinox_ev|2023"> 2023</label>
+          
           <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="equinox_ev|2024"> 2024</label>
           <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="equinox_ev|2025" checked> 2025</label>
+          <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="equinox_ev|2026"> 2026</label>
         </div>
       </div>
       <div class="tsb-veh-group">
         <div class="tsb-veh-label">Chevrolet Blazer EV</div>
         <div class="tsb-veh-years">
-          <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="blazer_ev|2023"> 2023</label>
+          
           <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="blazer_ev|2024"> 2024</label>
           <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="blazer_ev|2025"> 2025</label>
+          <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="blazer_ev|2026"> 2026</label>
         </div>
       </div>
       <div class="tsb-veh-group">
@@ -366,6 +369,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
           <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="mach_e|2023"> 2023</label>
           <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="mach_e|2024"> 2024</label>
           <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="mach_e|2025"> 2025</label>
+          <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="mach_e|2026"> 2026</label>
         </div>
       </div>
     </div>
@@ -619,7 +623,7 @@ function buildCard(rec, type, idx) {
       <button class="act-btn act-print" data-print="${id}">⎙ Print</button>
       ${type==='tsb' ? '<button class="act-btn act-apply" data-apply="'+esc(rec.id)+'">⊕ Apply to Vehicles</button>' : ''}
     </div>
-    ${type==='tsb' ? '<div class="apply-panel" id="apply-'+esc(rec.id)+'" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><div class="tsb-vehicles"><div class="tsb-veh-group"><div class="tsb-veh-label">Equinox EV</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2023"> 2023</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2025"> 2025</label></div></div><div class="tsb-veh-group"><div class="tsb-veh-label">Blazer EV</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2023"> 2023</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2025"> 2025</label></div></div><div class="tsb-veh-group"><div class="tsb-veh-label">Mach-E</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2023"> 2023</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2025"> 2025</label></div></div></div><button class="submit-btn" style="margin-top:8px;font-size:10px" data-apply-confirm="'+esc(rec.id)+'">＋ Apply to Selected</button><div class="apply-result" id="apply-result-'+esc(rec.id)+'" style="font-size:11px;margin-top:6px"></div></div>' : ''}
+    ${type==='tsb' ? '<div class="apply-panel" id="apply-'+esc(rec.id)+'" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><div class="tsb-vehicles"><div class="tsb-veh-group"><div class="tsb-veh-label">Equinox EV</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2026"> 2026</label></div></div><div class="tsb-veh-group"><div class="tsb-veh-label">Blazer EV</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2026"> 2026</label></div></div><div class="tsb-veh-group"><div class="tsb-veh-label">Mach-E</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2023"> 2023</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2026"> 2026</label></div></div></div><button class="submit-btn" style="margin-top:8px;font-size:10px" data-apply-confirm="'+esc(rec.id)+'">＋ Apply to Selected</button><div class="apply-result" id="apply-result-'+esc(rec.id)+'" style="font-size:11px;margin-top:6px"></div></div>' : ''}
   </div>
 </div>`;
 }
