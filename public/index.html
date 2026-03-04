@@ -926,16 +926,23 @@ function printIssue(cardBodyId) {
 // ── ADMIN ────────────────────────────────────
 let gzHoldTimer = null;
 
-function startGzHold() {
+async function startGzHold() {
   const icon = document.getElementById('gzIcon');
   icon.classList.add('holding');
-  gzHoldTimer = setTimeout(() => {
+  gzHoldTimer = setTimeout(async () => {
     icon.classList.remove('holding');
     const pw = prompt('Admin passphrase:');
-    if (pw === null) return;
-    if (pw === (window.__adminKey || 'gazunni-admin')) {
-      togglePanel('adminPanel');
-    } else {
+    if (pw === null || pw.trim() === '') return;
+    // Verify passphrase server-side
+    try {
+      setGZ('loading', 'Verifying…');
+      await apiFetch('/api/admin/stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ key: pw.trim() }) });
+      window.__adminKey = pw.trim();
+      setGZ('done', 'Admin access granted');
+      // Close any open panels first, then open admin
+      document.querySelectorAll('.tool-panel.open').forEach(p => p.classList.remove('open'));
+      document.getElementById('adminPanel').classList.add('open');
+    } catch(e) {
       setGZ('err', 'Invalid passphrase');
       setTimeout(() => setGZ('done', ''), 2000);
     }
