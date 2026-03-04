@@ -230,8 +230,29 @@ app.post('/api/submit', async (req, res) => {
 
 // POST /api/research
 app.post('/api/research', async (req, res) => {
-  const { vehicle, year, text, srcType, srcUrl } = req.body || {};
-  if (!vehicle || !year || !text) return res.status(400).json({ error: 'vehicle, year and text required' });
+  let { vehicle, year, text, srcType, srcUrl } = req.body || {};
+  if (!vehicle || !year) return res.status(400).json({ error: 'vehicle and year required' });
+
+  // If no text but URL provided, fetch content from URL
+  if (!text && srcUrl) {
+    try {
+      const fetchRes = await fetch(srcUrl, { headers: { 'User-Agent': 'EV-Service-Intelligence/1.0' } });
+      if (!fetchRes.ok) throw new Error(`Failed to fetch URL: ${fetchRes.status}`);
+      const contentType = fetchRes.headers.get('content-type') || '';
+      if (contentType.includes('pdf')) {
+        // For PDFs, send URL to Claude directly with a note
+        text = `[PDF Document from ${srcUrl}] Please extract vehicle service issues from this NHTSA TSB PDF. URL: ${srcUrl}`;
+      } else {
+        text = await fetchRes.text();
+        // Truncate if too long
+        if (text.length > 15000) text = text.substring(0, 15000) + '... [truncated]';
+      }
+    } catch(e) {
+      return res.status(400).json({ error: 'Could not fetch URL: ' + e.message });
+    }
+  }
+
+  if (!text) return res.status(400).json({ error: 'text or srcUrl required' });
   const yr = parseInt(year);
   const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
@@ -287,6 +308,30 @@ app.post('/api/approve', async (req, res) => {
 
   await query(`UPDATE review_queue SET status='approved',reviewed_at=NOW() WHERE id=$1`, [queueId]);
   res.json({ success: true, communityId: newId });
+});
+
+// ── ADD TSB DIRECTLY ────────────────────────
+app.post('/api/tsb-add', async (req, res) => {
+  try {
+    const { vehicle, year, title, bulletin_ref, component, severity, summary, remedy, source_url } = req.body || {};
+    if (!vehicle || !year || !title || !summary) return res.status(400).json({ error: 'vehicle, year, title and summary required' });
+    const yr = parseInt(year);
+    // Build id from bulletin ref or title
+    const id = (bulletin_ref || title).toLowerCase().replace(/[^a-z0-9]+/g,'-').substring(0,40) + '-' + Date.now();
+    // Store source_url and bulletin_ref in raw_nhtsa JSONB
+    const raw = JSON.stringify({ bulletin_ref: bulletin_ref||null, source_url: source_url||null, remedy: remedy||null });
+    const pills = '{NHTSA}';
+    await query(
+      `INSERT INTO tsbs (id, vehicle_key, year, title, component, severity, summary, remedy, source_pills, raw_nhtsa)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+       ON CONFLICT (id) DO NOTHING`,
+      [id, vehicle, yr, title, component||null, severity||'MODERATE', summary, remedy||null, pills, raw]
+    );
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('tsb-add error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── START ─────────────────────────────────────
