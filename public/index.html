@@ -244,6 +244,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
   <button class="sweep-btn" id="sweepBtn">⚡ Run AI Sweep</button>
   <button class="tool-btn" data-panel="submitPanel">＋ Submit Issue</button>
   <button class="tool-btn" data-panel="researchPanel">🔬 Research Sweep</button>
+  <button class="tool-btn" data-panel="tsbPanel">＋ Add TSB</button>
 </div>
 
 <!-- STATS -->
@@ -317,6 +318,59 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
     <button class="cancel-btn" id="clearResearchBtn" data-panel="researchPanel">✕ Clear</button>
   </div>
   <div id="resResults" style="margin-top:12px"></div>
+</div>
+
+<!-- TSB DIRECT ENTRY PANEL -->
+<div class="tool-panel" id="tsbPanel">
+  <h3>＋ Add Technical Service Bulletin</h3>
+  <p class="tool-note">Directly add a confirmed TSB to the repository. No AI review — goes live immediately.</p>
+  <div class="form-row">
+    <div class="form-group" style="flex:2;min-width:200px">
+      <label>TSB Title</label>
+      <input id="tsbTitle" placeholder="e.g. Software Update on Ultium Vehicles">
+    </div>
+    <div class="form-group">
+      <label>Bulletin Number</label>
+      <input id="tsbBulletin" placeholder="e.g. 24-NA-143">
+    </div>
+  </div>
+  <div class="form-row">
+    <div class="form-group">
+      <label>Component</label>
+      <input id="tsbComponent" placeholder="e.g. Battery / Software / Brakes">
+    </div>
+    <div class="form-group">
+      <label>Severity</label>
+      <select id="tsbSeverity">
+        <option value="MODERATE">Moderate</option>
+        <option value="CRITICAL">Critical</option>
+        <option value="LOW">Low / Informational</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-group" style="margin-bottom:10px">
+    <label>Summary</label>
+    <textarea id="tsbSummary" placeholder="Describe the issue and what the TSB addresses…"></textarea>
+  </div>
+  <div class="form-row">
+    <div class="form-group" style="flex:2">
+      <label>Remedy / Fix</label>
+      <input id="tsbRemedy" placeholder="e.g. Dealer performs software reflash at no charge">
+    </div>
+    <div class="form-group">
+      <label>Affected Units</label>
+      <input id="tsbUnits" placeholder="e.g. 45,000" type="text">
+    </div>
+  </div>
+  <div class="form-group" style="margin-bottom:10px">
+    <label>Source URL (PDF or page)</label>
+    <input id="tsbUrl" placeholder="https://static.nhtsa.gov/odi/tsbs/…">
+  </div>
+  <div class="btn-row">
+    <button class="submit-btn" id="addTsbBtn">＋ Add TSB</button>
+    <button class="cancel-btn" data-panel="tsbPanel">Cancel</button>
+  </div>
+  <div id="tsbResult" style="margin-top:10px;font-size:11px;color:var(--muted)"></div>
 </div>
 
 <!-- RECALLS SECTION -->
@@ -651,6 +705,47 @@ function clearResearch() {
   if (panel) panel.classList.remove('open');
 }
 
+// ── ADD TSB DIRECTLY ────────────────────────
+async function addTsb() {
+  const vkey = getVehicle(), year = getYear();
+  const title    = document.getElementById('tsbTitle').value.trim();
+  const bulletin = document.getElementById('tsbBulletin').value.trim();
+  const component= document.getElementById('tsbComponent').value.trim();
+  const severity = document.getElementById('tsbSeverity').value;
+  const summary  = document.getElementById('tsbSummary').value.trim();
+  const remedy   = document.getElementById('tsbRemedy').value.trim();
+  const units    = document.getElementById('tsbUnits').value.trim();
+  const url      = document.getElementById('tsbUrl').value.trim();
+  const result   = document.getElementById('tsbResult');
+
+  if (!title || !summary) { result.style.color='var(--recall)'; result.textContent='Title and summary are required.'; return; }
+
+  const btn = document.getElementById('addTsbBtn');
+  btn.disabled = true; btn.textContent = 'Adding…';
+  setGZ('loading', 'Adding TSB…');
+  result.textContent = '';
+
+  try {
+    const res = await apiFetch('/api/tsb-add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ vehicle: vkey, year: parseInt(year), title, bulletin_ref: bulletin, component, severity, summary, remedy, affected_units: units, source_url: url })
+    });
+    result.style.color = 'var(--green)';
+    result.textContent = '✓ TSB added successfully.';
+    setGZ('done', 'TSB added');
+    // Clear form
+    ['tsbTitle','tsbBulletin','tsbComponent','tsbSummary','tsbRemedy','tsbUnits','tsbUrl'].forEach(id => { document.getElementById(id).value = ''; });
+    loadAll();
+  } catch(e) {
+    result.style.color = 'var(--recall)';
+    result.textContent = 'Error: ' + e.message;
+    setGZ('err', 'Failed to add TSB');
+  } finally {
+    btn.disabled = false; btn.textContent = '＋ Add TSB';
+  }
+}
+
 // ── COPY & PRINT ─────────────────────────────
 function getCardText(cardBodyId) {
   const body = document.getElementById(cardBodyId);
@@ -707,6 +802,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (id === 'submitIssueBtn')   { e.stopPropagation(); submitIssue(); return; }
     if (id === 'researchSweepBtn') { e.stopPropagation(); runResearchSweep(); return; }
     if (id === 'clearResearchBtn') { e.stopPropagation(); clearResearch(); return; }
+    if (id === 'addTsbBtn')        { e.stopPropagation(); addTsb(); return; }
 
     // Data attribute buttons
     const copyBtn    = t.closest('[data-copy]');
