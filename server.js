@@ -24,6 +24,17 @@ app.use(helmet({
     },
   },
   crossOriginEmbedderPolicy: false,
+  permissionsPolicy: {
+    features: {
+      camera:         ["'none'"],
+      microphone:     ["'none'"],
+      geolocation:    ["'none'"],
+      paymentRequest: ["'none'"],
+      usb:            ["'none'"],
+      gyroscope:      ["'none'"],
+      accelerometer:  ["'none'"],
+    }
+  },
   referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
 }));
 
