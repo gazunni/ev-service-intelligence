@@ -365,6 +365,40 @@ app.post('/api/tsb-add', async (req, res) => {
   }
 });
 
+// ── VIN RECALL IMPORT ───────────────────────
+app.post('/api/vin-import', async (req, res) => {
+  try {
+    const { vehicle, year, recalls } = req.body || {};
+    if (!vehicle || !year || !recalls?.length) return res.status(400).json({ error: 'vehicle, year and recalls required' });
+    const yr = parseInt(year);
+    let count = 0;
+
+    for (const r of recalls) {
+      const campaignId = (r.NHTSACampaignNumber || r.recallId || '').toLowerCase().replace(/[^a-z0-9]+/g,'-');
+      if (!campaignId) continue;
+      const id = `${vehicle}-${yr}-${campaignId}`;
+      const title = r.Component || r.component || 'Unknown Component';
+      const summary = r.Summary || r.summary || r.Consequence || r.consequence || '';
+      const remedy  = r.Remedy  || r.remedy  || '';
+      const risk    = r.Consequence || r.consequence || '';
+      const pills   = '{NHTSA Official}';
+      const raw     = JSON.stringify(r);
+
+      await query(
+        `INSERT INTO recalls (id, vehicle_key, year, title, summary, remedy, risk, source_pills, raw_nhtsa)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+         ON CONFLICT (id) DO NOTHING`,
+        [id, vehicle, yr, title, summary, remedy, risk, pills, raw]
+      );
+      count++;
+    }
+    res.json({ ok: true, count });
+  } catch(e) {
+    console.error('vin-import error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── ADMIN ENDPOINTS ─────────────────────────
 const ADMIN_KEY = process.env.ADMIN_KEY || 'gazunni-admin';
 
