@@ -365,6 +365,33 @@ app.post('/api/tsb-add', async (req, res) => {
   }
 });
 
+// ── VIN PROXY ENDPOINTS ─────────────────────
+app.get('/api/vin-decode', async (req, res) => {
+  const { vin } = req.query;
+  if (!vin || vin.length !== 17) return res.status(400).json({ error: 'Valid 17-char VIN required' });
+  try {
+    const r = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/${encodeURIComponent(vin)}?format=json`);
+    const data = await r.json();
+    res.json(data);
+  } catch(e) {
+    console.error('vin-decode error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/vin-recalls', async (req, res) => {
+  const { vin } = req.query;
+  if (!vin || vin.length !== 17) return res.status(400).json({ error: 'Valid 17-char VIN required' });
+  try {
+    const r = await fetch(`https://api.nhtsa.gov/recalls/recallsByVehicleId?vinId=${encodeURIComponent(vin)}`);
+    const data = await r.json();
+    res.json(data);
+  } catch(e) {
+    console.error('vin-recalls error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── VIN RECALL IMPORT ───────────────────────
 app.post('/api/vin-import', async (req, res) => {
   try {
