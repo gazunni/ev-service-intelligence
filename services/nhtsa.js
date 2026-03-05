@@ -4,6 +4,8 @@ export const VEHICLES = {
   blazer_ev:      { make: 'Chevrolet', model: 'Blazer EV',      nhtsa_make: 'CHEVROLET', nhtsa_model: 'BLAZER EV'  },
   mach_e:         { make: 'Ford',      model: 'Mustang Mach-E', nhtsa_make: 'FORD',      nhtsa_model: 'MUSTANG MACH-E' },
   honda_prologue: { make: 'Honda',     model: 'Prologue',       nhtsa_make: 'HONDA',     nhtsa_model: 'PROLOGUE' },
+  tesla_model_3:  { make: 'Tesla',     model: 'Model 3',        nhtsa_make: 'TESLA',     nhtsa_model: 'MODEL 3' },
+  tesla_model_y:  { make: 'Tesla',     model: 'Model Y',        nhtsa_make: 'TESLA',     nhtsa_model: 'MODEL Y' },
 };
 
 // ── MODEL NAME VARIANTS ───────────────────────────────────────────────────
