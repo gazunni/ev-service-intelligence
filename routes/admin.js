@@ -27,6 +27,8 @@ router.post('/migrate', async (req, res) => {
       `CREATE INDEX IF NOT EXISTS idx_tsbs_vehicle_year      ON tsbs(vehicle_key, year)`,
       `CREATE INDEX IF NOT EXISTS idx_community_vehicle_year ON community(vehicle_key, year, status)`,
       `CREATE INDEX IF NOT EXISTS idx_review_queue_status    ON review_queue(status, vehicle_key, year)`,
+      `ALTER TABLE recalls  ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active'`,
+      `ALTER TABLE tsbs     ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active'`,
     ];
     for (const sql of migrations) await query(sql);
     res.json({ ok: true, message: `✓ ${migrations.length} indexes created (IF NOT EXISTS — safe to run again)` });
@@ -36,20 +38,20 @@ router.post('/migrate', async (req, res) => {
   }
 });
 
-// ── DELETE RECALL ────────────────────────────────────────────────────────
+// ── DELETE RECALL (soft — sets status=suppressed) ────────────────────────
 router.delete('/recalls/:id', async (req, res) => {
   if (!checkAdminAny(req, res)) return;
   try {
-    await query(`DELETE FROM recalls WHERE id=$1`, [req.params.id]);
+    await query(`UPDATE recalls SET status='suppressed', updated_at=NOW() WHERE id=$1`, [req.params.id]);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-// ── DELETE TSB ───────────────────────────────────────────────────────────
+// ── DELETE TSB (soft — sets status=suppressed) ───────────────────────────
 router.delete('/tsbs/:id', async (req, res) => {
   if (!checkAdminAny(req, res)) return;
   try {
-    await query(`DELETE FROM tsbs WHERE id=$1`, [req.params.id]);
+    await query(`UPDATE tsbs SET status='suppressed', updated_at=NOW() WHERE id=$1`, [req.params.id]);
     res.json({ ok: true });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
