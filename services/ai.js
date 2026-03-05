@@ -23,7 +23,7 @@ function ai() {
 
 // ── AI OUTPUT VALIDATION ─────────────────────────────────────────────────
 const VALID_SEVERITIES = new Set(['CRITICAL', 'MODERATE', 'LOW']);
-const VALID_VEHICLES   = new Set(['equinox_ev', 'blazer_ev', 'mach_e', 'honda_prologue']);
+const VALID_VEHICLES   = new Set(['equinox_ev', 'blazer_ev', 'mach_e', 'honda_prologue', 'tesla_model_3', 'tesla_model_y']);
 
 export function validateRecallExtraction(data) {
   if (!data || typeof data !== 'object') throw new Error('AI returned invalid JSON');
@@ -56,7 +56,7 @@ export function validateTSBExtraction(data) {
   };
 }
 
-const VEHICLE_MAP = `equinox_ev=Chevrolet Equinox EV, blazer_ev=Chevrolet Blazer EV, mach_e=Ford Mustang Mach-E, honda_prologue=Honda Prologue`;
+const VEHICLE_MAP = `equinox_ev=Chevrolet Equinox EV, blazer_ev=Chevrolet Blazer EV, mach_e=Ford Mustang Mach-E, honda_prologue=Honda Prologue, tesla_model_3=Tesla Model 3, tesla_model_y=Tesla Model Y`;
 
 // ── SUMMARIZE NHTSA RECALL (sweep) ───────────────────────────────────────
 export async function summarizeRecall(item, vehicleName) {
