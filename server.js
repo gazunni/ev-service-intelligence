@@ -389,11 +389,33 @@ app.get('/api/vin-recalls', async (req, res) => {
     const unrepairedIds = new Set((vinData.results||[]).map(r => r.NHTSACampaignNumber||''));
 
     // Step 2: Get ALL recalls ever issued for this make/model/year
+    // Try multiple model name variations - NHTSA may use different names than VIN decode
     let allRecalls = [];
     if (make && model && year) {
-      const allRes = await fetch(`https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&modelYear=${encodeURIComponent(year)}`);
-      const allData = await allRes.json();
-      allRecalls = allData.results || [];
+      const modelVariants = [model];
+      // Add EV suffix variants for known EV models
+      if (!model.toUpperCase().includes('EV')) modelVariants.push(model + ' EV');
+      // Add common NHTSA alternate names
+      if (model.toUpperCase() === 'EQUINOX') modelVariants.push('EQUINOX EV', 'Equinox EV');
+      if (model.toUpperCase() === 'BLAZER') modelVariants.push('BLAZER EV', 'Blazer EV');
+      if (model.toUpperCase().includes('MUSTANG') || model.toUpperCase().includes('MACH')) {
+        modelVariants.push('Mustang Mach-E', 'MUSTANG MACH-E');
+      }
+
+      for (const m of modelVariants) {
+        const allRes = await fetch(`https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(make)}&model=${encodeURIComponent(m)}&modelYear=${encodeURIComponent(year)}`);
+        const allData = await allRes.json();
+        const found = allData.results || [];
+        if (found.length) { allRecalls = found; break; }
+      }
+      console.log(`vin-recalls: ${make} ${model} ${year} → ${allRecalls.length} recalls found`);
+    }
+
+    // Step 2b: If still no results, VIN-based endpoint may have them as "unrepaired"
+    // Merge unrepaired into allRecalls if allRecalls is empty
+    if (!allRecalls.length && vinData.results && vinData.results.length) {
+      allRecalls = vinData.results;
+      console.log(`vin-recalls: falling back to VIN-direct results: ${allRecalls.length}`);
     }
 
     // Step 3: Tag each recall as outstanding or completed
