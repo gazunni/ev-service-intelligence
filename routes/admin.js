@@ -18,6 +18,51 @@ export function checkAdminAny(req, res) {
   return true;
 }
 
+// ── NHTSA DEBUG ──────────────────────────────────────────────────────────
+// Fetches raw NHTSA data for a vehicle and returns it directly — helps diagnose
+// why certain recalls aren't being captured
+router.get('/nhtsa-debug', async (req, res) => {
+  const key = req.query.key || req.headers['x-admin-key'] || '';
+  if (key !== ADMIN_KEY) return res.status(403).json({ error: 'Forbidden' });
+  const { vehicle, year } = req.query;
+  if (!vehicle) return res.status(400).json({ error: 'vehicle required' });
+
+  const VEHICLES = {
+    tesla_model_3: { nhtsa_make: 'TESLA', nhtsa_model: 'MODEL 3' },
+    tesla_model_y: { nhtsa_make: 'TESLA', nhtsa_model: 'MODEL Y' },
+    equinox_ev:    { nhtsa_make: 'CHEVROLET', nhtsa_model: 'EQUINOX EV' },
+    mach_e:        { nhtsa_make: 'FORD', nhtsa_model: 'MUSTANG MACH-E' },
+    honda_prologue:{ nhtsa_make: 'HONDA', nhtsa_model: 'PROLOGUE' },
+  };
+  const v = VEHICLES[vehicle];
+  if (!v) return res.status(400).json({ error: 'Unknown vehicle' });
+
+  try {
+    const results = {};
+    // Test 1: with year
+    if (year) {
+      const url1 = `https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(v.nhtsa_make)}&model=${encodeURIComponent(v.nhtsa_model)}&modelYear=${year}`;
+      const r1 = await fetch(url1);
+      const d1 = await r1.json();
+      results.withYear = { count: (d1.results||d1.Results||[]).length, url: url1, sample: (d1.results||d1.Results||[]).slice(0,2).map(r=>({campaign:r.NHTSACampaignNumber,year:r.ModelYear,component:r.Component})) };
+    }
+    // Test 2: without year
+    const url2 = `https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(v.nhtsa_make)}&model=${encodeURIComponent(v.nhtsa_model)}`;
+    const r2 = await fetch(url2);
+    const d2 = await r2.json();
+    const all = d2.results || d2.Results || [];
+    results.withoutYear = { count: all.length, url: url2, uniqueYears: [...new Set(all.map(r=>r.ModelYear))].sort(), sample: all.slice(0,3).map(r=>({campaign:r.NHTSACampaignNumber,year:r.ModelYear,component:r.Component})) };
+
+    // Test 3: NHTSA complaints count for comparison
+    const url3 = `https://api.nhtsa.gov/complaints/complaintsByVehicle?make=${encodeURIComponent(v.nhtsa_make)}&model=${encodeURIComponent(v.nhtsa_model)}${year?'&modelYear='+year:''}`;
+    results.complaintsUrl = url3;
+
+    res.json(results);
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── RUN MIGRATIONS ───────────────────────────────────────────────────────
 router.post('/migrate', async (req, res) => {
   if (!checkAdmin(req, res)) return;
