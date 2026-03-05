@@ -98,6 +98,40 @@ app.delete('/api/recalls/:id',   fwdParam(adminRouter, '/recalls/'));
 app.delete('/api/tsbs/:id',      fwdParam(adminRouter, '/tsbs/'));
 app.delete('/api/community/:id', fwdParam(adminRouter, '/community/'));
 
+// ── NHTSA TEST (temporary debug route) ──────────────────────────────────
+app.get('/nhtsa-test', async (req, res) => {
+  const model = req.query.model || 'MODEL 3';
+  try {
+    // Fetch each year 2017-2026 and aggregate
+    const years = [2017,2018,2019,2020,2021,2022,2023,2024,2025,2026];
+    const allResults = [];
+    const byYear = {};
+    for (const yr of years) {
+      const url = `https://api.nhtsa.gov/recalls/recallsByVehicle?make=TESLA&model=${encodeURIComponent(model)}&modelYear=${yr}`;
+      try {
+        const r = await fetch(url);
+        const d = await r.json();
+        const found = d.results || d.Results || [];
+        byYear[yr] = found.length;
+        allResults.push(...found);
+      } catch { byYear[yr] = 'error'; }
+    }
+    // Dedupe by campaign number
+    const seen = new Set();
+    const unique = allResults.filter(r => {
+      const k = r.NHTSACampaignNumber || r.Component;
+      if (seen.has(k)) return false;
+      seen.add(k); return true;
+    });
+    res.json({
+      totalRaw: allResults.length,
+      totalUnique: unique.length,
+      byYear,
+      campaigns: unique.map(x=>({ campaign: x.NHTSACampaignNumber, year: x.ModelYear, component: x.Component }))
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── START ─────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`EV Service Intelligence running on port ${PORT}`));
