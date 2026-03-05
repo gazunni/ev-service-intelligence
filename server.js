@@ -353,6 +353,37 @@ app.post('/api/tsb-clone', async (req, res) => {
   }
 });
 
+// ── COMMUNITY CLONE ──────────────────────────
+app.post('/api/community-clone', async (req, res) => {
+  try {
+    const { src_id, targets } = req.body || {};
+    if (!src_id || !targets?.length) return res.status(400).json({ error: 'src_id and targets required' });
+
+    const rows = await query(`SELECT * FROM community WHERE id=$1`, [src_id]);
+    if (!rows.length) return res.status(404).json({ error: 'Source community issue not found' });
+    const src = rows[0];
+
+    let count = 0;
+    for (const { vehicle, year } of targets) {
+      const newId = (vehicle + '-' + year + '-' + src.id).toLowerCase().replace(/[^a-z0-9]+/g,'-').substring(0,60);
+      await query(
+        `INSERT INTO community (id, vehicle_key, year, title, component, severity, summary, symptoms, remedy, bulletin_ref, source_pills, links, confirmations, ai_sweep, status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+         ON CONFLICT (id) DO NOTHING`,
+        [newId, vehicle, parseInt(year), src.title, src.component, src.severity,
+         src.summary, src.symptoms, src.remedy, src.bulletin_ref,
+         src.source_pills, src.links, src.confirmations || 1,
+         src.ai_sweep || false, src.status || 'active']
+      );
+      count++;
+    }
+    res.json({ ok: true, count });
+  } catch(e) {
+    console.error('community-clone error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── ADD TSB DIRECTLY ────────────────────────
 app.post('/api/tsb-add', async (req, res) => {
   try {
