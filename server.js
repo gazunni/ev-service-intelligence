@@ -514,6 +514,50 @@ If any field is not found use empty string or empty array.`,
   }
 });
 
+// ── TSB FETCH & EXTRACT ──────────────────────
+app.post('/api/tsb-fetch', async (req, res) => {
+  const { url } = req.body || {};
+  if (!url) return res.status(400).json({ error: 'url required' });
+  const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  try {
+    let messageContent;
+    const isPdf = /\.pdf$/i.test(url) || url.includes('/odi/tsbs/');
+    if (isPdf) {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`Failed to fetch PDF: ${r.status}`);
+      const buffer = await r.arrayBuffer();
+      const base64 = Buffer.from(buffer).toString('base64');
+      messageContent = [
+        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
+        { type: 'text', text: `Extract TSB information and return ONLY valid JSON:
+{"bulletin":"bulletin number e.g. 25-043","title":"concise title max 10 words","component":"affected system e.g. Battery/BECM/Software","severity":"CRITICAL or MODERATE or LOW","summary":"2-3 sentence description of issue and cause","remedy":"what technician does to fix it","affected_vehicles":[{"vehicle":"vehicle_key","years":[2024,2025]}]}
+Map vehicles: equinox_ev=Chevrolet Equinox EV, blazer_ev=Chevrolet Blazer EV, mach_e=Ford Mustang Mach-E, honda_prologue=Honda Prologue.
+Return empty array for affected_vehicles if none of these vehicles appear. Return ONLY JSON, no other text.` }
+      ];
+    } else {
+      const r = await fetch(url);
+      const text = (await r.text()).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').substring(0,10000);
+      messageContent = `Extract TSB info and return ONLY JSON: {bulletin,title,component,severity,summary,remedy,affected_vehicles}\n\n${text}`;
+    }
+
+    const msgOpts = {
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1000,
+      messages: [{ role: 'user', content: messageContent }]
+    };
+    if (isPdf) msgOpts.betas = ['pdfs-2024-09-25'];
+
+    const msg = await ai.messages.create(msgOpts);
+    const rawText = (msg.content[0]?.text || '');
+    const match = rawText.match(/\{[\s\S]*\}/);
+    if (!match) throw new Error('Could not parse AI response');
+    res.json(JSON.parse(match[0]));
+  } catch(e) {
+    console.error('tsb-fetch error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── RECALL DIRECT ADD ─────────────────────────
 app.post('/api/recall-add', async (req, res) => {
   try {
@@ -646,6 +690,21 @@ app.post('/api/vin-import', async (req, res) => {
     res.json({ ok: true, count });
   } catch(e) {
     console.error('vin-import error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── CONFIRM COMMUNITY ISSUE ──────────────────
+app.post('/api/confirm', async (req, res) => {
+  const { id } = req.body || {};
+  if (!id) return res.status(400).json({ error: 'id required' });
+  try {
+    await query(
+      `UPDATE community SET confirmations=confirmations+1, updated_at=NOW() WHERE id=$1`,
+      [id]
+    );
+    res.json({ ok: true });
+  } catch(e) {
     res.status(500).json({ error: e.message });
   }
 });
