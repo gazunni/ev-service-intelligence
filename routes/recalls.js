@@ -27,9 +27,24 @@ router.post('/nhtsa-import', async (req, res) => {
   const yr = parseInt(year);
   try {
     const recalls = await fetchNHTSARecalls(vehicle, yr);
+    // Merge duplicate campaign entries from NHTSA (same campaign, different Component)
+    const importMap = new Map();
+    for (const rc of recalls) {
+      const id = canonicalRecallId(rc.NHTSACampaignNumber || rc.recallId, null);
+      if (!id) { importMap.set('fallback-' + importMap.size, rc); continue; }
+      if (importMap.has(id)) {
+        const ex = importMap.get(id);
+        const newComp = rc.Component || '';
+        if (newComp && !(ex.Component||'').includes(newComp))
+          ex.Component = ((ex.Component||'') + ' / ' + newComp).substring(0, 120);
+      } else {
+        importMap.set(id, { ...rc });
+      }
+    }
+    const dedupedRecalls = Array.from(importMap.values());
     let stored = 0, skipped = 0;
 
-    for (const rc of recalls) {
+    for (const rc of dedupedRecalls) {
       const id = canonicalRecallId(rc.NHTSACampaignNumber || rc.recallId, 'r-' + Date.now() + '-' + stored);
       const title = (rc.Component || rc.Summary || 'Recall').substring(0, 120);
       const severity = detectSeverity(rc.Consequence);
@@ -113,7 +128,26 @@ router.post('/sweep', async (req, res) => {
 
     let recallsStored = 0, tsbsStored = 0;
 
+    // NHTSA sometimes returns same campaign multiple times with different Component values
+    // Merge them: concatenate components, keep first for all other fields
+    const recallMap = new Map();
     for (const r of rawRecalls) {
+      const id = canonicalRecallId(r.NHTSACampaignNumber || r.recallId, null);
+      if (!id) { recallMap.set('fallback-' + recallMap.size, r); continue; }
+      if (recallMap.has(id)) {
+        const existing = recallMap.get(id);
+        const existComp = existing.Component || '';
+        const newComp   = r.Component || '';
+        if (newComp && !existComp.includes(newComp)) {
+          existing.Component = (existComp + ' / ' + newComp).substring(0, 120);
+        }
+      } else {
+        recallMap.set(id, { ...r });
+      }
+    }
+    const deduped = Array.from(recallMap.values());
+
+    for (const r of deduped) {
       const id = canonicalRecallId(r.NHTSACampaignNumber || r.recallId, 'r-' + Date.now() + '-' + recallsStored);
       const title = (r.Component || r.Summary || 'Recall').substring(0, 120);
       await query(
