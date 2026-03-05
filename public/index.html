@@ -1572,6 +1572,52 @@ function cancelGzHold() {
   document.getElementById('gzIcon').classList.remove('holding');
 }
 
+async function loadAdminDashboard() {
+  const status = document.getElementById('adminDashStatus');
+  if (status) status.textContent = 'Loading…';
+  try {
+    const data = await apiFetch('/api/admin/stats', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: window.__adminKey || '' })
+    });
+    const d = data.dashboard;
+    if (!d) { if (status) status.textContent = 'No dashboard data returned'; return; }
+
+    document.getElementById('dNum-recalls').textContent    = d.recalls;
+    document.getElementById('dNum-tsbs').textContent       = d.tsbs;
+    document.getElementById('dNum-community').textContent  = d.community;
+    document.getElementById('dNum-suppressed').textContent = d.suppressed;
+
+    const qEl = document.getElementById('dNum-queue');
+    qEl.textContent = d.pendingQueue;
+    document.getElementById('dStat-queue').className      = 'dash-stat' + (d.pendingQueue > 0 ? ' alert' : '');
+    document.getElementById('dStat-suppressed').className = 'dash-stat' + (d.suppressed > 0 ? ' warn' : '');
+
+    const sweptEl = document.getElementById('dNum-swept');
+    if (d.lastSwept) {
+      const ago = Math.round((Date.now() - new Date(d.lastSwept)) / 60000);
+      sweptEl.textContent = ago < 60 ? ago + 'm ago' : ago < 1440 ? Math.round(ago/60) + 'h ago' : Math.round(ago/1440) + 'd ago';
+      sweptEl.title = new Date(d.lastSwept).toLocaleString();
+    } else {
+      sweptEl.textContent = 'Never';
+    }
+
+    const vDiv = document.getElementById('adminDashVehicles');
+    if (vDiv && d.byVehicle && d.byVehicle.length) {
+      const labels = { equinox_ev:'Equinox EV', blazer_ev:'Blazer EV', mach_e:'Mach-E', honda_prologue:'Prologue', tesla_model_3:'Model 3', tesla_model_y:'Model Y' };
+      vDiv.innerHTML = d.byVehicle.map(v =>
+        '<span style="background:var(--card-bg);border:1px solid var(--border);border-radius:4px;padding:2px 8px">' +
+        (labels[v.vehicle]||v.vehicle) + ': <strong>' + v.recalls + '</strong></span>'
+      ).join('');
+    }
+
+    if (status) status.textContent = 'Updated ' + new Date().toLocaleTimeString();
+  } catch(e) {
+    if (status) status.textContent = 'Error: ' + e.message;
+  }
+}
+
 async function adminAction(endpoint, resultId, btnId) {
   const result = document.getElementById(resultId);
   const btn = document.getElementById(btnId);
