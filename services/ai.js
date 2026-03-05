@@ -1,7 +1,59 @@
 import Anthropic from '@anthropic-ai/sdk';
 
+// ── IN-MEMORY CACHE ───────────────────────────────────────────────────────
+// Caches expensive PDF/URL extraction results by URL
+// TTL: 24 hours — avoids repeat Claude API calls for same document
+const cache = new Map();
+const CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+
+function cacheGet(key) {
+  const entry = cache.get(key);
+  if (!entry) return null;
+  if (Date.now() - entry.ts > CACHE_TTL_MS) { cache.delete(key); return null; }
+  return entry.value;
+}
+
+function cacheSet(key, value) {
+  cache.set(key, { value, ts: Date.now() });
+}
+
 function ai() {
   return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+}
+
+// ── AI OUTPUT VALIDATION ─────────────────────────────────────────────────
+const VALID_SEVERITIES = new Set(['CRITICAL', 'MODERATE', 'LOW']);
+const VALID_VEHICLES   = new Set(['equinox_ev', 'blazer_ev', 'mach_e', 'honda_prologue']);
+
+export function validateRecallExtraction(data) {
+  if (!data || typeof data !== 'object') throw new Error('AI returned invalid JSON');
+  // Sanitize fields — never trust raw AI output going into DB
+  return {
+    campaign:          (data.campaign || '').toString().substring(0, 20),
+    title:             (data.title    || '').toString().substring(0, 120),
+    summary:           (data.summary  || '').toString().substring(0, 2000),
+    risk:              (data.risk     || '').toString().substring(0, 1000),
+    remedy:            (data.remedy   || '').toString().substring(0, 1000),
+    units:             (data.units    || '').toString().substring(0, 20),
+    affected_vehicles: (Array.isArray(data.affected_vehicles) ? data.affected_vehicles : [])
+      .filter(v => v && VALID_VEHICLES.has(v.vehicle))
+      .map(v => ({ vehicle: v.vehicle, years: (v.years||[]).filter(y => Number.isInteger(y) && y >= 2020 && y <= 2030) })),
+  };
+}
+
+export function validateTSBExtraction(data) {
+  if (!data || typeof data !== 'object') throw new Error('AI returned invalid JSON');
+  return {
+    bulletin:          (data.bulletin  || '').toString().substring(0, 30),
+    title:             (data.title     || '').toString().substring(0, 120),
+    component:         (data.component || '').toString().substring(0, 100),
+    severity:          VALID_SEVERITIES.has(data.severity) ? data.severity : 'MODERATE',
+    summary:           (data.summary   || '').toString().substring(0, 2000),
+    remedy:            (data.remedy    || '').toString().substring(0, 1000),
+    affected_vehicles: (Array.isArray(data.affected_vehicles) ? data.affected_vehicles : [])
+      .filter(v => v && VALID_VEHICLES.has(v.vehicle))
+      .map(v => ({ vehicle: v.vehicle, years: (v.years||[]).filter(y => Number.isInteger(y) && y >= 2020 && y <= 2030) })),
+  };
 }
 
 const VEHICLE_MAP = `equinox_ev=Chevrolet Equinox EV, blazer_ev=Chevrolet Blazer EV, mach_e=Ford Mustang Mach-E, honda_prologue=Honda Prologue`;
@@ -36,6 +88,8 @@ export async function summarizeTSB(item, vehicleName) {
 
 // ── EXTRACT RECALL FROM PDF/URL ───────────────────────────────────────────
 export async function extractRecallFromUrl(url) {
+  const cached = cacheGet('recall:' + url);
+  if (cached) { console.log('cache hit: recall', url); return cached; }
   const r = await fetch(url);
   if (!r.ok) throw new Error(`HTTP ${r.status} fetching URL`);
   const contentType = r.headers.get('content-type') || '';
@@ -72,11 +126,15 @@ export async function extractRecallFromUrl(url) {
   const data = await res.json();
   if (data.error) throw new Error(data.error.message || 'Claude API error');
   const raw = (data.content?.[0]?.text || '{}').replace(/```json|```/g, '').trim();
-  return JSON.parse(raw);
+  const result = JSON.parse(raw);
+  cacheSet('recall:' + url, result);
+  return result;
 }
 
 // ── EXTRACT TSB FROM PDF/URL ──────────────────────────────────────────────
 export async function extractTSBFromUrl(url) {
+  const cached = cacheGet('tsb:' + url);
+  if (cached) { console.log('cache hit: tsb', url); return cached; }
   const isPdf = /\.pdf$/i.test(url) || url.includes('/odi/tsbs/');
   let messageContent;
 
@@ -105,7 +163,9 @@ export async function extractTSBFromUrl(url) {
   const rawText = msg.content[0]?.text || '';
   const match = rawText.match(/\{[\s\S]*\}/);
   if (!match) throw new Error('Could not parse AI response');
-  return JSON.parse(match[0]);
+  const result = JSON.parse(match[0]);
+  cacheSet('tsb:' + url, result);
+  return result;
 }
 
 // ── MATCH/CLASSIFY COMMUNITY SUBMISSION ──────────────────────────────────
