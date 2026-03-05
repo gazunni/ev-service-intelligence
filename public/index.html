@@ -313,6 +313,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
   <button class="tool-btn" data-panel="submitPanel">＋ Submit Issue</button>
   <button class="tool-btn" data-panel="researchPanel">🔬 Research Sweep</button>
   <button class="tool-btn" data-panel="tsbPanel">＋ Add TSB</button>
+  <button class="tool-btn" data-panel="recallPanel" style="border-color:var(--recall);color:var(--recall)">＋ Add Recall</button>
 </div>
 
 <!-- STATS -->
@@ -386,6 +387,91 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
     <button class="cancel-btn" id="clearResearchBtn" data-panel="researchPanel">✕ Clear</button>
   </div>
   <div id="resResults" style="margin-top:12px"></div>
+</div>
+
+<!-- RECALL DIRECT ENTRY PANEL -->
+<div class="tool-panel" id="recallPanel">
+  <h3 style="color:var(--recall)">＋ Add Official Safety Recall</h3>
+  <p class="tool-note">Directly add a confirmed NHTSA recall. Goes live immediately — no AI review.</p>
+  <div class="form-group" style="margin-bottom:8px">
+    <label>NHTSA Campaign Number</label>
+    <input id="rcCampaign" placeholder="e.g. 25V404000">
+  </div>
+  <div class="form-group" style="margin-bottom:8px">
+    <label>Source PDF / URL <span style="color:var(--muted);font-weight:400">(optional — will auto-extract if provided)</span></label>
+    <div style="display:flex;gap:8px">
+      <input id="rcUrl" placeholder="https://static.nhtsa.gov/odi/rcl/..." style="flex:1">
+      <button class="admin-btn" id="rcFetchBtn" style="white-space:nowrap">⊕ Fetch &amp; Fill</button>
+    </div>
+    <div id="rcFetchStatus" style="font-size:10px;color:var(--muted);margin-top:4px"></div>
+  </div>
+  <div class="form-row">
+    <div class="form-group" style="flex:2">
+      <label>Recall Title / Component</label>
+      <input id="rcTitle" placeholder="e.g. SERVICE BRAKES, HYDRAULIC">
+    </div>
+    <div class="form-group">
+      <label>Severity</label>
+      <select id="rcSeverity">
+        <option value="CRITICAL">Critical</option>
+        <option value="MODERATE" selected>Moderate</option>
+        <option value="LOW">Low</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-group" style="margin-bottom:8px">
+    <label>Risk / Consequence</label>
+    <textarea id="rcRisk" placeholder="What could happen if not addressed…" style="height:60px"></textarea>
+  </div>
+  <div class="form-group" style="margin-bottom:8px">
+    <label>Summary / Description</label>
+    <textarea id="rcSummary" placeholder="Full description of the defect…"></textarea>
+  </div>
+  <div class="form-row">
+    <div class="form-group" style="flex:2">
+      <label>Remedy</label>
+      <input id="rcRemedy" placeholder="e.g. Dealers will update software free of charge">
+    </div>
+    <div class="form-group">
+      <label>Affected Units</label>
+      <input id="rcUnits" placeholder="e.g. 23,456">
+    </div>
+  </div>
+  <div class="form-group" style="margin-bottom:10px">
+    <label>Affected Vehicles &amp; Years</label>
+    <div class="tsb-vehicles">
+      <div class="tsb-veh-group">
+        <div class="tsb-veh-label">Chevrolet Equinox EV</div>
+        <div class="tsb-veh-years">
+          <label class="tsb-cb"><input type="checkbox" name="rc-vehicle" value="equinox_ev|2024"> 2024</label>
+          <label class="tsb-cb"><input type="checkbox" name="rc-vehicle" value="equinox_ev|2025" checked> 2025</label>
+          <label class="tsb-cb"><input type="checkbox" name="rc-vehicle" value="equinox_ev|2026"> 2026</label>
+        </div>
+      </div>
+      <div class="tsb-veh-group">
+        <div class="tsb-veh-label">Chevrolet Blazer EV</div>
+        <div class="tsb-veh-years">
+          <label class="tsb-cb"><input type="checkbox" name="rc-vehicle" value="blazer_ev|2024"> 2024</label>
+          <label class="tsb-cb"><input type="checkbox" name="rc-vehicle" value="blazer_ev|2025"> 2025</label>
+          <label class="tsb-cb"><input type="checkbox" name="rc-vehicle" value="blazer_ev|2026"> 2026</label>
+        </div>
+      </div>
+      <div class="tsb-veh-group">
+        <div class="tsb-veh-label">Ford Mustang Mach-E</div>
+        <div class="tsb-veh-years">
+          <label class="tsb-cb"><input type="checkbox" name="rc-vehicle" value="mach_e|2023"> 2023</label>
+          <label class="tsb-cb"><input type="checkbox" name="rc-vehicle" value="mach_e|2024"> 2024</label>
+          <label class="tsb-cb"><input type="checkbox" name="rc-vehicle" value="mach_e|2025"> 2025</label>
+          <label class="tsb-cb"><input type="checkbox" name="rc-vehicle" value="mach_e|2026"> 2026</label>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="btn-row">
+    <button class="submit-btn" id="addRecallBtn">＋ Add Recall</button>
+    <button class="cancel-btn" data-panel="recallPanel">Cancel</button>
+  </div>
+  <div id="rcResult" style="margin-top:10px;font-size:11px;color:var(--muted)"></div>
 </div>
 
 <!-- TSB DIRECT ENTRY PANEL -->
@@ -895,6 +981,87 @@ async function applyTsb(srcId) {
   }
 }
 
+// ── ADD RECALL DIRECTLY ──────────────────────
+async function fetchAndFillRecall() {
+  const url = document.getElementById('rcUrl').value.trim();
+  const status = document.getElementById('rcFetchStatus');
+  if (!url) { status.textContent = 'Enter a URL first.'; return; }
+  const btn = document.getElementById('rcFetchBtn');
+  btn.disabled = true; btn.textContent = 'Fetching…';
+  status.style.color = 'var(--muted)';
+  status.textContent = 'Fetching and reading document…';
+  setGZ('loading', 'Reading recall document…');
+  try {
+    const res = await apiFetch('/api/recall-fetch', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ url })
+    });
+    if (res.campaign)  document.getElementById('rcCampaign').value  = res.campaign;
+    if (res.title)     document.getElementById('rcTitle').value     = res.title;
+    if (res.summary)   document.getElementById('rcSummary').value   = res.summary;
+    if (res.risk)      document.getElementById('rcRisk').value      = res.risk;
+    if (res.remedy)    document.getElementById('rcRemedy').value    = res.remedy;
+    if (res.units)     document.getElementById('rcUnits').value     = res.units;
+    status.style.color = 'var(--green)';
+    status.textContent = '✓ Fields populated from document — review and adjust before submitting.';
+    setGZ('done', 'Recall data extracted');
+  } catch(e) {
+    status.style.color = 'var(--recall)';
+    status.textContent = 'Fetch failed: ' + e.message;
+    setGZ('err', 'Fetch failed');
+  } finally {
+    btn.disabled = false; btn.textContent = '⊕ Fetch & Fill';
+  }
+}
+
+async function addRecall() {
+  const campaign = document.getElementById('rcCampaign').value.trim();
+  const title    = document.getElementById('rcTitle').value.trim();
+  const summary  = document.getElementById('rcSummary').value.trim();
+  const risk     = document.getElementById('rcRisk').value.trim();
+  const remedy   = document.getElementById('rcRemedy').value.trim();
+  const units    = document.getElementById('rcUnits').value.trim();
+  const severity = document.getElementById('rcSeverity').value;
+  const url      = document.getElementById('rcUrl').value.trim();
+  const result   = document.getElementById('rcResult');
+
+  if (!title || !summary) { result.style.color='var(--recall)'; result.textContent='Title and summary are required.'; return; }
+
+  const checked = Array.from(document.querySelectorAll('input[name="rc-vehicle"]:checked')).map(cb => {
+    const [vehicle, year] = cb.value.split('|');
+    return { vehicle, year: parseInt(year) };
+  });
+  if (!checked.length) { result.style.color='var(--recall)'; result.textContent='Select at least one vehicle and year.'; return; }
+
+  const btn = document.getElementById('addRecallBtn');
+  btn.disabled = true; btn.textContent = 'Adding…';
+  setGZ('loading', `Adding recall for ${checked.length} vehicle/year combo${checked.length>1?'s':''}…`);
+  result.textContent = '';
+
+  try {
+    await Promise.all(checked.map(({vehicle, year}) =>
+      apiFetch('/api/recall-add', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ vehicle, year, campaign_id: campaign, title, summary, risk, remedy, affected_units: units, severity, source_url: url })
+      })
+    ));
+    result.style.color = 'var(--green)';
+    result.textContent = `✓ Recall added for ${checked.length} vehicle/year combination${checked.length>1?'s':''}.`;
+    setGZ('done', 'Recall added');
+    ['rcCampaign','rcTitle','rcSummary','rcRisk','rcRemedy','rcUnits','rcUrl'].forEach(id => { document.getElementById(id).value = ''; });
+    document.querySelectorAll('input[name="rc-vehicle"]').forEach(cb => cb.checked = false);
+    loadAll();
+  } catch(e) {
+    result.style.color = 'var(--recall)';
+    result.textContent = 'Error: ' + e.message;
+    setGZ('err', 'Failed to add recall');
+  } finally {
+    btn.disabled = false; btn.textContent = '＋ Add Recall';
+  }
+}
+
 // ── ADD TSB DIRECTLY ────────────────────────
 async function addTsb() {
   const title     = document.getElementById('tsbTitle').value.trim();
@@ -1353,6 +1520,8 @@ document.addEventListener('DOMContentLoaded', () => {
     if (id === 'submitIssueBtn')   { e.stopPropagation(); submitIssue(); return; }
     if (id === 'researchSweepBtn') { e.stopPropagation(); runResearchSweep(); return; }
     if (id === 'clearResearchBtn') { e.stopPropagation(); clearResearch(); return; }
+    if (id === 'rcFetchBtn')       { e.stopPropagation(); fetchAndFillRecall(); return; }
+    if (id === 'addRecallBtn')     { e.stopPropagation(); addRecall(); return; }
     if (id === 'addTsbBtn')        { e.stopPropagation(); addTsb(); return; }
     if (id === 'vinImportBtn')     { e.stopPropagation(); vinImportMissing(); return; }
     if (id === 'vinLookupBtn')     { e.stopPropagation(); openVinModal(); return; }
