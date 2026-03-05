@@ -195,6 +195,32 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 .sec-body.open{display:block}
 .chv.open{transform:rotate(180deg)}
 
+/* ── SEARCH BAR ── */
+/* ── SEVERITY BANNER ── */
+.sev-banner{display:flex;align-items:center;gap:8px;padding:7px 20px;background:var(--bg);border-bottom:1px solid var(--border);flex-wrap:wrap}
+.sev-pill{display:flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;padding:3px 10px;border-radius:12px;cursor:pointer;transition:opacity .2s}
+.sev-pill:hover{opacity:.75}
+.sev-crit{background:rgba(239,68,68,.12);color:#f87171;border:1px solid rgba(239,68,68,.25)}
+.sev-mod{background:rgba(251,191,36,.1);color:#fbbf24;border:1px solid rgba(251,191,36,.2)}
+.sev-low{background:rgba(74,222,128,.1);color:#4ade80;border:1px solid rgba(74,222,128,.2)}
+.sev-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.sev-crit .sev-dot{background:#f87171}
+.sev-mod .sev-dot{background:#fbbf24}
+.sev-low .sev-dot{background:#4ade80}
+.sev-divider{flex:1}
+.sev-label{font-size:9px;color:var(--muted);font-family:var(--mono);letter-spacing:.06em;text-transform:uppercase}
+
+.searchbar{padding:8px 20px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.search-wrap{display:flex;align-items:center;flex:1;max-width:480px;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:0 12px;gap:6px;transition:border-color .2s}
+.search-wrap:focus-within{border-color:var(--green)}
+.search-icon{color:var(--muted);font-size:14px;line-height:1;user-select:none}
+#searchInput{flex:1;background:transparent;border:none;outline:none;color:var(--text);font-family:var(--mono);font-size:12px;padding:7px 0;letter-spacing:.02em}
+#searchInput::placeholder{color:var(--muted)}
+.search-clear{background:none;border:none;color:var(--muted);cursor:pointer;font-size:11px;padding:2px 4px;line-height:1;border-radius:3px}
+.search-clear:hover{color:var(--text)}
+.search-meta{font-size:10px;color:var(--muted);font-family:var(--mono);white-space:nowrap}
+.card.hidden{display:none}
+
 /* ── CARDS ── */
 .card{border:1px solid var(--border);border-radius:6px;margin-bottom:10px;overflow:hidden;background:var(--surface)}
 .card-hdr{display:flex;align-items:flex-start;gap:10px;padding:12px 14px;cursor:pointer;transition:background .2s}
@@ -322,6 +348,31 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
   <div class="stat" data-sec="recall"><div class="sn" id="sn-recall">—</div><div class="sl">Recalls</div></div>
   <div class="stat" data-sec="tsb"><div class="sn" id="sn-tsb">—</div><div class="sl">TSBs</div></div>
   <div class="stat" data-sec="comm"><div class="sn" id="sn-comm">—</div><div class="sl">Community</div></div>
+</div>
+
+<!-- SEVERITY BANNER -->
+<div class="sev-banner" id="sevBanner" style="display:none">
+  <div class="sev-pill sev-crit" id="bannerCrit" style="display:none">
+    <span class="sev-dot"></span><span id="bannerCritCount">0</span> Critical
+  </div>
+  <div class="sev-pill sev-mod" id="bannerMod" style="display:none">
+    <span class="sev-dot"></span><span id="bannerModCount">0</span> Moderate
+  </div>
+  <div class="sev-pill sev-low" id="bannerLow" style="display:none">
+    <span class="sev-dot"></span><span id="bannerLowCount">0</span> Low
+  </div>
+  <div class="sev-divider"></div>
+  <span class="sev-label" id="bannerVehicle"></span>
+</div>
+
+<!-- SEARCH BAR -->
+<div class="searchbar" id="searchBar">
+  <div class="search-wrap">
+    <span class="search-icon">⌕</span>
+    <input type="text" id="searchInput" placeholder="Filter recalls, TSBs, issues…" autocomplete="off" spellcheck="false">
+    <button class="search-clear" id="searchClear" style="display:none">✕</button>
+  </div>
+  <div class="search-meta" id="searchMeta"></div>
 </div>
 
 <!-- SUBMIT PANEL -->
@@ -735,6 +786,119 @@ async function apiFetch(path, opts={}) {
 let loadedSections = 0;
 let totalSections = 3;
 
+// ── PERSISTENCE ───────────────────────────────
+function savePrefs() {
+  try {
+    localStorage.setItem('gz_vehicle', document.getElementById('selModel').value);
+    localStorage.setItem('gz_year',    document.getElementById('selYear').value);
+  } catch(e) {}
+}
+function restorePrefs() {
+  try {
+    const v = localStorage.getItem('gz_vehicle');
+    const y = localStorage.getItem('gz_year');
+    if (v) { document.getElementById('selModel').value = v; updateYearOptions(); }
+    if (y) { document.getElementById('selYear').value = y; }
+  } catch(e) {}
+}
+
+// ── SEVERITY BANNER ────────────────────────────
+function updateSeverityBanner(recalls) {
+  const banner = document.getElementById('sevBanner');
+  if (!recalls || recalls.length === 0) { banner.style.display = 'none'; return; }
+  let crit = 0, mod = 0, low = 0;
+  for (const r of recalls) {
+    if (r.severity === 'CRITICAL') crit++;
+    else if (r.severity === 'LOW') low++;
+    else mod++;
+  }
+  const critEl  = document.getElementById('bannerCrit');
+  const modEl   = document.getElementById('bannerMod');
+  const lowEl   = document.getElementById('bannerLow');
+  document.getElementById('bannerCritCount').textContent = crit;
+  document.getElementById('bannerModCount').textContent  = mod;
+  document.getElementById('bannerLowCount').textContent  = low;
+  critEl.style.display = crit > 0 ? 'flex' : 'none';
+  modEl.style.display  = mod  > 0 ? 'flex' : 'none';
+  lowEl.style.display  = low  > 0 ? 'flex' : 'none';
+  // Vehicle label
+  const vLabel = document.getElementById('selModel').options[document.getElementById('selModel').selectedIndex]?.text || '';
+  const yr = document.getElementById('selYear').value;
+  document.getElementById('bannerVehicle').textContent = vLabel + ' · ' + yr;
+  banner.style.display = 'flex';
+  // Click to filter by severity
+  critEl.onclick = () => filterBySeverity('CRITICAL');
+  modEl.onclick  = () => filterBySeverity('MODERATE');
+  lowEl.onclick  = () => filterBySeverity(null);
+}
+
+function filterBySeverity(sev) {
+  const cards = document.querySelectorAll('#cards-recall .card');
+  let shown = 0;
+  for (const card of cards) {
+    const bar = card.querySelector('.sev-bar');
+    if (!sev || (sev === 'CRITICAL' && bar?.classList.contains('sv-critical')) ||
+                (sev === 'MODERATE' && bar?.classList.contains('sv-moderate')) ||
+                (sev === 'LOW'      && bar?.classList.contains('sv-low'))) {
+      card.classList.remove('hidden'); shown++;
+    } else {
+      card.classList.add('hidden');
+    }
+  }
+  const meta = document.getElementById('searchMeta');
+  if (sev && meta) meta.textContent = `Showing ${shown} ${sev.toLowerCase()} recalls — click again to clear`;
+  if (!sev) clearSearch();
+}
+
+// ── SEARCH / FILTER ────────────────────────────
+let searchTimeout = null;
+function initSearch() {
+  const input = document.getElementById('searchInput');
+  const clear = document.getElementById('searchClear');
+  if (!input) return;
+  input.addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(runSearch, 180);
+    clear.style.display = input.value ? 'block' : 'none';
+  });
+  input.addEventListener('keydown', e => { if (e.key === 'Escape') clearSearch(); });
+  clear.addEventListener('click', clearSearch);
+  // Cmd/Ctrl+K to focus search
+  document.addEventListener('keydown', e => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'k') { e.preventDefault(); input.focus(); input.select(); }
+  });
+}
+
+function runSearch() {
+  const q = (document.getElementById('searchInput').value || '').toLowerCase().trim();
+  const meta = document.getElementById('searchMeta');
+  if (!q) { clearSearch(); return; }
+  const allCards = document.querySelectorAll('.card');
+  let shown = 0;
+  for (const card of allCards) {
+    const text = card.textContent.toLowerCase();
+    const match = q.split(' ').every(word => text.includes(word));
+    card.classList.toggle('hidden', !match);
+    if (match) shown++;
+  }
+  // Auto-expand sections that have matches
+  document.querySelectorAll('.sec-body').forEach(body => {
+    const hasVisible = [...body.querySelectorAll('.card')].some(c => !c.classList.contains('hidden'));
+    if (hasVisible) body.classList.add('open');
+  });
+  if (meta) meta.textContent = shown === 0 ? 'No results' : `${shown} result${shown !== 1 ? 's' : ''}`;
+}
+
+function clearSearch() {
+  const input = document.getElementById('searchInput');
+  const clear = document.getElementById('searchClear');
+  const meta  = document.getElementById('searchMeta');
+  if (input) input.value = '';
+  if (clear) clear.style.display = 'none';
+  if (meta)  meta.textContent = '';
+  document.querySelectorAll('.card.hidden').forEach(c => c.classList.remove('hidden'));
+}
+
 async function loadAll() {
   // Close all open panels and collapse sections on vehicle/year change
   document.querySelectorAll('.tool-panel.open').forEach(p => p.classList.remove('open'));
@@ -760,6 +924,7 @@ async function loadSection(type, vkey, year) {
   try {
     const rows = await apiFetch(`/api/${type}?vehicle=${vkey}&year=${year}`);
     renderSection('cards-'+key, 'cnt-'+key, rows, key);
+    if (key === 'recall') updateSeverityBanner(rows);
     loadedSections++;
     if (loadedSections >= totalSections) {
       const rc = parseInt(document.getElementById('sn-recall').textContent)||0;
@@ -1667,8 +1832,8 @@ document.addEventListener('DOMContentLoaded', () => {
   gzEl.addEventListener('mouseleave', cancelGzHold);
   gzEl.addEventListener('touchend', cancelGzHold);
 
-  document.getElementById('selModel').addEventListener('change', () => { updateYearOptions(); loadAll(); });
-  document.getElementById('selYear').addEventListener('change', loadAll);
+  document.getElementById('selModel').addEventListener('change', () => { updateYearOptions(); savePrefs(); loadAll(); });
+  document.getElementById('selYear').addEventListener('change', () => { savePrefs(); loadAll(); });
   document.getElementById('sweepBtn').addEventListener('click', runSweep);
 
   // Single unified click handler for all buttons
@@ -1778,6 +1943,8 @@ window.addEventListener('load', async () => {
       new Promise(resolve => setTimeout(resolve, 5000))
     ]);
   } catch(e) { /* silent fail, proceed to load */ }
+  restorePrefs();
+  initSearch();
   loadAll();
 });
 </script>
