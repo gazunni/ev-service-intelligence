@@ -614,6 +614,37 @@ app.post('/api/vin-import', async (req, res) => {
   }
 });
 
+// ── DELETE ENDPOINTS ─────────────────────────
+function checkAdminAny(req, res) {
+  const key = (req.body && req.body.key) || req.query.key || req.headers['x-admin-key'] || '';
+  if (key !== ADMIN_KEY) { res.status(403).json({ error: 'Forbidden' }); return false; }
+  return true;
+}
+
+app.delete('/api/recalls/:id', async (req, res) => {
+  if (!checkAdminAny(req, res)) return;
+  try {
+    await query(`DELETE FROM recalls WHERE id=$1`, [req.params.id]);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/tsbs/:id', async (req, res) => {
+  if (!checkAdminAny(req, res)) return;
+  try {
+    await query(`DELETE FROM tsbs WHERE id=$1`, [req.params.id]);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete('/api/community/:id', async (req, res) => {
+  if (!checkAdminAny(req, res)) return;
+  try {
+    await query(`DELETE FROM community WHERE id=$1`, [req.params.id]);
+    res.json({ ok: true });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── ADMIN ENDPOINTS ─────────────────────────
 const ADMIN_KEY = process.env.ADMIN_KEY || 'gazunni-admin';
 
@@ -663,20 +694,37 @@ app.post('/api/admin/dedupe', async (req, res) => {
       }
     }
 
-    // Step 3: Dedupe recalls by normalized title per vehicle+year
-    // Catches manually-entered duplicates with different wording
-    // Use first 40 chars of title to fuzzy-match (e.g. "Pedestrian Alert..." variants)
-    const titleGroups = await query(`
-      SELECT vehicle_key, year, LEFT(LOWER(TRIM(REGEXP_REPLACE(title,'[^a-zA-Z0-9 ]','','g'))),35) as title_key, 
-             array_agg(id ORDER BY created_at ASC) as ids
-      FROM recalls
-      GROUP BY vehicle_key, year, title_key
-      HAVING COUNT(*) > 1
+    // Step 3: Dedupe recalls by component keyword match per vehicle+year
+    // Extract dominant keyword (longest word 6+ chars) from title to group variants
+    // e.g. "Pedestrian Alert Sound System" / "Insufficient Pedestrian Alert Sound Volume" -> "pedestrian"
+    const allForTitle = await query(`
+      SELECT id, vehicle_key, year, title, created_at,
+             raw_nhtsa->>'source_url' as source_url
+      FROM recalls ORDER BY vehicle_key, year, created_at ASC
     `);
-    for (const g of titleGroups) {
-      for (const id of g.ids.slice(1)) {
-        await query(`DELETE FROM recalls WHERE id=$1`, [id]);
-        total++;
+    // Build keyword groups per vehicle+year
+    const kwGroups = {};
+    for (const r of allForTitle) {
+      const words = (r.title||'').toLowerCase().replace(/[^a-z0-9 ]/g,' ').split(/\s+/).filter(w=>w.length>=6);
+      // Use the component part before any colon, or first 6+ char word
+      const colonPart = (r.title||'').split(':')[0].toLowerCase().replace(/[^a-z]/g,'').substring(0,12);
+      const kw = colonPart.length >= 6 ? colonPart : (words[0]||r.id);
+      const key = r.vehicle_key + '|' + r.year + '|' + kw;
+      if (!kwGroups[key]) kwGroups[key] = [];
+      kwGroups[key].push(r);
+    }
+    for (const rows of Object.values(kwGroups)) {
+      if (rows.length > 1) {
+        // Keep row with source_url, else keep oldest
+        rows.sort((a,b) => {
+          if (a.source_url && !b.source_url) return -1;
+          if (!a.source_url && b.source_url) return 1;
+          return new Date(a.created_at) - new Date(b.created_at);
+        });
+        for (const r of rows.slice(1)) {
+          await query(`DELETE FROM recalls WHERE id=$1`, [r.id]);
+          total++;
+        }
       }
     }
 
