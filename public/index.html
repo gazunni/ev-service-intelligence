@@ -1752,11 +1752,18 @@ async function vinLookup() {
         try {
           crossCheck = await apiFetch(`/api/recalls?vehicle=${encodeURIComponent(vkey)}&year=${yr}&includeSuppressed=1`);
         } catch(e) { /* silent */ }
-        const ourIds = new Set((crossCheck||[]).map(r => (r.id||'').toLowerCase()));
+        // Build a set of all known campaign IDs — check both the record id AND
+        // the raw_nhtsa campaign number to handle different ID formats
+        const ourIds = new Set();
+        for (const r of (crossCheck||[])) {
+          if (r.id) ourIds.add(r.id.toUpperCase().replace(/[^A-Z0-9]/g,''));
+          const camp = r.raw_nhtsa?.NHTSACampaignNumber || r.raw_nhtsa?.campaign_id;
+          if (camp) ourIds.add(camp.toUpperCase().replace(/[^A-Z0-9]/g,''));
+        }
 
         // Find missing recalls - not in our DB
         const missing = recalls.filter(r => {
-          const cid = (r.NHTSACampaignNumber||r.recallId||'').toLowerCase();
+          const cid = (r.NHTSACampaignNumber||r.recallId||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
           return cid && !ourIds.has(cid);
         });
 
