@@ -1043,6 +1043,60 @@ function updateYearOptions() {
   if (!years.includes(parseInt(current))) sel.value = years[0];
 }
 
+// ── PLANT CODE LOOKUP (VIN position 11) ─────
+// Plant is decoded from VIN character 11, not the NHTSA-returned string
+const PLANT_CODES = {
+  // GM Mexico
+  'S':'San Luis Potosi Assembly, San Luis Potosi, Mexico',
+  'N':'Ramos Arizpe Assembly, Coahuila, Mexico',
+  'R':'Ramos Arizpe Assembly, Coahuila, Mexico',
+  // GM USA
+  'A':'Orion Assembly, Lake Orion, Michigan USA',
+  'B':'Bowling Green Assembly, Kentucky USA',
+  'D':'Doraville Assembly, Georgia USA',
+  'F':'Flint Assembly, Michigan USA',
+  'J':'Janesville Assembly, Wisconsin USA',
+  'K':'Shreveport Assembly, Louisiana USA',
+  'L':'Lansing Grand River, Michigan USA',
+  'M':'Lansing Delta Township, Michigan USA',
+  'T':'Pontiac Assembly, Michigan USA',
+  'U':'Lordstown Assembly, Ohio USA',
+  'W':'Wentzville Assembly, Missouri USA',
+  'Z':'Moraine Assembly, Ohio USA',
+  // GM Canada
+  'C':'CAMI Assembly, Ingersoll, Ontario Canada',
+  'E':'Oshawa Assembly, Ontario Canada',
+  'X':'Oshawa Assembly, Ontario Canada',
+  // Ford USA
+  'G':'Chicago Assembly, Illinois USA',
+  'H':'Lorain Assembly, Ohio USA',
+  'P':'Twin Cities Assembly, Minnesota USA',
+  'V':'Wayne Assembly, Michigan USA',
+  'Y':'Wixom Assembly, Michigan USA',
+  // Ford Mexico
+  'Q':'Cuautitlan Assembly, Mexico City, Mexico',
+  // Ford Canada
+  'O':'Oakville Assembly, Ontario Canada',
+};
+
+// VIN country codes (position 1)
+const VIN_COUNTRY = {
+  '1':'USA','4':'USA','5':'USA',
+  '2':'Canada','3':'Mexico',
+  'J':'Japan','K':'South Korea','W':'Germany',
+  'S':'United Kingdom','V':'France','Z':'Italy',
+  'Y':'Sweden/Finland','L':'China',
+};
+
+function resolvePlant(vin) {
+  if (!vin || vin.length !== 17) return '—';
+  const plantChar = vin[10].toUpperCase();
+  const countryChar = vin[0].toUpperCase();
+  const country = VIN_COUNTRY[countryChar] || 'Unknown Country';
+  const plant = PLANT_CODES[plantChar];
+  return plant ? plant : `Plant Code: ${plantChar} · Assembled in ${country}`;
+}
+
 // ── VIN IMPORT ───────────────────────────────
 async function vinImportMissing() {
   const data = window.__vinMissing;
@@ -1131,9 +1185,10 @@ async function vinLookup() {
           <div class="vin-field-row"><div class="vin-field-label">Series</div><div class="vin-field-val">${esc(series)}</div></div>
           <div class="vin-field-row"><div class="vin-field-label">Body</div><div class="vin-field-val">${esc(body)}</div></div>
           <div class="vin-field-row"><div class="vin-field-label">Drive</div><div class="vin-field-val">${esc(drive)}</div></div>
+          <div class="vin-field-row"><div class="vin-field-label">Country of Assembly</div><div class="vin-field-val">${esc(VIN_COUNTRY[vin[0].toUpperCase()]||'Unknown')}</div></div>
           <div class="vin-field-row"><div class="vin-field-label">Doors</div><div class="vin-field-val">${esc(doors)}</div></div>
           <div class="vin-field-row"><div class="vin-field-label">Engine (L)</div><div class="vin-field-val">${esc(engine)}</div></div>
-          <div class="vin-field-row"><div class="vin-field-label">Assembly Plant</div><div class="vin-field-val">${esc(plant)}${country !== '—' ? ', '+esc(country) : ''}</div></div>
+          <div class="vin-field-row"><div class="vin-field-label">Assembly Plant</div><div class="vin-field-val">${esc(resolvePlant(vin))}</div></div>
         </div>
       </div>`;
 
@@ -1144,11 +1199,13 @@ async function vinLookup() {
       const recallData = await apiFetch(`/api/vin-recalls?vin=${vin}`);
       const recalls = recallData.results || [];
 
+      // Also fetch completed recalls - NHTSA returns all for the VIN
       if (!recalls.length) {
-        html += `<div class="vin-section"><div class="vin-section-title">Recall Status</div><div class="vin-empty">✓ No open recalls found for this VIN.</div></div>`;
+        html += `<div class="vin-section"><div class="vin-section-title">Recall Status</div><div class="vin-empty" style="color:var(--green)">✓ No recalls on record for this VIN.</div></div>`;
       } else {
-        const outstanding = recalls.filter(r => !r.completionDate);
-        const completed   = recalls.filter(r => r.completionDate);
+        // NHTSA fields: completionDate means remedy was performed on this VIN
+        const completed   = recalls.filter(r => r.completionDate && r.completionDate !== '');
+        const outstanding = recalls.filter(r => !r.completionDate || r.completionDate === '');
 
         // Cross-check against our database
         const vkey = getVehicle();
@@ -1186,11 +1243,17 @@ async function vinLookup() {
             const cid = (r.NHTSACampaignNumber||r.recallId||'').toLowerCase();
             const inOurDb = ourIds.has(cid);
             return `<div class="vin-recall outstanding">
-              <div class="vin-recall-title">${esc(r.Component||r.component||'Unknown Component')}</div>
-              <div class="vin-recall-meta">Campaign: ${esc(r.NHTSACampaignNumber||r.recallId||'—')} · ${esc(r.ReportReceivedDate||r.reportDate||'')}</div>
-              <div style="display:flex;align-items:center;justify-content:space-between">
-                <div class="vin-recall-status">⚠ OUTSTANDING — Action Required</div>
-                <div style="font-size:9px;color:${inOurDb?'var(--green)':'var(--recall)'}">${inOurDb?'✓ In DB':'⊕ Not in DB'}</div>
+              <div style="display:flex;align-items:flex-start;gap:10px">
+                <div style="font-size:20px;line-height:1;margin-top:2px">🔴</div>
+                <div style="flex:1">
+                  <div class="vin-recall-title">${esc(r.Component||r.component||'Unknown Component')}</div>
+                  <div class="vin-recall-meta">Campaign: ${esc(r.NHTSACampaignNumber||r.recallId||'—')} · Reported: ${esc(r.ReportReceivedDate||r.reportDate||'—')}</div>
+                  <div class="vin-recall-meta" style="margin-top:2px">${esc(r.Summary||r.summary||'')}</div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+                    <div class="vin-recall-status">⚠ NOT REMEDIED — Dealer Visit Required</div>
+                    <div style="font-size:9px;color:${inOurDb?'var(--green)':'var(--recall)'}">${inOurDb?'✓ In DB':'⊕ Not in DB'}</div>
+                  </div>
+                </div>
               </div>
             </div>`;
           }).join('');
@@ -1205,11 +1268,17 @@ async function vinLookup() {
             const cid = (r.NHTSACampaignNumber||r.recallId||'').toLowerCase();
             const inOurDb = ourIds.has(cid);
             return `<div class="vin-recall completed">
-              <div class="vin-recall-title">${esc(r.Component||r.component||'Unknown Component')}</div>
-              <div class="vin-recall-meta">Campaign: ${esc(r.NHTSACampaignNumber||r.recallId||'—')} · Completed: ${esc(r.completionDate||'')}</div>
-              <div style="display:flex;align-items:center;justify-content:space-between">
-                <div class="vin-recall-status">✓ COMPLETED</div>
-                <div style="font-size:9px;color:${inOurDb?'var(--green)':'var(--muted)'}">${inOurDb?'✓ In DB':'Not in DB'}</div>
+              <div style="display:flex;align-items:flex-start;gap:10px">
+                <div style="font-size:20px;line-height:1;margin-top:2px">✅</div>
+                <div style="flex:1">
+                  <div class="vin-recall-title">${esc(r.Component||r.component||'Unknown Component')}</div>
+                  <div class="vin-recall-meta">Campaign: ${esc(r.NHTSACampaignNumber||r.recallId||'—')} · Completed: ${esc(r.completionDate||'—')}</div>
+                  <div class="vin-recall-meta" style="margin-top:2px">${esc(r.Summary||r.summary||'')}</div>
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
+                    <div class="vin-recall-status">✓ REMEDY COMPLETED</div>
+                    <div style="font-size:9px;color:${inOurDb?'var(--green)':'var(--muted)'}">${inOurDb?'✓ In DB':'Not in DB'}</div>
+                  </div>
+                </div>
               </div>
             </div>`;
           }).join('');
