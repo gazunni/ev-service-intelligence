@@ -118,13 +118,22 @@ app.post('/api/sweep', async (req, res) => {
   const ai = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
   async function fetchNHTSA(endpoint, make, model) {
-    const url = `https://api.nhtsa.gov/${endpoint}?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&modelYear=${yr}`;
-    try {
-      const r = await fetch(url);
-      if (!r.ok) return [];
-      const d = await r.json();
-      return d.results || d.Results || [];
-    } catch { return []; }
+    // Try alternate model names for vehicles with NHTSA naming quirks
+    const modelNames = [model];
+    if (model.includes('MUSTANG MACH-E')) modelNames.push('MUSTANG MACH E', 'MACH-E');
+    if (model.includes('PROLOGUE')) modelNames.push('Prologue'); // try mixed case too
+
+    for (const m of modelNames) {
+      const url = `https://api.nhtsa.gov/${endpoint}?make=${encodeURIComponent(make)}&model=${encodeURIComponent(m)}&modelYear=${yr}`;
+      try {
+        const r = await fetch(url);
+        if (!r.ok) continue;
+        const d = await r.json();
+        const results = d.results || d.Results || [];
+        if (results.length > 0) return results;
+      } catch { continue; }
+    }
+    return [];
   }
 
   async function summarize(item, type) {
@@ -378,11 +387,32 @@ app.post('/api/nhtsa-import', async (req, res) => {
   if (!v) return res.status(400).json({ error: 'Unknown vehicle' });
   const yr = parseInt(year);
   try {
-    const url = `https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(v.nhtsa_make)}&model=${encodeURIComponent(v.nhtsa_model)}&modelYear=${yr}`;
-    const r = await fetch(url);
-    if (!r.ok) return res.status(502).json({ error: `NHTSA returned ${r.status}` });
-    const data = await r.json();
-    const recalls = data.results || data.Results || [];
+    // Try primary model name, then alternates for vehicles with tricky NHTSA names
+    const modelNames = [v.nhtsa_model];
+    if (v.nhtsa_model.includes('MACH-E')) modelNames.push('MACH-E'); // Ford sometimes lists separately
+    if (v.nhtsa_model.includes('MUSTANG MACH-E')) modelNames.push('MUSTANG MACH E'); // no hyphen variant
+
+    let recalls = [];
+    let lastStatus = 200;
+    for (const modelName of modelNames) {
+      const url = `https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(v.nhtsa_make)}&model=${encodeURIComponent(modelName)}&modelYear=${yr}`;
+      const r = await fetch(url);
+      lastStatus = r.status;
+      if (r.ok) {
+        const data = await r.json();
+        const found = data.results || data.Results || [];
+        // Merge, avoiding duplicates by campaign number
+        for (const rc of found) {
+          if (!recalls.find(x => x.NHTSACampaignNumber === rc.NHTSACampaignNumber)) {
+            recalls.push(rc);
+          }
+        }
+        break; // Stop on first successful response
+      }
+    }
+    if (recalls.length === 0 && lastStatus !== 200) {
+      return res.status(502).json({ error: `NHTSA returned ${lastStatus} for all model name variants` });
+    }
     let stored = 0, skipped = 0;
     for (const rc of recalls) {
       const campaignRaw = rc.NHTSACampaignNumber || rc.recallId || '';
