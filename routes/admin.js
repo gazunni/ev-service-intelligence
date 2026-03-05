@@ -89,9 +89,15 @@ router.post('/dedupe', async (req, res) => {
     `);
 
     // Step 2: Dedupe by campaign number per vehicle+year
+    // Match on raw_nhtsa campaign field OR the ID itself if it looks like a campaign number
     const allRecalls = await query(`
       SELECT id, vehicle_key, year, created_at,
-             UPPER(COALESCE(raw_nhtsa->>'NHTSACampaignNumber','')) as campaign,
+             UPPER(COALESCE(
+               raw_nhtsa->>'NHTSACampaignNumber',
+               raw_nhtsa->>'campaign_id',
+               CASE WHEN id ~ '^[0-9]{2}[A-Z][0-9]{6}$' THEN id ELSE '' END,
+               ''
+             )) as campaign,
              CASE WHEN raw_nhtsa->>'source_url' IS NOT NULL AND raw_nhtsa->>'source_url' != '' THEN 0 ELSE 1 END as has_url
       FROM recalls ORDER BY vehicle_key, year, campaign, has_url ASC, created_at ASC
     `);
