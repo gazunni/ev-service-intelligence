@@ -72,24 +72,45 @@ export async function fetchNHTSARecalls(vehicle, year) {
   return [];
 }
 
-// ── FETCH ALL RECALLS (no year filter) ───────────────────────────────────
-// Returns every recall ever issued for this vehicle across all years.
-// Used by bulk import to avoid making one API call per year.
+// ── FETCH ALL RECALLS (all years) ────────────────────────────────────────
+// NHTSA requires modelYear — no-year query returns 400.
+// So we loop all years and dedupe by campaign number.
 export async function fetchAllNHTSARecalls(vehicle) {
   const v = VEHICLES[vehicle];
   if (!v) throw new Error('Unknown vehicle: ' + vehicle);
 
-  for (const model of modelVariants(v.nhtsa_model)) {
-    try {
-      const url = `https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(v.nhtsa_make)}&model=${encodeURIComponent(model)}`;
-      const r = await fetch(url);
-      if (!r.ok) continue;
-      const data = await r.json();
-      const results = data.results || data.Results || [];
-      if (results.length > 0) return results;
-    } catch { continue; }
+  // Year ranges per vehicle
+  const yearRanges = {
+    tesla_model_3:  [2017,2018,2019,2020,2021,2022,2023,2024,2025,2026],
+    tesla_model_y:  [2020,2021,2022,2023,2024,2025,2026],
+    equinox_ev:     [2024,2025,2026],
+    blazer_ev:      [2024,2025,2026],
+    mach_e:         [2021,2022,2023,2024,2025,2026],
+    honda_prologue: [2024,2025,2026],
+  };
+  const years = yearRanges[vehicle] || [2024,2025,2026];
+
+  const allResults = [];
+  for (const yr of years) {
+    for (const model of modelVariants(v.nhtsa_model)) {
+      try {
+        const url = `https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(v.nhtsa_make)}&model=${encodeURIComponent(model)}&modelYear=${yr}`;
+        const r = await fetch(url);
+        if (!r.ok) continue;
+        const data = await r.json();
+        const found = data.results || data.Results || [];
+        if (found.length > 0) { allResults.push(...found); break; }
+      } catch { continue; }
+    }
   }
-  return [];
+
+  // Dedupe by campaign number — keep first occurrence
+  const seen = new Set();
+  return allResults.filter(rc => {
+    const k = rc.NHTSACampaignNumber || rc.recallId;
+    if (!k || seen.has(k)) return false;
+    seen.add(k); return true;
+  });
 }
 
 // ── FETCH TSBs FROM NHTSA ────────────────────────────────────────────────
