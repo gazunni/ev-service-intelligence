@@ -380,12 +380,32 @@ app.get('/api/vin-decode', async (req, res) => {
 });
 
 app.get('/api/vin-recalls', async (req, res) => {
-  const { vin } = req.query;
+  const { vin, make, model, year } = req.query;
   if (!vin || vin.length !== 17) return res.status(400).json({ error: 'Valid 17-char VIN required' });
   try {
-    const r = await fetch(`https://api.nhtsa.gov/recalls/recallsByVehicleId?vinId=${encodeURIComponent(vin)}`);
-    const data = await r.json();
-    res.json(data);
+    // Step 1: Get unrepaired recalls for this specific VIN
+    const vinRes = await fetch(`https://api.nhtsa.gov/recalls/recallsByVehicleId?vinId=${encodeURIComponent(vin)}`);
+    const vinData = await vinRes.json();
+    const unrepairedIds = new Set((vinData.results||[]).map(r => r.NHTSACampaignNumber||''));
+
+    // Step 2: Get ALL recalls ever issued for this make/model/year
+    let allRecalls = [];
+    if (make && model && year) {
+      const allRes = await fetch(`https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&modelYear=${encodeURIComponent(year)}`);
+      const allData = await allRes.json();
+      allRecalls = allData.results || [];
+    }
+
+    // Step 3: Tag each recall as outstanding or completed
+    const tagged = allRecalls.map(r => ({
+      ...r,
+      isOutstanding: unrepairedIds.has(r.NHTSACampaignNumber),
+      completionDate: unrepairedIds.has(r.NHTSACampaignNumber) ? null : 'Remedied'
+    }));
+
+    // If no make/model/year provided, just return VIN-specific unrepaired
+    const results = tagged.length ? tagged : (vinData.results||[]).map(r => ({...r, isOutstanding: true}));
+    res.json({ results, unrepairedCount: unrepairedIds.size, totalCount: results.length });
   } catch(e) {
     console.error('vin-recalls error:', e.message);
     res.status(500).json({ error: e.message });
