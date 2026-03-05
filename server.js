@@ -51,9 +51,10 @@ async function query(sql, params = []) {
 
 // ── VEHICLES ──────────────────────────────────
 const VEHICLES = {
-  equinox_ev: { make: 'Chevrolet', model: 'Equinox EV', nhtsa_make: 'CHEVROLET', nhtsa_model: 'EQUINOX EV' },
-  blazer_ev:  { make: 'Chevrolet', model: 'Blazer EV',  nhtsa_make: 'CHEVROLET', nhtsa_model: 'BLAZER EV'  },
-  mach_e:     { make: 'Ford',      model: 'Mustang Mach-E', nhtsa_make: 'FORD', nhtsa_model: 'MUSTANG MACH-E' },
+  equinox_ev:     { make: 'Chevrolet', model: 'Equinox EV',     nhtsa_make: 'CHEVROLET', nhtsa_model: 'EQUINOX EV' },
+  blazer_ev:      { make: 'Chevrolet', model: 'Blazer EV',      nhtsa_make: 'CHEVROLET', nhtsa_model: 'BLAZER EV'  },
+  mach_e:         { make: 'Ford',      model: 'Mustang Mach-E', nhtsa_make: 'FORD',      nhtsa_model: 'MUSTANG MACH-E' },
+  honda_prologue: { make: 'Honda',     model: 'Prologue',       nhtsa_make: 'HONDA',     nhtsa_model: 'PROLOGUE' },
 };
 
 // ── CORS ──────────────────────────────────────
@@ -462,7 +463,7 @@ Fields to extract:
 - remedy: what dealers will do to fix it
 - units: number of vehicles affected as a string
 - affected_vehicles: array of objects with keys "vehicle" and "years" (array of ints). 
-  Map vehicle names to: "equinox_ev" for Chevrolet Equinox EV, "blazer_ev" for Chevrolet Blazer EV, "mach_e" for Ford Mustang Mach-E.
+  Map vehicle names to: "equinox_ev" for Chevrolet Equinox EV, "blazer_ev" for Chevrolet Blazer EV, "mach_e" for Ford Mustang Mach-E, "honda_prologue" for Honda Prologue.
   Example: [{"vehicle":"mach_e","years":[2021,2022,2023,2024,2025]},{"vehicle":"equinox_ev","years":[2024,2025]}]
   Only include vehicles that are actually mentioned. Use empty array if none of our three vehicles are affected.
 If any field is not found use empty string or empty array.`,
