@@ -292,6 +292,32 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 .loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:30px;color:var(--muted);font-size:11px}
 .spin{width:16px;height:16px;border:2px solid var(--border);border-top-color:var(--comm);border-radius:50%;animation:spin .8s linear infinite;flex-shrink:0}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* ── ADMIN DASHBOARD ─────────────────────────────────────────────────── */
+.dash-stat {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 10px 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.dash-num {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+}
+.dash-label {
+  font-size: 10px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.dash-stat.warn .dash-num { color: var(--warn, #f59e0b); }
+.dash-stat.alert .dash-num { color: var(--recall, #ef4444); }
 </style>
 </head>
 <body>
@@ -666,8 +692,20 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 
 <!-- ADMIN PANEL -->
 <div class="tool-panel" id="adminPanel">
-  <h3>⚙ Database Maintenance</h3>
-  <p class="tool-note">Admin tools — changes are immediate and irreversible.</p>
+  <h3>⚙ Admin Dashboard</h3>
+  <div id="adminDashboard" style="margin-bottom:16px">
+    <div id="adminDashboardInner" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:14px">
+      <div class="dash-stat" id="dStat-recalls"><span class="dash-num" id="dNum-recalls">—</span><span class="dash-label">Recalls</span></div>
+      <div class="dash-stat" id="dStat-tsbs"><span class="dash-num" id="dNum-tsbs">—</span><span class="dash-label">TSBs</span></div>
+      <div class="dash-stat" id="dStat-community"><span class="dash-num" id="dNum-community">—</span><span class="dash-label">Community</span></div>
+      <div class="dash-stat" id="dStat-queue"><span class="dash-num" id="dNum-queue">—</span><span class="dash-label">Pending Review</span></div>
+      <div class="dash-stat" id="dStat-suppressed"><span class="dash-num" id="dNum-suppressed">—</span><span class="dash-label">Suppressed</span></div>
+      <div class="dash-stat" id="dStat-swept"><span class="dash-num" id="dNum-swept" style="font-size:13px">—</span><span class="dash-label">Last Swept</span></div>
+    </div>
+    <div id="adminDashVehicles" style="font-size:11px;color:var(--text-muted);display:flex;flex-wrap:wrap;gap:8px;margin-bottom:4px"></div>
+    <div id="adminDashStatus" style="font-size:11px;color:var(--text-muted);height:14px"></div>
+  </div>
+  <p class="tool-note" style="margin-top:0">Admin tools — changes are immediate and irreversible.</p>
   <div class="admin-grid">
     <div class="admin-card">
       <div class="admin-card-title">Deduplicate Recalls &amp; TSBs</div>
@@ -989,6 +1027,10 @@ function togglePanel(id) {
     loadSection('recalls', _vk, _yr);
     loadSection('tsbs', _vk, _yr);
     loadSection('community', _vk, _yr);
+  }
+  // Auto-load dashboard when opening admin panel
+  if (id === 'adminPanel' && !wasOpen) {
+    loadAdminDashboard();
   }
 }
 
@@ -1985,7 +2027,7 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
     if (id === 'adminDedupeBtn')   { e.stopPropagation(); adminAction('dedupe', 'adminDedupeResult', 'adminDedupeBtn'); return; }
-    if (id === 'adminStatsBtn')    { e.stopPropagation(); adminAction('stats', 'adminStatsResult', 'adminStatsBtn'); return; }
+    if (id === 'adminStatsBtn')    { e.stopPropagation(); loadAdminDashboard(); return; }
     if (id === 'adminMigrateBtn'){ e.stopPropagation(); adminAction('migrate', 'adminMigrateResult', 'adminMigrateBtn'); return; }
     if (id === 'adminClearSweepBtn'){ e.stopPropagation(); adminAction('clear-sweep', 'adminClearSweepResult', 'adminClearSweepBtn'); return; }
     if (id === 'adminClearQueueBtn'){ e.stopPropagation(); adminAction('clear-queue', 'adminClearQueueResult', 'adminClearQueueBtn'); return; }
