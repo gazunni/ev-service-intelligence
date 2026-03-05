@@ -601,8 +601,9 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
   <p class="tool-note">Admin tools — changes are immediate and irreversible.</p>
   <div class="admin-grid">
     <div class="admin-card">
-      <div class="admin-card-title">Deduplicate TSBs</div>
-      <div class="admin-card-desc">Remove duplicate TSB records keeping the oldest entry per vehicle/year/bulletin combination.</div>
+      <div class="admin-card-title">Deduplicate Recalls &amp; TSBs</div>
+      <div class="admin-card-desc">Remove duplicates across recalls and TSBs — matches by campaign number then title. Keeps the most complete record.</div>
+      <button class="admin-btn" id="adminAuditBtn" style="margin-bottom:6px">🔍 Audit Duplicates</button>
       <button class="admin-btn" id="adminDedupeBtn">⊘ Run Deduplication</button>
       <div class="admin-result" id="adminDedupeResult"></div>
     </div>
@@ -842,7 +843,9 @@ function buildCard(rec, type, idx) {
     ${symptoms ? '<div class="cf"><div class="cf-label">Symptoms</div><div class="cf-val"><ul class="symp-list">'+symptoms+'</ul></div></div>' : ''}
     ${rec.remedy ? '<div class="cf"><div class="cf-label">Remedy</div><div class="cf-val">'+esc(rec.remedy)+'</div></div>' : ''}
     ${(rec.bulletin_ref||(rec.raw_nhtsa&&rec.raw_nhtsa.bulletin_ref)) ? '<div class="cf"><div class="cf-label">Bulletin</div><div class="cf-val">'+esc(rec.bulletin_ref||rec.raw_nhtsa.bulletin_ref)+'</div></div>' : ''}
-    ${(rec.raw_nhtsa&&rec.raw_nhtsa.source_url) ? '<div class="link-row"><a class="ext-link" href="'+esc(rec.raw_nhtsa.source_url)+'" target="_blank" rel="noopener">📄 View TSB Document</a></div>' : ''}
+    ${(rec.raw_nhtsa&&rec.raw_nhtsa.source_url) ? '<div class="link-row"><a class="ext-link" href="'+esc(rec.raw_nhtsa.source_url)+'" target="_blank" rel="noopener">📄 View '+(type==='recall'?'Recall':'TSB')+' Document</a></div>' : ''}
+    ${(type==='recall'&&rec.raw_nhtsa&&rec.raw_nhtsa.NHTSACampaignNumber) ? '<div class="link-row"><a class="ext-link" href="https://www.nhtsa.gov/vehicle/recalls#'+esc(rec.raw_nhtsa.NHTSACampaignNumber)+'" target="_blank" rel="noopener">🔗 View on NHTSA.gov</a></div>' : ''}
+    ${(type==='recall'&&rec.raw_nhtsa&&rec.raw_nhtsa.tc_campaign_id) ? '<div class="link-row"><a class="ext-link" href="https://tc.canada.ca/en/road-transportation/motor-vehicle-safety/defect-investigations-recalls?rec='+esc(rec.raw_nhtsa.tc_campaign_id)+'" target="_blank" rel="noopener">🍁 View on Transport Canada</a></div>' : ''}
     ${rec.affected_units ? '<div class="cf"><div class="cf-label">Units Affected</div><div class="cf-val">'+esc(String(rec.affected_units))+'</div></div>' : ''}
     ${linkHtml ? '<div class="link-row">'+linkHtml+'</div>' : ''}
     ${type==='comm' ? `<div class="conf-bar"><div><div class="conf-num">${esc(String(rec.confirmations||1))}</div><div class="conf-label">Confirmations</div></div><button class="confirm-btn" data-confirm="${esc(rec.id)}">＋ Confirm</button></div>` : ''}
@@ -1634,6 +1637,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if (id === 'vinCloseBtn')      { e.stopPropagation(); closeVinModal(); return; }
     if (id === 'vinSearchBtn')     { e.stopPropagation(); vinLookup(); return; }
     if (id === 'adminNhtsaImportBtn') { e.stopPropagation(); adminNhtsaImport(); return; }
+    if (id === 'adminAuditBtn') {
+      e.stopPropagation();
+      const result = document.getElementById('adminDedupeResult');
+      result.textContent = 'Auditing…';
+      apiFetch('/api/admin/recall-audit', {method:'GET', headers:{'x-admin-key': sessionStorage.getItem('adminKey')||''}})
+        .then(data => {
+          if (data.duplicates.length === 0) {
+            result.style.color = 'var(--green)';
+            result.textContent = `✓ No campaign-number duplicates found (${data.total} total recalls)`;
+          } else {
+            result.style.color = 'var(--warn)';
+            const lines = data.duplicates.map(d =>
+              `Campaign ${d.campaign}: ${d.rows.length} copies — IDs: ${d.rows.map(r=>r.id).join(', ')}`
+            );
+            result.innerHTML = `⚠ ${data.duplicates.length} duplicate group(s) found:<br><small>${lines.join('<br>')}</small>`;
+          }
+        })
+        .catch(e => { result.style.color='var(--recall)'; result.textContent = 'Error: '+e.message; });
+      return;
+    }
     if (id === 'adminDedupeBtn')   { e.stopPropagation(); adminAction('dedupe', 'adminDedupeResult', 'adminDedupeBtn'); return; }
     if (id === 'adminStatsBtn')    { e.stopPropagation(); adminAction('stats', 'adminStatsResult', 'adminStatsBtn'); return; }
     if (id === 'adminClearSweepBtn'){ e.stopPropagation(); adminAction('clear-sweep', 'adminClearSweepResult', 'adminClearSweepBtn'); return; }
