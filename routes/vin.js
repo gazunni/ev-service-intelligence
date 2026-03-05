@@ -37,10 +37,10 @@ router.post('/import', async (req, res) => {
     const yr = parseInt(year);
     let count = 0;
     for (const r of recalls) {
-      const campaignId = (r.NHTSACampaignNumber || r.recallId || '')
-        .toLowerCase().replace(/[^a-z0-9]+/g, '-');
-      if (!campaignId) continue;
-      const id = `${vehicle}-${yr}-${campaignId}`;
+      const campaignRaw = r.NHTSACampaignNumber || r.recallId || '';
+      if (!campaignRaw) continue;
+      const id = campaignRaw.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (!id) continue;
       await query(
         `INSERT INTO recalls (id,vehicle_key,year,title,risk,remedy,source_pills,raw_nhtsa)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
