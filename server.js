@@ -151,15 +151,18 @@ app.post('/api/sweep', async (req, res) => {
     let recallsStored = 0, tsbsStored = 0;
 
     for (const r of rawRecalls) {
-      const ai_data = await summarize(r, 'recall');
-      const id = r.NHTSACampaignNumber || ('r-' + Date.now() + '-' + recallsStored);
+      // Store recalls directly from NHTSA — no AI needed, data is already structured
+      const campaignRaw = r.NHTSACampaignNumber || r.recallId || '';
+      // Normalize campaign ID: remove trailing zeros variation, lowercase, strip non-alphanumeric
+      const id = campaignRaw.toLowerCase().replace(/[^a-z0-9]+/g,'-') || ('r-' + Date.now() + '-' + recallsStored);
+      const title = (r.Component || r.Summary || 'Recall').substring(0, 120);
+      const severity = (r.Consequence||'').toLowerCase().includes('crash') || (r.Consequence||'').toLowerCase().includes('injur') || (r.Consequence||'').toLowerCase().includes('fatal') ? 'CRITICAL' : 'MODERATE';
       await query(
         `INSERT INTO recalls (id,vehicle_key,year,component,severity,title,risk,remedy,affected_units,source_pills,raw_nhtsa,updated_at)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW())
-         ON CONFLICT (id) DO UPDATE SET title=EXCLUDED.title,risk=EXCLUDED.risk,remedy=EXCLUDED.remedy,severity=EXCLUDED.severity,updated_at=NOW()`,
-        [id, vehicle, yr, ai_data?.component||r.Component||'Unknown', ai_data?.severity||'CRITICAL',
-         ai_data?.title||(r.Summary||'Recall').substring(0,100), ai_data?.risk||r.Consequence||'',
-         ai_data?.remedy||r.Remedy||'', r.PotentialNumberOfUnitsAffected||null, ['NHTSA Official'], JSON.stringify(r)]
+         ON CONFLICT (id) DO UPDATE SET title=EXCLUDED.title,risk=EXCLUDED.risk,remedy=EXCLUDED.remedy,severity=EXCLUDED.severity,raw_nhtsa=EXCLUDED.raw_nhtsa,updated_at=NOW()`,
+        [id, vehicle, yr, r.Component||'Unknown', severity, title,
+         r.Consequence||'', r.Remedy||'', r.PotentialNumberOfUnitsAffected||null, ['NHTSA Official'], JSON.stringify(r)]
       );
       recallsStored++;
     }
@@ -365,6 +368,46 @@ app.post('/api/tsb-add', async (req, res) => {
   }
 });
 
+// ── NHTSA DIRECT RECALL IMPORT ───────────────
+// Fetches ALL recalls from NHTSA for a vehicle/year and stores directly — no AI
+app.post('/api/nhtsa-import', async (req, res) => {
+  const { vehicle, year } = req.body || {};
+  if (!vehicle || !year) return res.status(400).json({ error: 'vehicle and year required' });
+  const v = VEHICLES[vehicle];
+  if (!v) return res.status(400).json({ error: 'Unknown vehicle' });
+  const yr = parseInt(year);
+  try {
+    const url = `https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(v.nhtsa_make)}&model=${encodeURIComponent(v.nhtsa_model)}&modelYear=${yr}`;
+    const r = await fetch(url);
+    if (!r.ok) return res.status(502).json({ error: `NHTSA returned ${r.status}` });
+    const data = await r.json();
+    const recalls = data.results || data.Results || [];
+    let stored = 0, skipped = 0;
+    for (const rc of recalls) {
+      const campaignRaw = rc.NHTSACampaignNumber || rc.recallId || '';
+      const id = campaignRaw.toLowerCase().replace(/[^a-z0-9]+/g,'-') || ('r-'+Date.now()+'-'+stored);
+      const title = (rc.Component || rc.Summary || 'Recall').substring(0, 120);
+      const severity = (rc.Consequence||'').toLowerCase().match(/crash|injur|fatal|death/) ? 'CRITICAL' : 'MODERATE';
+      const result = await query(
+        `INSERT INTO recalls (id,vehicle_key,year,component,severity,title,risk,remedy,affected_units,source_pills,raw_nhtsa,updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW())
+         ON CONFLICT (id) DO UPDATE SET
+           title=EXCLUDED.title, risk=EXCLUDED.risk, remedy=EXCLUDED.remedy,
+           severity=EXCLUDED.severity, raw_nhtsa=EXCLUDED.raw_nhtsa, updated_at=NOW()
+         RETURNING (xmax = 0) AS inserted`,
+        [id, vehicle, yr, rc.Component||'Unknown', severity, title,
+         rc.Consequence||'', rc.Remedy||'', rc.PotentialNumberOfUnitsAffected||null,
+         ['NHTSA Official'], JSON.stringify(rc)]
+      );
+      result[0]?.inserted ? stored++ : skipped++;
+    }
+    res.json({ ok: true, found: recalls.length, stored, updated: skipped });
+  } catch(e) {
+    console.error('nhtsa-import error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── RECALL FETCH & EXTRACT ───────────────────
 app.post('/api/recall-fetch', async (req, res) => {
   const { url } = req.body || {};
@@ -442,13 +485,16 @@ If any field is not found use empty string or empty array.`,
 // ── RECALL DIRECT ADD ─────────────────────────
 app.post('/api/recall-add', async (req, res) => {
   try {
-    const { vehicle, year, campaign_id, title, summary, risk, remedy, affected_units, severity, source_url } = req.body || {};
+    const { vehicle, year, campaign_id, tc_campaign_id, title, summary, risk, remedy, affected_units, severity, source_url, source } = req.body || {};
     if (!vehicle || !year || !title || !summary) return res.status(400).json({ error: 'vehicle, year, title and summary required' });
     const yr = parseInt(year);
-    const campClean = (campaign_id || title).toLowerCase().replace(/[^a-z0-9]+/g,'-').substring(0,40);
-    const id = `${vehicle}-${yr}-${campClean}`;
-    const pills = '{NHTSA Official}';
-    const raw = JSON.stringify({ campaign_id, source_url, affected_units });
+    const primaryId = source === 'tc' ? (tc_campaign_id || title) : (campaign_id || title);
+    const id = primaryId.toLowerCase().replace(/[^a-z0-9]+/g,'-').substring(0,60);
+    const pillsArr = source === 'tc'   ? ['Transport Canada']
+                   : source === 'both' ? ['NHTSA Official','Transport Canada']
+                   :                    ['NHTSA Official'];
+    const pills = '{' + pillsArr.join(',') + '}';
+    const raw = JSON.stringify({ campaign_id, tc_campaign_id, source_url, affected_units });
 
     await query(
       `INSERT INTO recalls (id, vehicle_key, year, title, risk, remedy, severity, source_pills, raw_nhtsa)
