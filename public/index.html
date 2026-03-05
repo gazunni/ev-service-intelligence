@@ -1622,7 +1622,11 @@ async function adminNhtsaImport() {
         totalUpdated += res.updated || 0;
         if ((res.found||0) > 0) lines.push(`${vehicle} ${year}: ${res.found} found · ${res.stored} new · ${res.updated} updated`);
       } catch(e) {
-        lines.push(`${vehicle} ${year}: failed — ${e.message}`);
+        const msg = e.message.includes('400') ? 'no data for this year' : e.message;
+        if (!e.message.includes('400') && !e.message.includes('502')) {
+          lines.push(`${vehicle} ${year}: ⚠ ${msg}`);
+        }
+        // Silently skip 400/502 — just means NHTSA has no records for that year
       }
     }
   }
