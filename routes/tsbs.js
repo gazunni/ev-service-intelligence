@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { query } from '../services/database.js';
-import { extractTSBFromUrl } from '../services/ai.js';
+import { extractTSBFromUrl, validateTSBExtraction } from '../services/ai.js';
 
 const router = Router();
 
@@ -22,7 +22,8 @@ router.post('/fetch', async (req, res) => {
   const { url } = req.body || {};
   if (!url) return res.status(400).json({ error: 'url required' });
   try {
-    const data = await extractTSBFromUrl(url);
+    const raw = await extractTSBFromUrl(url);
+    const data = validateTSBExtraction(raw);
     res.json(data);
   } catch (e) {
     console.error('tsb-fetch error:', e.message);

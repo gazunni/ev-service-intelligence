@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { query } from '../services/database.js';
 import { VEHICLES, fetchNHTSARecalls, canonicalRecallId, detectSeverity } from '../services/nhtsa.js';
-import { extractRecallFromUrl, summarizeRecall, summarizeTSB } from '../services/ai.js';
+import { extractRecallFromUrl, summarizeRecall, summarizeTSB, validateRecallExtraction } from '../services/ai.js';
 import { fetchNHTSATSBs } from '../services/nhtsa.js';
 
 const router = Router();
@@ -58,7 +58,8 @@ router.post('/fetch', async (req, res) => {
   const { url } = req.body || {};
   if (!url) return res.status(400).json({ error: 'url required' });
   try {
-    const data = await extractRecallFromUrl(url);
+    const raw = await extractRecallFromUrl(url);
+    const data = validateRecallExtraction(raw);
     res.json(data);
   } catch (e) {
     console.error('recall-fetch error:', e.message);
