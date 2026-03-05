@@ -18,6 +18,32 @@ export function checkAdminAny(req, res) {
   return true;
 }
 
+// ── NHTSA TEST (no auth — remove after debugging) ───────────────────────
+router.get('/nhtsa-test', async (req, res) => {
+  const { vehicle } = req.query;
+  const VMAP = {
+    tesla_model_3: { make: 'TESLA', model: 'MODEL 3' },
+    tesla_model_y: { make: 'TESLA', model: 'MODEL Y' },
+  };
+  const v = VMAP[vehicle] || VMAP['tesla_model_3'];
+  try {
+    const url = `https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(v.make)}&model=${encodeURIComponent(v.model)}`;
+    const r = await fetch(url);
+    const d = await r.json();
+    const all = d.results || d.Results || [];
+    res.json({
+      status: r.status,
+      totalCount: all.length,
+      uniqueYears: [...new Set(all.map(r=>r.ModelYear))].sort(),
+      campaigns: all.map(r=>({
+        campaign: r.NHTSACampaignNumber,
+        year: r.ModelYear,
+        component: r.Component
+      }))
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── NHTSA DEBUG ──────────────────────────────────────────────────────────
 // Fetches raw NHTSA data for a vehicle and returns it directly — helps diagnose
 // why certain recalls aren't being captured
