@@ -297,6 +297,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
       <option value="equinox_ev">Chevrolet Equinox EV</option>
       <option value="blazer_ev">Chevrolet Blazer EV</option>
       <option value="mach_e">Ford Mustang Mach-E</option>
+      <option value="honda_prologue">Honda Prologue</option>
     </select>
   </div>
   <div class="sg">
@@ -481,6 +482,14 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
           <label class="tsb-cb"><input type="checkbox" name="rc-vehicle" value="mach_e|2026"> 2026</label>
         </div>
       </div>
+      <div class="tsb-veh-group">
+        <div class="tsb-veh-label">Honda Prologue</div>
+        <div class="tsb-veh-years">
+          <label class="tsb-cb"><input type="checkbox" name="rc-vehicle" value="honda_prologue|2024"> 2024</label>
+          <label class="tsb-cb"><input type="checkbox" name="rc-vehicle" value="honda_prologue|2025"> 2025</label>
+          <label class="tsb-cb"><input type="checkbox" name="rc-vehicle" value="honda_prologue|2026"> 2026</label>
+        </div>
+      </div>
     </div>
   </div>
   <div class="btn-row">
@@ -534,6 +543,14 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
           <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="mach_e|2024"> 2024</label>
           <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="mach_e|2025"> 2025</label>
           <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="mach_e|2026"> 2026</label>
+        </div>
+      </div>
+      <div class="tsb-veh-group">
+        <div class="tsb-veh-label">Honda Prologue</div>
+        <div class="tsb-veh-years">
+          <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="honda_prologue|2024"> 2024</label>
+          <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="honda_prologue|2025"> 2025</label>
+          <label class="tsb-cb"><input type="checkbox" name="tsb-vehicle" value="honda_prologue|2026"> 2026</label>
         </div>
       </div>
     </div>
@@ -861,7 +878,7 @@ function buildCard(rec, type, idx) {
       ${type==='tsb' ? '<button class="act-btn act-apply" data-apply="'+esc(rec.id)+'">⊕ Apply to Vehicles</button>' : ''}
       ${window.__adminMode ? '<button class="act-btn act-delete" data-delete="'+esc(rec.id)+'" data-type="'+type+'" style="color:var(--recall);border-color:var(--recall)">⊗ Delete</button>' : ''}
     </div>
-    ${type==='tsb' ? '<div class="apply-panel" id="apply-'+esc(rec.id)+'" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><div class="tsb-vehicles"><div class="tsb-veh-group"><div class="tsb-veh-label">Equinox EV</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2026"> 2026</label></div></div><div class="tsb-veh-group"><div class="tsb-veh-label">Blazer EV</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2026"> 2026</label></div></div><div class="tsb-veh-group"><div class="tsb-veh-label">Mach-E</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2023"> 2023</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2026"> 2026</label></div></div></div><button class="submit-btn" style="margin-top:8px;font-size:10px" data-apply-confirm="'+esc(rec.id)+'">＋ Apply to Selected</button><div class="apply-result" id="apply-result-'+esc(rec.id)+'" style="font-size:11px;margin-top:6px"></div></div>' : ''}
+    ${type==='tsb' ? '<div class="apply-panel" id="apply-'+esc(rec.id)+'" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><div class="tsb-vehicles"><div class="tsb-veh-group"><div class="tsb-veh-label">Equinox EV</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2026"> 2026</label></div></div><div class="tsb-veh-group"><div class="tsb-veh-label">Blazer EV</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2026"> 2026</label></div></div><div class="tsb-veh-group"><div class="tsb-veh-label">Mach-E</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2023"> 2023</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2026"> 2026</label></div></div><div class="tsb-veh-group"><div class="tsb-veh-label">Prologue</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="honda_prologue|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="honda_prologue|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="honda_prologue|2026"> 2026</label></div></div></div><button class="submit-btn" style="margin-top:8px;font-size:10px" data-apply-confirm="'+esc(rec.id)+'">＋ Apply to Selected</button><div class="apply-result" id="apply-result-'+esc(rec.id)+'" style="font-size:11px;margin-top:6px"></div></div>' : ''}
   </div>
 </div>`;
 }
@@ -1278,9 +1295,10 @@ async function adminAction(endpoint, resultId, btnId) {
 
 // ── YEAR OPTIONS BY VEHICLE ──────────────────
 const vehicleYears = {
-  equinox_ev: [2026, 2025, 2024],
-  blazer_ev:  [2026, 2025, 2024],
-  mach_e:     [2026, 2025, 2024, 2023, 2022, 2021],
+  equinox_ev:     [2026, 2025, 2024],
+  blazer_ev:      [2026, 2025, 2024],
+  mach_e:         [2026, 2025, 2024, 2023, 2022, 2021],
+  honda_prologue: [2026, 2025, 2024],
 };
 
 function updateYearOptions() {
@@ -1429,6 +1447,11 @@ async function vinLookup() {
       loadAll();
     } else if (modelLower.includes('mach') || modelLower.includes('mustang')) {
       document.getElementById('selModel').value = 'mach_e';
+      updateYearOptions();
+      if (year) document.getElementById('selYear').value = year;
+      loadAll();
+    } else if (modelLower.includes('prologue')) {
+      document.getElementById('selModel').value = 'honda_prologue';
       updateYearOptions();
       if (year) document.getElementById('selYear').value = year;
       loadAll();
