@@ -364,10 +364,15 @@ app.post('/api/community-clone', async (req, res) => {
     const src = rows[0];
 
     let count = 0;
-    // Normalize JSON fields — pg returns them as objects, need to re-serialize for INSERT
-    const symptoms = src.symptoms ? JSON.stringify(src.symptoms) : '[]';
-    const links    = src.links    ? JSON.stringify(src.links)    : '[]';
-    const pills    = src.source_pills ? JSON.stringify(src.source_pills) : '[]';
+    // Fields may be already-serialized strings or parsed objects — normalize safely
+    const toJsonStr = v => {
+      if (!v) return '[]';
+      if (typeof v === 'string') return v; // already a JSON string
+      return JSON.stringify(v);            // object/array — serialize it
+    };
+    const symptoms = toJsonStr(src.symptoms);
+    const links    = toJsonStr(src.links);
+    const pills    = toJsonStr(src.source_pills);
 
     for (const { vehicle, year } of targets) {
       const newId = (vehicle + '-' + year + '-' + src.id).toLowerCase().replace(/[^a-z0-9]+/g,'-').substring(0,60);
