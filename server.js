@@ -365,6 +365,71 @@ app.post('/api/tsb-add', async (req, res) => {
   }
 });
 
+// ── RECALL FETCH & EXTRACT ───────────────────
+app.post('/api/recall-fetch', async (req, res) => {
+  const { url } = req.body || {};
+  if (!url) return res.status(400).json({ error: 'url required' });
+  try {
+    // Fetch the PDF/page
+    const r = await fetch(url);
+    const contentType = r.headers.get('content-type') || '';
+    let text = '';
+    if (contentType.includes('pdf')) {
+      // Send URL to Claude with instruction to extract recall fields
+      text = `[PDF at ${url}] — Extract recall data from this NHTSA recall PDF.`;
+    } else {
+      text = await r.text();
+      text = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').substring(0, 12000);
+    }
+
+    // Use Claude to extract structured fields
+    const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: 'You extract NHTSA recall data. Respond ONLY with valid JSON, no markdown, no explanation. Extract: campaign (NHTSA campaign number), title (component affected), summary (defect description), risk (consequence/what could happen), remedy (what dealers will do), units (number of vehicles affected as string). If a field is not found use empty string.',
+        messages: [{ role: 'user', content: `Extract recall fields from this NHTSA document. URL: ${url}\n\nContent:\n${text}` }]
+      })
+    });
+    const aiData = await aiRes.json();
+    const raw = aiData.content?.[0]?.text || '{}';
+    const cleaned = raw.replace(/```json|```/g, '').trim();
+    const extracted = JSON.parse(cleaned);
+    res.json(extracted);
+  } catch(e) {
+    console.error('recall-fetch error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── RECALL DIRECT ADD ─────────────────────────
+app.post('/api/recall-add', async (req, res) => {
+  try {
+    const { vehicle, year, campaign_id, title, summary, risk, remedy, affected_units, severity, source_url } = req.body || {};
+    if (!vehicle || !year || !title || !summary) return res.status(400).json({ error: 'vehicle, year, title and summary required' });
+    const yr = parseInt(year);
+    const campClean = (campaign_id || title).toLowerCase().replace(/[^a-z0-9]+/g,'-').substring(0,40);
+    const id = `${vehicle}-${yr}-${campClean}`;
+    const pills = '{NHTSA Official}';
+    const raw = JSON.stringify({ campaign_id, source_url, affected_units });
+
+    await query(
+      `INSERT INTO recalls (id, vehicle_key, year, title, summary, risk, remedy, severity, source_pills, raw_nhtsa)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+       ON CONFLICT (id) DO UPDATE SET
+         title=EXCLUDED.title, summary=EXCLUDED.summary, risk=EXCLUDED.risk,
+         remedy=EXCLUDED.remedy, updated_at=NOW()`,
+      [id, vehicle, yr, title, summary||'', risk||'', remedy||'', severity||'MODERATE', pills, raw]
+    );
+    res.json({ ok: true });
+  } catch(e) {
+    console.error('recall-add error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── VIN PROXY ENDPOINTS ─────────────────────
 app.get('/api/vin-decode', async (req, res) => {
   const { vin } = req.query;
