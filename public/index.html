@@ -112,6 +112,10 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
 .vin-cc-num{font-size:22px;font-weight:800;font-family:var(--mono);line-height:1}
 .vin-cc-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
 .vin-cc-complete{font-size:10px;color:var(--green);font-weight:600}
+/* ── SCROLL INDICATOR ── */
+.vin-scroll-hint{position:sticky;bottom:0;text-align:center;padding:8px;background:linear-gradient(transparent,var(--surface) 60%);pointer-events:none}
+.vin-scroll-hint span{font-size:10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase;animation:bounce-hint 1.5s infinite}
+@keyframes bounce-hint{0%,100%{transform:translateY(0);opacity:.6}50%{transform:translateY(4px);opacity:1}}
 /* ── EFF LINK ── */
 .eff-link{font-size:9px;font-weight:700;letter-spacing:.08em;color:#38bdf8;border:1px solid #0e3a4a;background:#020c14;padding:3px 9px;border-radius:3px;text-decoration:none;transition:all .2s;white-space:nowrap}
 .eff-link:hover{background:#0a2030;border-color:#38bdf8;box-shadow:0 0 8px #38bdf840}
@@ -481,7 +485,10 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
       <button class="submit-btn" id="vinSearchBtn">Decode</button>
     </div>
     <div id="vinResults" class="vin-results"></div>
+  <div class="vin-scroll-hint" id="vinScrollHint" style="display:none">
+    <span>▼ scroll for more ▼</span>
   </div>
+</div>
 </div>
 
 <!-- ADMIN PANEL -->
@@ -1126,6 +1133,16 @@ function closeVinModal() {
   document.getElementById('vinOverlay').classList.remove('open');
   document.getElementById('vinResults').innerHTML = '';
   document.getElementById('vinInput').value = '';
+  document.getElementById('vinScrollHint').style.display = 'none';
+}
+
+function updateScrollHint() {
+  const modal = document.getElementById('vinModal');
+  const hint  = document.getElementById('vinScrollHint');
+  if (!modal || !hint) return;
+  const canScroll = modal.scrollHeight > modal.clientHeight + 20;
+  const atBottom  = modal.scrollTop + modal.clientHeight >= modal.scrollHeight - 30;
+  hint.style.display = (canScroll && !atBottom) ? 'block' : 'none';
 }
 
 async function vinLookup() {
@@ -1291,6 +1308,7 @@ async function vinLookup() {
     }
 
     results.innerHTML = html;
+    setTimeout(updateScrollHint, 50);
   } catch(e) {
     results.innerHTML = `<div class="vin-empty">VIN decode failed: ${esc(e.message)}</div>`;
   } finally {
@@ -1304,6 +1322,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('vinOverlay').addEventListener('click', e => {
     if (e.target === document.getElementById('vinOverlay')) closeVinModal();
   });
+  document.getElementById('vinModal').addEventListener('scroll', updateScrollHint);
 
   // VIN field - trigger on Enter key
   document.getElementById('vinInput').addEventListener('keydown', e => {
