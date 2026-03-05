@@ -695,12 +695,25 @@ app.post('/api/admin/dedupe', async (req, res) => {
   try {
     let total = 0;
 
-    // Step 1: Normalize recall IDs — strip non-alphanumeric, uppercase
-    // Converts 25v012000, 25-v012000 etc all to canonical 25V012000
+    // Step 1: Normalize recall IDs to canonical uppercase form (e.g. 25V012000)
+    // First delete any rows whose canonical form already exists as another row
+    await query(`
+      DELETE FROM recalls r1
+      WHERE id ~ '[^A-Z0-9]'
+        AND LENGTH(REGEXP_REPLACE(id,'[^A-Za-z0-9]','','g')) BETWEEN 6 AND 12
+        AND REGEXP_REPLACE(id,'[^A-Za-z0-9]','','g') ~ '[0-9]'
+        AND EXISTS (
+          SELECT 1 FROM recalls r2
+          WHERE r2.id = UPPER(REGEXP_REPLACE(r1.id, '[^A-Za-z0-9]', '', 'g'))
+            AND r2.ctid != r1.ctid
+        )
+    `);
+    // Then rename remaining non-canonical IDs
     await query(`
       UPDATE recalls
       SET id = UPPER(REGEXP_REPLACE(id, '[^A-Za-z0-9]', '', 'g'))
-      WHERE id ~ '[^A-Z0-9]' AND LENGTH(REGEXP_REPLACE(id,'[^A-Za-z0-9]','','g')) BETWEEN 6 AND 12
+      WHERE id ~ '[^A-Z0-9]'
+        AND LENGTH(REGEXP_REPLACE(id,'[^A-Za-z0-9]','','g')) BETWEEN 6 AND 12
         AND REGEXP_REPLACE(id,'[^A-Za-z0-9]','','g') ~ '[0-9]'
     `);
 
