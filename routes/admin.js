@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { query } from '../services/database.js';
 
 const router = Router();
-const ADMIN_KEY = process.env.ADMIN_KEY || 'gazunni-admin';
+if (!process.env.ADMIN_KEY) throw new Error('ADMIN_KEY environment variable is not set — set it in Railway before deploying');
+const ADMIN_KEY = process.env.ADMIN_KEY;
 
 // ── AUTH HELPERS ──────────────────────────────────────────────────────────
 function checkAdmin(req, res) {
@@ -16,6 +17,24 @@ export function checkAdminAny(req, res) {
   if (key !== ADMIN_KEY) { res.status(403).json({ error: 'Forbidden' }); return false; }
   return true;
 }
+
+// ── RUN MIGRATIONS ───────────────────────────────────────────────────────
+router.post('/migrate', async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+  try {
+    const migrations = [
+      `CREATE INDEX IF NOT EXISTS idx_recalls_vehicle_year   ON recalls(vehicle_key, year)`,
+      `CREATE INDEX IF NOT EXISTS idx_tsbs_vehicle_year      ON tsbs(vehicle_key, year)`,
+      `CREATE INDEX IF NOT EXISTS idx_community_vehicle_year ON community(vehicle_key, year, status)`,
+      `CREATE INDEX IF NOT EXISTS idx_review_queue_status    ON review_queue(status, vehicle_key, year)`,
+    ];
+    for (const sql of migrations) await query(sql);
+    res.json({ ok: true, message: `✓ ${migrations.length} indexes created (IF NOT EXISTS — safe to run again)` });
+  } catch(e) {
+    console.error('migrate error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
 
 // ── DELETE RECALL ────────────────────────────────────────────────────────
 router.delete('/recalls/:id', async (req, res) => {
