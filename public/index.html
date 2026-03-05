@@ -812,7 +812,11 @@ function togglePanel(id) {
   // Clear admin mode when closing admin panel
   if (id === 'adminPanel' && wasOpen) {
     window.__adminMode = false;
-    loadAll();
+    const _vk = document.getElementById('selModel').value;
+    const _yr = document.getElementById('selYear').value;
+    loadSection('recalls', _vk, _yr);
+    loadSection('tsbs', _vk, _yr);
+    loadSection('community', _vk, _yr);
   }
 }
 
@@ -1261,7 +1265,12 @@ async function startGzHold() {
       window.__adminKey = pw.trim();
       setGZ('done', 'Admin access granted');
         window.__adminMode = true;
-        loadAll(); // Refresh cards to show delete buttons
+        // Refresh cards in place to show delete buttons without closing panel
+        const vk = document.getElementById('selModel').value;
+        const yr = document.getElementById('selYear').value;
+        loadSection('recalls', vk, yr);
+        loadSection('tsbs', vk, yr);
+        loadSection('community', vk, yr);
       // Close any open panels first, then open admin
       document.querySelectorAll('.tool-panel.open').forEach(p => p.classList.remove('open'));
       document.getElementById('adminPanel').classList.add('open');
@@ -1591,9 +1600,10 @@ async function adminNhtsaImport() {
   setGZ('loading', 'Running NHTSA import…');
 
   const combos = [
-    {vehicle:'equinox_ev', years:[2024,2025,2026]},
-    {vehicle:'blazer_ev',  years:[2024,2025,2026]},
-    {vehicle:'mach_e',     years:[2021,2022,2023,2024,2025,2026]},
+    {vehicle:'equinox_ev',     years:[2024,2025,2026]},
+    {vehicle:'blazer_ev',      years:[2024,2025,2026]},
+    {vehicle:'mach_e',         years:[2021,2022,2023,2024,2025,2026]},
+    {vehicle:'honda_prologue', years:[2024,2025,2026]},
   ];
 
   let totalStored = 0, totalUpdated = 0, totalFound = 0;
@@ -1621,7 +1631,12 @@ async function adminNhtsaImport() {
   result.innerHTML = `✓ Done — ${totalFound} recalls found · ${totalStored} new · ${totalUpdated} updated<br><small style="color:var(--muted)">${lines.join('<br>')}</small>`;
   btn.disabled = false; btn.textContent = '⊕ Import All Recalls';
   setGZ('done', `NHTSA import complete — ${totalStored} new recalls`);
-  loadAll();
+  // Refresh counts only — don't call loadAll() which would close the admin panel
+  const vk = document.getElementById('selModel').value;
+  const yr = document.getElementById('selYear').value;
+  loadSection('recalls', vk, yr);
+  loadSection('tsbs', vk, yr);
+  loadSection('community', vk, yr);
 }
 
 // ── INIT ─────────────────────────────────────
