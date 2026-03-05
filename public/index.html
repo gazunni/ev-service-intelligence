@@ -72,6 +72,46 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
   0%{box-shadow:none}
   100%{box-shadow:0 0 0 3px #38bdf840,0 0 12px #38bdf8}
 }
+/* ── VIN MODAL ── */
+.vin-overlay{display:none;position:fixed;inset:0;background:#000a;z-index:1000;align-items:center;justify-content:center;padding:16px}
+.vin-overlay.open{display:flex}
+.vin-modal{background:var(--surface);border:1px solid #38bdf8;border-radius:6px;width:100%;max-width:680px;max-height:85vh;overflow-y:auto;box-shadow:0 0 40px #38bdf820}
+.vin-modal-hdr{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.vin-modal-title{font-family:var(--mono);font-size:13px;font-weight:700;color:#38bdf8;letter-spacing:.08em}
+.vin-close{background:transparent;border:1px solid var(--border);color:var(--muted);font-size:12px;padding:3px 8px;border-radius:3px;cursor:pointer;font-family:var(--mono)}
+.vin-close:hover{border-color:var(--recall);color:var(--recall)}
+.vin-input-row{display:flex;gap:8px;padding:16px 20px;border-bottom:1px solid var(--border)}
+.vin-field{flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:8px 10px;border-radius:3px;letter-spacing:.08em;text-transform:uppercase}
+.vin-field:focus{outline:none;border-color:#38bdf8}
+.vin-results{padding:16px 20px}
+
+/* VIN result sections */
+.vin-section{margin-bottom:16px}
+.vin-section-title{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#38bdf8;margin-bottom:8px;padding-bottom:4px;border-bottom:1px solid var(--border)}
+.vin-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+@media(max-width:500px){.vin-grid{grid-template-columns:1fr}}
+.vin-field-row{background:var(--surface2);border-radius:3px;padding:6px 10px}
+.vin-field-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.vin-field-val{font-size:11px;color:var(--text);margin-top:2px;font-family:var(--mono)}
+
+/* Recall status */
+.vin-recall{background:var(--surface2);border-radius:4px;padding:10px 12px;margin-bottom:8px;border-left:3px solid var(--muted)}
+.vin-recall.outstanding{border-left-color:var(--recall)}
+.vin-recall.completed{border-left-color:var(--green)}
+.vin-recall-title{font-size:11px;font-weight:600;color:var(--text);margin-bottom:4px}
+.vin-recall-meta{font-size:10px;color:var(--muted);margin-bottom:4px}
+.vin-recall-status{font-size:10px;font-weight:700;letter-spacing:.04em}
+.vin-recall.outstanding .vin-recall-status{color:var(--recall)}
+.vin-recall.completed .vin-recall-status{color:var(--green)}
+.vin-empty{font-size:11px;color:var(--muted);font-style:italic}
+.vin-loading{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--muted);padding:8px 0}
+
+/* ── VIN CROSS-CHECK ── */
+.vin-crosscheck{display:flex;align-items:center;gap:16px;background:var(--surface2);border-radius:4px;padding:10px 14px;flex-wrap:wrap}
+.vin-cc-stat{display:flex;flex-direction:column;align-items:center;min-width:50px}
+.vin-cc-num{font-size:22px;font-weight:800;font-family:var(--mono);line-height:1}
+.vin-cc-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
+.vin-cc-complete{font-size:10px;color:var(--green);font-weight:600}
 /* ── EFF LINK ── */
 .eff-link{font-size:9px;font-weight:700;letter-spacing:.08em;color:#38bdf8;border:1px solid #0e3a4a;background:#020c14;padding:3px 9px;border-radius:3px;text-decoration:none;transition:all .2s;white-space:nowrap}
 .eff-link:hover{background:#0a2030;border-color:#38bdf8;box-shadow:0 0 8px #38bdf840}
@@ -264,10 +304,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
       <option value="2023">2023</option>
     </select>
   </div>
-  <div class="sg">
-    <label>VIN (Optional)</label>
-    <input class="vin" id="vinInput" placeholder="17-character VIN" maxlength="17">
-  </div>
+  <button class="tool-btn" id="vinLookupBtn" style="background:#0a1a2e;border-color:#38bdf8;color:#38bdf8">🔍 VIN Lookup</button>
   <button class="sweep-btn" id="sweepBtn">⚡ Run AI Sweep</button>
   <button class="tool-btn" data-panel="submitPanel">＋ Submit Issue</button>
   <button class="tool-btn" data-panel="researchPanel">🔬 Research Sweep</button>
@@ -430,6 +467,21 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
     <button class="cancel-btn" data-panel="tsbPanel">Cancel</button>
   </div>
   <div id="tsbResult" style="margin-top:10px;font-size:11px;color:var(--muted)"></div>
+</div>
+
+<!-- VIN LOOKUP MODAL -->
+<div class="vin-overlay" id="vinOverlay">
+  <div class="vin-modal" id="vinModal">
+    <div class="vin-modal-hdr">
+      <div class="vin-modal-title">🔍 VIN Lookup</div>
+      <button class="vin-close" id="vinCloseBtn">✕</button>
+    </div>
+    <div class="vin-input-row">
+      <input class="vin-field" id="vinInput" placeholder="Enter 17-character VIN" maxlength="17" autocomplete="off" spellcheck="false">
+      <button class="submit-btn" id="vinSearchBtn">Decode</button>
+    </div>
+    <div id="vinResults" class="vin-results"></div>
+  </div>
 </div>
 
 <!-- ADMIN PANEL -->
@@ -991,8 +1043,207 @@ function updateYearOptions() {
   if (!years.includes(parseInt(current))) sel.value = years[0];
 }
 
+// ── VIN IMPORT ───────────────────────────────
+async function vinImportMissing() {
+  const data = window.__vinMissing;
+  if (!data || !data.recalls.length) return;
+  const btn = document.getElementById('vinImportBtn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Importing…'; }
+  try {
+    const res = await apiFetch('/api/vin-import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ vehicle: data.vehicle, year: data.year, recalls: data.recalls })
+    });
+    if (btn) { btn.textContent = `✓ Imported ${res.count} recall${res.count!==1?'s':''}`; btn.style.borderColor='var(--green)'; btn.style.color='var(--green)'; }
+    window.__vinMissing = null;
+    loadAll();
+  } catch(e) {
+    if (btn) { btn.disabled = false; btn.textContent = 'Import failed — retry'; }
+  }
+}
+
+// ── VIN LOOKUP ───────────────────────────────
+function openVinModal() {
+  document.getElementById('vinOverlay').classList.add('open');
+  document.getElementById('vinInput').focus();
+}
+function closeVinModal() {
+  document.getElementById('vinOverlay').classList.remove('open');
+  document.getElementById('vinResults').innerHTML = '';
+  document.getElementById('vinInput').value = '';
+}
+
+async function vinLookup() {
+  const vin = document.getElementById('vinInput').value.trim().toUpperCase();
+  const results = document.getElementById('vinResults');
+  if (vin.length !== 17) { results.innerHTML = '<div class="vin-empty">Please enter a full 17-character VIN.</div>'; return; }
+
+  const btn = document.getElementById('vinSearchBtn');
+  btn.disabled = true; btn.textContent = 'Looking up…';
+  results.innerHTML = '<div class="vin-loading"><div class="spin"></div><span>Decoding VIN…</span></div>';
+
+  try {
+    // Step 1: Decode VIN via NHTSA
+    const decodeRes = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/${vin}?format=json`);
+    const decodeData = await decodeRes.json();
+    const fields = decodeData.Results || [];
+    const get = (id) => (fields.find(f => f.VariableId === id) || {}).Value || '—';
+
+    const year  = get(29);   // Model Year
+    const make  = get(26);   // Make
+    const model = get(28);   // Model
+    const trim  = get(38);   // Trim
+    const body  = get(5);    // Body Class
+    const plant = get(18);   // Plant City
+    const country = get(17); // Plant Country
+    const engine = get(71);  // Displacement (L)
+    const drive  = get(15);  // Drive Type
+    const doors  = get(14);  // Number of Doors
+    const series = get(34);  // Series
+
+    // Auto-set vehicle dropdowns if recognisable
+    const modelLower = (make + ' ' + model).toLowerCase();
+    if (modelLower.includes('equinox')) {
+      document.getElementById('selModel').value = 'equinox_ev';
+      updateYearOptions();
+      if (year) document.getElementById('selYear').value = year;
+      loadAll();
+    } else if (modelLower.includes('blazer')) {
+      document.getElementById('selModel').value = 'blazer_ev';
+      updateYearOptions();
+      if (year) document.getElementById('selYear').value = year;
+      loadAll();
+    } else if (modelLower.includes('mach') || modelLower.includes('mustang')) {
+      document.getElementById('selModel').value = 'mach_e';
+      updateYearOptions();
+      if (year) document.getElementById('selYear').value = year;
+      loadAll();
+    }
+
+    let html = `
+      <div class="vin-section">
+        <div class="vin-section-title">Vehicle Identity</div>
+        <div class="vin-grid">
+          <div class="vin-field-row"><div class="vin-field-label">Year</div><div class="vin-field-val">${esc(year)}</div></div>
+          <div class="vin-field-row"><div class="vin-field-label">Make</div><div class="vin-field-val">${esc(make)}</div></div>
+          <div class="vin-field-row"><div class="vin-field-label">Model</div><div class="vin-field-val">${esc(model)}</div></div>
+          <div class="vin-field-row"><div class="vin-field-label">Trim</div><div class="vin-field-val">${esc(trim)}</div></div>
+          <div class="vin-field-row"><div class="vin-field-label">Series</div><div class="vin-field-val">${esc(series)}</div></div>
+          <div class="vin-field-row"><div class="vin-field-label">Body</div><div class="vin-field-val">${esc(body)}</div></div>
+          <div class="vin-field-row"><div class="vin-field-label">Drive</div><div class="vin-field-val">${esc(drive)}</div></div>
+          <div class="vin-field-row"><div class="vin-field-label">Doors</div><div class="vin-field-val">${esc(doors)}</div></div>
+          <div class="vin-field-row"><div class="vin-field-label">Engine (L)</div><div class="vin-field-val">${esc(engine)}</div></div>
+          <div class="vin-field-row"><div class="vin-field-label">Assembly Plant</div><div class="vin-field-val">${esc(plant)}${country !== '—' ? ', '+esc(country) : ''}</div></div>
+        </div>
+      </div>`;
+
+    // Step 2: VIN-specific recalls from NHTSA
+    results.innerHTML = html + '<div class="vin-loading"><div class="spin"></div><span>Checking recalls for this VIN…</span></div>';
+
+    try {
+      const recallRes = await fetch(`https://api.nhtsa.gov/recalls/recallsByVehicleId?vinId=${vin}`);
+      const recallData = await recallRes.json();
+      const recalls = recallData.results || [];
+
+      if (!recalls.length) {
+        html += `<div class="vin-section"><div class="vin-section-title">Recall Status</div><div class="vin-empty">✓ No open recalls found for this VIN.</div></div>`;
+      } else {
+        const outstanding = recalls.filter(r => !r.completionDate);
+        const completed   = recalls.filter(r => r.completionDate);
+
+        // Cross-check against our database
+        const vkey = getVehicle();
+        const yr   = parseInt(getYear());
+        let crossCheck = null;
+        try {
+          crossCheck = await apiFetch(`/api/recalls?vehicle=${encodeURIComponent(vkey)}&year=${yr}`);
+        } catch(e) { /* silent */ }
+        const ourIds = new Set((crossCheck||[]).map(r => (r.id||'').toLowerCase()));
+
+        // Find missing recalls - not in our DB
+        const missing = recalls.filter(r => {
+          const cid = (r.NHTSACampaignNumber||r.recallId||'').toLowerCase();
+          return cid && !ourIds.has(cid);
+        });
+
+        // Store missing recalls on window for import button
+        window.__vinMissing = { recalls: missing, vehicle: vkey, year: yr, vin };
+
+        // Cross-check summary
+        const inDb = recalls.length - missing.length;
+        html += `<div class="vin-section">
+          <div class="vin-section-title">Database Cross-Check</div>
+          <div class="vin-crosscheck">
+            <div class="vin-cc-stat"><span class="vin-cc-num">${recalls.length}</span><span class="vin-cc-label">NHTSA Recalls</span></div>
+            <div class="vin-cc-stat"><span class="vin-cc-num" style="color:var(--green)">${inDb}</span><span class="vin-cc-label">In Our DB</span></div>
+            <div class="vin-cc-stat"><span class="vin-cc-num" style="color:${missing.length?'var(--recall)':'var(--green)'}">${missing.length}</span><span class="vin-cc-label">Missing</span></div>
+            ${missing.length ? `<button class="submit-btn" id="vinImportBtn" style="font-size:10px;padding:4px 12px">⊕ Import ${missing.length} Missing</button>` : '<div class="vin-cc-complete">✓ Database up to date</div>'}
+          </div>
+        </div>`;
+
+        html += `<div class="vin-section"><div class="vin-section-title">Outstanding Recalls (${outstanding.length})</div>`;
+        if (outstanding.length) {
+          html += outstanding.map(r => {
+            const cid = (r.NHTSACampaignNumber||r.recallId||'').toLowerCase();
+            const inOurDb = ourIds.has(cid);
+            return `<div class="vin-recall outstanding">
+              <div class="vin-recall-title">${esc(r.Component||r.component||'Unknown Component')}</div>
+              <div class="vin-recall-meta">Campaign: ${esc(r.NHTSACampaignNumber||r.recallId||'—')} · ${esc(r.ReportReceivedDate||r.reportDate||'')}</div>
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div class="vin-recall-status">⚠ OUTSTANDING — Action Required</div>
+                <div style="font-size:9px;color:${inOurDb?'var(--green)':'var(--recall)'}">${inOurDb?'✓ In DB':'⊕ Not in DB'}</div>
+              </div>
+            </div>`;
+          }).join('');
+        } else {
+          html += '<div class="vin-empty">None outstanding.</div>';
+        }
+        html += '</div>';
+
+        html += `<div class="vin-section"><div class="vin-section-title">Completed Recalls (${completed.length})</div>`;
+        if (completed.length) {
+          html += completed.map(r => {
+            const cid = (r.NHTSACampaignNumber||r.recallId||'').toLowerCase();
+            const inOurDb = ourIds.has(cid);
+            return `<div class="vin-recall completed">
+              <div class="vin-recall-title">${esc(r.Component||r.component||'Unknown Component')}</div>
+              <div class="vin-recall-meta">Campaign: ${esc(r.NHTSACampaignNumber||r.recallId||'—')} · Completed: ${esc(r.completionDate||'')}</div>
+              <div style="display:flex;align-items:center;justify-content:space-between">
+                <div class="vin-recall-status">✓ COMPLETED</div>
+                <div style="font-size:9px;color:${inOurDb?'var(--green)':'var(--muted)'}">${inOurDb?'✓ In DB':'Not in DB'}</div>
+              </div>
+            </div>`;
+          }).join('');
+        } else {
+          html += '<div class="vin-empty">No completed recalls on record.</div>';
+        }
+        html += '</div>';
+      }
+    } catch(e) {
+      html += `<div class="vin-section"><div class="vin-section-title">Recall Status</div><div class="vin-empty">Could not fetch recall data: ${esc(e.message)}</div></div>`;
+    }
+
+    results.innerHTML = html;
+  } catch(e) {
+    results.innerHTML = `<div class="vin-empty">VIN decode failed: ${esc(e.message)}</div>`;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Decode';
+  }
+}
+
 // ── INIT ─────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  // Close VIN modal on overlay click
+  document.getElementById('vinOverlay').addEventListener('click', e => {
+    if (e.target === document.getElementById('vinOverlay')) closeVinModal();
+  });
+
+  // VIN field - trigger on Enter key
+  document.getElementById('vinInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') vinLookup();
+  });
+
   // Set correct years for default vehicle on load
   updateYearOptions();
 
@@ -1018,6 +1269,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if (id === 'researchSweepBtn') { e.stopPropagation(); runResearchSweep(); return; }
     if (id === 'clearResearchBtn') { e.stopPropagation(); clearResearch(); return; }
     if (id === 'addTsbBtn')        { e.stopPropagation(); addTsb(); return; }
+    if (id === 'vinImportBtn')     { e.stopPropagation(); vinImportMissing(); return; }
+    if (id === 'vinLookupBtn')     { e.stopPropagation(); openVinModal(); return; }
+    if (id === 'vinCloseBtn')      { e.stopPropagation(); closeVinModal(); return; }
+    if (id === 'vinSearchBtn')     { e.stopPropagation(); vinLookup(); return; }
     if (id === 'adminDedupeBtn')   { e.stopPropagation(); adminAction('dedupe', 'adminDedupeResult', 'adminDedupeBtn'); return; }
     if (id === 'adminStatsBtn')    { e.stopPropagation(); adminAction('stats', 'adminStatsResult', 'adminStatsBtn'); return; }
     if (id === 'adminClearSweepBtn'){ e.stopPropagation(); adminAction('clear-sweep', 'adminClearSweepResult', 'adminClearSweepBtn'); return; }
