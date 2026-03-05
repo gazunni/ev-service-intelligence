@@ -1045,10 +1045,12 @@ function buildCard(rec, type, idx) {
     ${rec.affected_units ? '<div class="cf"><div class="cf-label">Units Affected</div><div class="cf-val">'+esc(String(rec.affected_units))+'</div></div>' : ''}
     ${linkHtml ? '<div class="link-row">'+linkHtml+'</div>' : ''}
     ${type==='comm' ? `<div class="conf-bar"><div><div class="conf-num">${esc(String(rec.confirmations||1))}</div><div class="conf-label">Confirmations</div></div><button class="confirm-btn" data-confirm="${esc(rec.id)}">＋ Confirm</button></div>` : ''}
+    ${(type==='comm' && window.__adminMode) ? '<div class="apply-panel" id="comm-apply-'+esc(rec.id)+'" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><div class="tsb-vehicles"><div class="tsb-veh-group"><div class="tsb-veh-label">Equinox EV</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="comm-apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="comm-apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="comm-apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2026"> 2026</label></div></div><div class="tsb-veh-group"><div class="tsb-veh-label">Blazer EV</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="comm-apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="comm-apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="comm-apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2026"> 2026</label></div></div><div class="tsb-veh-group"><div class="tsb-veh-label">Mach-E</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="comm-apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2023"> 2023</label><label class="tsb-cb"><input type="checkbox" class="comm-apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="comm-apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="comm-apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2026"> 2026</label></div></div><div class="tsb-veh-group"><div class="tsb-veh-label">Prologue</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="comm-apply-cb" data-src="'+esc(rec.id)+'" value="honda_prologue|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="comm-apply-cb" data-src="'+esc(rec.id)+'" value="honda_prologue|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="comm-apply-cb" data-src="'+esc(rec.id)+'" value="honda_prologue|2026"> 2026</label></div></div></div><button class="submit-btn" style="margin-top:8px;font-size:10px" data-comm-apply-confirm="'+esc(rec.id)+'">＋ Apply to Selected</button><div class="apply-result" id="comm-apply-result-'+esc(rec.id)+'" style="font-size:11px;margin-top:6px"></div></div>' : ''}
     <div class="card-actions">
       <button class="act-btn act-copy" data-copy="${id}">⎘ Copy</button>
       <button class="act-btn act-print" data-print="${id}">⎙ Print</button>
       ${type==='tsb' ? '<button class="act-btn act-apply" data-apply="'+esc(rec.id)+'">⊕ Apply to Vehicles</button>' : ''}
+      ${(type==='comm' && window.__adminMode) ? '<button class="act-btn act-apply" data-comm-apply="'+esc(rec.id)+'">⊕ Apply to Vehicles</button>' : ''}
       ${window.__adminMode ? '<button class="act-btn act-delete" data-delete="'+esc(rec.id)+'" data-type="'+type+'" style="color:var(--recall);border-color:var(--recall)">⊗ Delete</button>' : ''}
     </div>
     ${type==='tsb' ? '<div class="apply-panel" id="apply-'+esc(rec.id)+'" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><div class="tsb-vehicles"><div class="tsb-veh-group"><div class="tsb-veh-label">Equinox EV</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2026"> 2026</label></div></div><div class="tsb-veh-group"><div class="tsb-veh-label">Blazer EV</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2026"> 2026</label></div></div><div class="tsb-veh-group"><div class="tsb-veh-label">Mach-E</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2023"> 2023</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2026"> 2026</label></div></div><div class="tsb-veh-group"><div class="tsb-veh-label">Prologue</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="honda_prologue|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="honda_prologue|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="honda_prologue|2026"> 2026</label></div></div></div><button class="submit-btn" style="margin-top:8px;font-size:10px" data-apply-confirm="'+esc(rec.id)+'">＋ Apply to Selected</button><div class="apply-result" id="apply-result-'+esc(rec.id)+'" style="font-size:11px;margin-top:6px"></div></div>' : ''}
@@ -1201,6 +1203,30 @@ async function applyTsb(srcId) {
     result.style.color = 'var(--recall)';
     result.textContent = 'Error: ' + e.message;
     setGZ('err', 'Apply failed');
+  } finally {
+    btn.disabled = false; btn.textContent = '＋ Apply to Selected';
+  }
+}
+
+async function applyCommunity(srcId) {
+  const checked = Array.from(document.querySelectorAll(`.comm-apply-cb[data-src="${srcId}"]:checked`))
+    .map(cb => { const [v,y] = cb.value.split('|'); return {vehicle:v, year:parseInt(y)}; });
+  const result = document.getElementById('comm-apply-result-'+srcId);
+  if (!checked.length) { result.style.color='var(--recall)'; result.textContent='Select at least one.'; return; }
+  const btn = document.querySelector(`[data-comm-apply-confirm="${srcId}"]`);
+  btn.disabled = true; btn.textContent = 'Applying…';
+  try {
+    const res = await apiFetch('/api/community-clone', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ src_id: srcId, targets: checked })
+    });
+    result.style.color = 'var(--green)';
+    result.textContent = `✓ Applied to ${res.count} vehicle/year combination${res.count>1?'s':''}.`;
+    document.querySelectorAll(`.comm-apply-cb[data-src="${srcId}"]`).forEach(cb => cb.checked = false);
+  } catch(e) {
+    result.style.color = 'var(--recall)';
+    result.textContent = 'Error: ' + e.message;
   } finally {
     btn.disabled = false; btn.textContent = '＋ Apply to Selected';
   }
@@ -1932,6 +1958,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Apply TSB panel toggle and confirm
     const applyBtn    = t.closest('[data-apply]');
+    const commApplyBtn     = t.closest('[data-comm-apply]');
+    const commApplyConfirm = t.closest('[data-comm-apply-confirm]');
+    if (commApplyBtn && !commApplyConfirm) {
+      e.stopPropagation();
+      const pid = commApplyBtn.dataset.commApply;
+      const panel = document.getElementById('comm-apply-'+pid);
+      if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+      return;
+    }
+    if (commApplyConfirm) { e.stopPropagation(); applyCommunity(commApplyConfirm.dataset.commApplyConfirm); return; }
+
     const applyConfirm = t.closest('[data-apply-confirm]');
     if (applyBtn && !applyConfirm) {
       e.stopPropagation();
