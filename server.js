@@ -628,8 +628,59 @@ app.post('/api/admin/dedupe', async (req, res) => {
   try {
     let total = 0;
 
-    // 1. Dedupe TSBs by vehicle+year+bulletin_ref, then by title
-    // Dedupe TSBs by vehicle+year+title (bulletin_ref not in schema)
+    // Step 1: Normalize all recall IDs to lowercase in-place
+    // This prevents 25V012000 and 25v012000 from being treated as different
+    await query(`
+      UPDATE recalls SET id = LOWER(id)
+      WHERE id != LOWER(id)
+    `);
+
+    // Step 2: Dedupe recalls by campaign number (case-insensitive) per vehicle+year
+    // Groups all rows sharing same UPPER(campaign) and keeps best one
+    const allRecalls = await query(`
+      SELECT id, vehicle_key, year, created_at,
+             UPPER(COALESCE(raw_nhtsa->>'NHTSACampaignNumber', '')) as campaign,
+             CASE WHEN raw_nhtsa->>'source_url' IS NOT NULL AND raw_nhtsa->>'source_url' != '' THEN 0 ELSE 1 END as has_url
+      FROM recalls
+      ORDER BY vehicle_key, year, campaign, has_url ASC, created_at ASC
+    `);
+
+    // Group by vehicle+year+campaign
+    const groups = {};
+    for (const r of allRecalls) {
+      if (!r.campaign) continue;
+      const key = r.vehicle_key + '|' + r.year + '|' + r.campaign;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(r.id);
+    }
+    for (const ids of Object.values(groups)) {
+      if (ids.length > 1) {
+        // Delete all but first (which is best due to ORDER BY above)
+        for (const id of ids.slice(1)) {
+          await query(`DELETE FROM recalls WHERE id=$1`, [id]);
+          total++;
+        }
+      }
+    }
+
+    // Step 3: Dedupe recalls by normalized title per vehicle+year
+    // Catches manually-entered duplicates with different wording
+    // Use first 40 chars of title to fuzzy-match (e.g. "Pedestrian Alert..." variants)
+    const titleGroups = await query(`
+      SELECT vehicle_key, year, LEFT(LOWER(TRIM(REGEXP_REPLACE(title,'[^a-zA-Z0-9 ]','','g'))),35) as title_key, 
+             array_agg(id ORDER BY created_at ASC) as ids
+      FROM recalls
+      GROUP BY vehicle_key, year, title_key
+      HAVING COUNT(*) > 1
+    `);
+    for (const g of titleGroups) {
+      for (const id of g.ids.slice(1)) {
+        await query(`DELETE FROM recalls WHERE id=$1`, [id]);
+        total++;
+      }
+    }
+
+    // Step 4: Dedupe TSBs by title
     const tsbDel = await query(`
       DELETE FROM tsbs WHERE ctid NOT IN (
         SELECT MIN(ctid) FROM tsbs GROUP BY vehicle_key, year, LOWER(TRIM(COALESCE(title,'')))
@@ -637,42 +688,8 @@ app.post('/api/admin/dedupe', async (req, res) => {
     `);
     total += tsbDel.length || 0;
 
-    // 2. Dedupe recalls by NHTSA campaign number extracted from raw_nhtsa
-    // Keep the row with most data (prefer manually added with source_url over sweep)
-    const dupCampaigns = await query(`
-      SELECT vehicle_key, year, raw_nhtsa->>'NHTSACampaignNumber' as campaign
-      FROM recalls
-      WHERE raw_nhtsa->>'NHTSACampaignNumber' IS NOT NULL
-      GROUP BY vehicle_key, year, raw_nhtsa->>'NHTSACampaignNumber'
-      HAVING COUNT(*) > 1
-    `);
-
-    for (const dup of dupCampaigns) {
-      // Keep row with source_url if exists, otherwise keep oldest
-      await query(`
-        DELETE FROM recalls WHERE id IN (
-          SELECT id FROM recalls
-          WHERE vehicle_key=$1 AND year=$2
-            AND raw_nhtsa->>'NHTSACampaignNumber'=$3
-          ORDER BY
-            CASE WHEN raw_nhtsa->>'source_url' IS NOT NULL THEN 0 ELSE 1 END,
-            created_at ASC
-          OFFSET 1
-        )
-      `, [dup.vehicle_key, dup.year, dup.campaign]);
-      total++;
-    }
-
-    // 3. Dedupe recalls by vehicle+year+title (catches manual + sweep same recall)
-    const recallTitle = await query(`
-      DELETE FROM recalls WHERE ctid NOT IN (
-        SELECT MIN(ctid) FROM recalls GROUP BY vehicle_key, year, LOWER(TRIM(title))
-      )
-    `);
-    total += recallTitle.length || 0;
-
     res.json({ message: total > 0
-      ? `✓ Removed ${total} duplicate rows (recalls + TSBs)`
+      ? `✓ Removed ${total} duplicate rows — run again to verify clean`
       : '✓ No duplicates found' });
   } catch(e) {
     console.error('dedupe error:', e.message);
