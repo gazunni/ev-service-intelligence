@@ -410,7 +410,19 @@ ${text}`;
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
-        system: 'You extract NHTSA recall data. Respond ONLY with a valid JSON object, no markdown fences, no explanation. If a field is not found use empty string.',
+        system: `You extract NHTSA recall data. Respond ONLY with a valid JSON object, no markdown fences, no explanation.
+Fields to extract:
+- campaign: NHTSA campaign number (e.g. 25V404000)
+- title: component/system affected (e.g. SERVICE BRAKES, HYDRAULIC)
+- summary: full defect description
+- risk: consequence if not fixed
+- remedy: what dealers will do to fix it
+- units: number of vehicles affected as a string
+- affected_vehicles: array of objects with keys "vehicle" and "years" (array of ints). 
+  Map vehicle names to: "equinox_ev" for Chevrolet Equinox EV, "blazer_ev" for Chevrolet Blazer EV, "mach_e" for Ford Mustang Mach-E.
+  Example: [{"vehicle":"mach_e","years":[2021,2022,2023,2024,2025]},{"vehicle":"equinox_ev","years":[2024,2025]}]
+  Only include vehicles that are actually mentioned. Use empty array if none of our three vehicles are affected.
+If any field is not found use empty string or empty array.`,
         messages: [{ role: 'user', content: messageContent }]
       })
     });
