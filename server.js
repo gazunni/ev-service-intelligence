@@ -17,7 +17,7 @@ app.use(helmet({
       styleSrc:        ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       fontSrc:         ["'self'", "https://fonts.gstatic.com"],
       imgSrc:          ["'self'", "data:"],
-      connectSrc:      ["'self'", "https://api.nhtsa.gov", "https://api.anthropic.com"],
+      connectSrc:      ["'self'", "https://api.anthropic.com"],
       frameSrc:        ["'none'"],
       objectSrc:       ["'none'"],
       upgradeInsecureRequests: [],
@@ -370,30 +370,53 @@ app.post('/api/recall-fetch', async (req, res) => {
   const { url } = req.body || {};
   if (!url) return res.status(400).json({ error: 'url required' });
   try {
-    // Fetch the PDF/page
+    // Fetch the document
     const r = await fetch(url);
+    if (!r.ok) throw new Error(`HTTP ${r.status} fetching URL`);
     const contentType = r.headers.get('content-type') || '';
-    let text = '';
-    if (contentType.includes('pdf')) {
-      // Send URL to Claude with instruction to extract recall fields
-      text = `[PDF at ${url}] — Extract recall data from this NHTSA recall PDF.`;
+    const isPdf = contentType.includes('pdf') || url.toLowerCase().endsWith('.pdf');
+
+    let messageContent;
+    if (isPdf) {
+      // Fetch PDF as binary, encode as base64, send as document to Claude
+      const buffer = await r.arrayBuffer();
+      const base64 = Buffer.from(buffer).toString('base64');
+      messageContent = [
+        {
+          type: 'document',
+          source: { type: 'base64', media_type: 'application/pdf', data: base64 }
+        },
+        {
+          type: 'text',
+          text: 'Extract the NHTSA recall fields from this document. Respond ONLY with valid JSON, no markdown. Fields: campaign (campaign number e.g. 25V404000), title (component/system affected), summary (defect description), risk (consequence if not fixed), remedy (what dealers will do), units (number of vehicles as string).'
+        }
+      ];
     } else {
-      text = await r.text();
-      text = text.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').substring(0, 12000);
+      // HTML/text page - strip tags and truncate
+      const text = (await r.text()).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').substring(0, 12000);
+      messageContent = `Extract NHTSA recall fields from this text. Respond ONLY with valid JSON. Fields: campaign, title, summary, risk, remedy, units.
+
+${text}`;
     }
 
-    // Use Claude to extract structured fields
     const aiRes = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': process.env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': process.env.ANTHROPIC_API_KEY,
+        'anthropic-version': '2023-06-01',
+        'anthropic-beta': 'pdfs-2024-09-25'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
-        system: 'You extract NHTSA recall data. Respond ONLY with valid JSON, no markdown, no explanation. Extract: campaign (NHTSA campaign number), title (component affected), summary (defect description), risk (consequence/what could happen), remedy (what dealers will do), units (number of vehicles affected as string). If a field is not found use empty string.',
-        messages: [{ role: 'user', content: `Extract recall fields from this NHTSA document. URL: ${url}\n\nContent:\n${text}` }]
+        system: 'You extract NHTSA recall data. Respond ONLY with a valid JSON object, no markdown fences, no explanation. If a field is not found use empty string.',
+        messages: [{ role: 'user', content: messageContent }]
       })
     });
+
     const aiData = await aiRes.json();
+    if (aiData.error) throw new Error(aiData.error.message || 'Claude API error');
     const raw = aiData.content?.[0]?.text || '{}';
     const cleaned = raw.replace(/```json|```/g, '').trim();
     const extracted = JSON.parse(cleaned);
@@ -416,12 +439,12 @@ app.post('/api/recall-add', async (req, res) => {
     const raw = JSON.stringify({ campaign_id, source_url, affected_units });
 
     await query(
-      `INSERT INTO recalls (id, vehicle_key, year, title, summary, risk, remedy, severity, source_pills, raw_nhtsa)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+      `INSERT INTO recalls (id, vehicle_key, year, title, risk, remedy, severity, source_pills, raw_nhtsa)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
        ON CONFLICT (id) DO UPDATE SET
-         title=EXCLUDED.title, summary=EXCLUDED.summary, risk=EXCLUDED.risk,
+         title=EXCLUDED.title, risk=EXCLUDED.risk,
          remedy=EXCLUDED.remedy, updated_at=NOW()`,
-      [id, vehicle, yr, title, summary||'', risk||'', remedy||'', severity||'MODERATE', pills, raw]
+      [id, vehicle, yr, title, (summary||risk)||'', remedy||'', severity||'MODERATE', pills, raw]
     );
     res.json({ ok: true });
   } catch(e) {
@@ -519,10 +542,10 @@ app.post('/api/vin-import', async (req, res) => {
       const raw     = JSON.stringify(r);
 
       await query(
-        `INSERT INTO recalls (id, vehicle_key, year, title, summary, remedy, risk, source_pills, raw_nhtsa)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+        `INSERT INTO recalls (id, vehicle_key, year, title, risk, remedy, source_pills, raw_nhtsa)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
          ON CONFLICT (id) DO NOTHING`,
-        [id, vehicle, yr, title, summary, remedy, risk, pills, raw]
+        [id, vehicle, yr, title, summary||risk||'', remedy||'', pills, raw]
       );
       count++;
     }
