@@ -364,6 +364,11 @@ app.post('/api/community-clone', async (req, res) => {
     const src = rows[0];
 
     let count = 0;
+    // Normalize JSON fields — pg returns them as objects, need to re-serialize for INSERT
+    const symptoms = src.symptoms ? JSON.stringify(src.symptoms) : '[]';
+    const links    = src.links    ? JSON.stringify(src.links)    : '[]';
+    const pills    = src.source_pills ? JSON.stringify(src.source_pills) : '[]';
+
     for (const { vehicle, year } of targets) {
       const newId = (vehicle + '-' + year + '-' + src.id).toLowerCase().replace(/[^a-z0-9]+/g,'-').substring(0,60);
       await query(
@@ -371,8 +376,8 @@ app.post('/api/community-clone', async (req, res) => {
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
          ON CONFLICT (id) DO NOTHING`,
         [newId, vehicle, parseInt(year), src.title, src.component, src.severity,
-         src.summary, src.symptoms, src.remedy, src.bulletin_ref,
-         src.source_pills, src.links, src.confirmations || 1,
+         src.summary, symptoms, src.remedy, src.bulletin_ref,
+         pills, links, src.confirmations || 1,
          src.ai_sweep || false, src.status || 'active']
       );
       count++;
