@@ -790,7 +790,13 @@ function toggleCard(id) {
 // ── TOOL PANELS ───────────────────────────────
 function togglePanel(id) {
   const panel = document.getElementById(id);
+  const wasOpen = panel.classList.contains('open');
   panel.classList.toggle('open');
+  // Clear admin mode when closing admin panel
+  if (id === 'adminPanel' && wasOpen) {
+    window.__adminMode = false;
+    loadAll();
+  }
 }
 
 // ── RENDER ────────────────────────────────────
@@ -853,6 +859,7 @@ function buildCard(rec, type, idx) {
       <button class="act-btn act-copy" data-copy="${id}">⎘ Copy</button>
       <button class="act-btn act-print" data-print="${id}">⎙ Print</button>
       ${type==='tsb' ? '<button class="act-btn act-apply" data-apply="'+esc(rec.id)+'">⊕ Apply to Vehicles</button>' : ''}
+      ${window.__adminMode ? '<button class="act-btn act-delete" data-delete="'+esc(rec.id)+'" data-type="'+type+'" style="color:var(--recall);border-color:var(--recall)">⊗ Delete</button>' : ''}
     </div>
     ${type==='tsb' ? '<div class="apply-panel" id="apply-'+esc(rec.id)+'" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)"><div class="tsb-vehicles"><div class="tsb-veh-group"><div class="tsb-veh-label">Equinox EV</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="equinox_ev|2026"> 2026</label></div></div><div class="tsb-veh-group"><div class="tsb-veh-label">Blazer EV</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="blazer_ev|2026"> 2026</label></div></div><div class="tsb-veh-group"><div class="tsb-veh-label">Mach-E</div><div class="tsb-veh-years"><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2023"> 2023</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2024"> 2024</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2025"> 2025</label><label class="tsb-cb"><input type="checkbox" class="apply-cb" data-src="'+esc(rec.id)+'" value="mach_e|2026"> 2026</label></div></div></div><button class="submit-btn" style="margin-top:8px;font-size:10px" data-apply-confirm="'+esc(rec.id)+'">＋ Apply to Selected</button><div class="apply-result" id="apply-result-'+esc(rec.id)+'" style="font-size:11px;margin-top:6px"></div></div>' : ''}
   </div>
@@ -1236,6 +1243,8 @@ async function startGzHold() {
       await apiFetch('/api/admin/stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ key: pw.trim() }) });
       window.__adminKey = pw.trim();
       setGZ('done', 'Admin access granted');
+        window.__adminMode = true;
+        loadAll(); // Refresh cards to show delete buttons
       // Close any open panels first, then open admin
       document.querySelectorAll('.tool-panel.open').forEach(p => p.classList.remove('open'));
       document.getElementById('adminPanel').classList.add('open');
@@ -1693,6 +1702,26 @@ document.addEventListener('DOMContentLoaded', () => {
     if (approveBtn) { e.stopPropagation(); approveIssue(approveBtn.dataset.approveIdx, approveBtn.dataset.queueId, approveBtn.dataset.vkey, approveBtn.dataset.year); return; }
     if (rejectBtn)  { e.stopPropagation(); rejectBtn.closest('.rq-item').remove(); return; }
     if (retryBtn)   { e.stopPropagation(); loadAll(); return; }
+    const deleteBtn = t.closest('[data-delete]');
+    if (deleteBtn) {
+      e.stopPropagation();
+      const recId = deleteBtn.dataset.delete;
+      const recType = deleteBtn.dataset.type;
+      if (!confirm(`Delete this ${recType} record?\n\nThis is immediate and permanent.`)) return;
+      const endpoint = recType === 'recall' ? 'recalls' : recType === 'tsb' ? 'tsbs' : 'community';
+      const key = window.__adminKey || 'gazunni-admin';
+      fetch(`/api/${endpoint}/${encodeURIComponent(recId)}?key=${encodeURIComponent(key)}`, { method: 'DELETE' })
+        .then(r => r.json())
+        .then(d => {
+          if (d.ok) {
+            deleteBtn.closest('.card').remove();
+          } else {
+            alert('Delete failed: ' + (d.error || 'Unknown error'));
+          }
+        })
+        .catch(e => alert('Delete failed: ' + e.message));
+      return;
+    }
     if (panelBtn)   { e.stopPropagation(); togglePanel(panelBtn.dataset.panel); return; }
     if (secBtn)     { e.stopPropagation(); toggleSec(secBtn.dataset.sec); return; }
     if (hdr)        { toggleCard(hdr.dataset.card); }
