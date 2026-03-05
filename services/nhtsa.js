@@ -18,14 +18,70 @@ function modelVariants(nhtsa_model) {
 }
 
 // ── FETCH RECALLS FROM NHTSA ─────────────────────────────────────────────
+// Fetches ALL recalls for a make/model across all years, then filters to
+// those that affect the requested year. This catches multi-year campaigns
+// that NHTSA only lists under one model year.
 export async function fetchNHTSARecalls(vehicle, year) {
   const v = VEHICLES[vehicle];
   if (!v) throw new Error('Unknown vehicle: ' + vehicle);
   const yr = parseInt(year);
 
+  // Strategy 1: fetch without modelYear to get full recall list
+  for (const model of modelVariants(v.nhtsa_model)) {
+    try {
+      // No modelYear param — returns all recalls ever issued for this make/model
+      const url = `https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(v.nhtsa_make)}&model=${encodeURIComponent(model)}`;
+      const r = await fetch(url);
+      if (!r.ok) continue;
+      const data = await r.json();
+      const all = data.results || data.Results || [];
+      if (!all.length) continue;
+
+      // Filter to recalls that cover the requested year
+      // NHTSA ModelYear field may be a single year or a range like "2020-2023"
+      const filtered = all.filter(rc => {
+        const my = String(rc.ModelYear || rc.modelYear || '');
+        if (!my) return true; // no year field — include it
+        // Handle range "2020-2023" or comma list "2020,2021,2022"
+        if (my.includes('-')) {
+          const [start, end] = my.split('-').map(Number);
+          return yr >= start && yr <= end;
+        }
+        if (my.includes(',')) {
+          return my.split(',').map(Number).includes(yr);
+        }
+        return parseInt(my) === yr;
+      });
+
+      // If no filtered results but we got data, fall back to year-specific query
+      if (filtered.length > 0) return filtered;
+    } catch { continue; }
+  }
+
+  // Strategy 2: fallback to year-specific query
   for (const model of modelVariants(v.nhtsa_model)) {
     const url = `https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(v.nhtsa_make)}&model=${encodeURIComponent(model)}&modelYear=${yr}`;
     try {
+      const r = await fetch(url);
+      if (!r.ok) continue;
+      const data = await r.json();
+      const results = data.results || data.Results || [];
+      if (results.length > 0) return results;
+    } catch { continue; }
+  }
+  return [];
+}
+
+// ── FETCH ALL RECALLS (no year filter) ───────────────────────────────────
+// Returns every recall ever issued for this vehicle across all years.
+// Used by bulk import to avoid making one API call per year.
+export async function fetchAllNHTSARecalls(vehicle) {
+  const v = VEHICLES[vehicle];
+  if (!v) throw new Error('Unknown vehicle: ' + vehicle);
+
+  for (const model of modelVariants(v.nhtsa_model)) {
+    try {
+      const url = `https://api.nhtsa.gov/recalls/recallsByVehicle?make=${encodeURIComponent(v.nhtsa_make)}&model=${encodeURIComponent(model)}`;
       const r = await fetch(url);
       if (!r.ok) continue;
       const data = await r.json();
