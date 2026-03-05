@@ -1641,7 +1641,8 @@ document.addEventListener('DOMContentLoaded', () => {
       e.stopPropagation();
       const result = document.getElementById('adminDedupeResult');
       result.textContent = 'Auditing…';
-      apiFetch('/api/admin/recall-audit', {method:'GET', headers:{'x-admin-key': sessionStorage.getItem('adminKey')||''}})
+      const aKey = window.__adminKey || 'gazunni-admin';
+      apiFetch('/api/admin/recall-audit?key='+encodeURIComponent(aKey), {method:'GET'})
         .then(data => {
           if (data.duplicates.length === 0) {
             result.style.color = 'var(--green)';
