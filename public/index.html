@@ -686,6 +686,12 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
       <div class="admin-result" id="adminStatsResult"></div>
     </div>
     <div class="admin-card">
+      <div class="admin-card-title">⚡ Run DB Migrations</div>
+      <div class="admin-card-desc">Create database indexes for faster queries. Safe to run multiple times — uses IF NOT EXISTS.</div>
+      <button class="admin-btn" id="adminMigrateBtn">⚡ Run Migrations</button>
+      <div class="admin-result" id="adminMigrateResult"></div>
+    </div>
+    <div class="admin-card">
       <div class="admin-card-title">Clear Sweep Log</div>
       <div class="admin-card-desc">Reset the sweep log to force a fresh NHTSA fetch on next load.</div>
       <button class="admin-btn admin-btn-warn" id="adminClearSweepBtn">↺ Clear Sweep Log</button>
@@ -1953,6 +1959,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (id === 'adminDedupeBtn')   { e.stopPropagation(); adminAction('dedupe', 'adminDedupeResult', 'adminDedupeBtn'); return; }
     if (id === 'adminStatsBtn')    { e.stopPropagation(); adminAction('stats', 'adminStatsResult', 'adminStatsBtn'); return; }
+    if (id === 'adminMigrateBtn'){ e.stopPropagation(); adminAction('migrate', 'adminMigrateResult', 'adminMigrateBtn'); return; }
     if (id === 'adminClearSweepBtn'){ e.stopPropagation(); adminAction('clear-sweep', 'adminClearSweepResult', 'adminClearSweepBtn'); return; }
     if (id === 'adminClearQueueBtn'){ e.stopPropagation(); adminAction('clear-queue', 'adminClearQueueResult', 'adminClearQueueBtn'); return; }
 
