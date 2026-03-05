@@ -10,7 +10,7 @@ router.get('/', async (req, res) => {
   if (!vehicle || !year) return res.status(400).json({ error: 'vehicle and year required' });
   try {
     const rows = await query(
-      `SELECT * FROM tsbs WHERE vehicle_key=$1 AND year=$2 ORDER BY created_at DESC`,
+      `SELECT * FROM tsbs WHERE vehicle_key=$1 AND year=$2 AND COALESCE(status,'active') != 'suppressed' ORDER BY created_at DESC`,
       [vehicle, parseInt(year)]
     );
     res.json(rows);
