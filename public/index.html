@@ -1084,10 +1084,9 @@ async function vinLookup() {
   results.innerHTML = '<div class="vin-loading"><div class="spin"></div><span>Decoding VIN…</span></div>';
 
   try {
-    // Step 1: Decode VIN via NHTSA
-    const decodeRes = await fetch(`https://vpic.nhtsa.dot.gov/api/vehicles/decodevin/${vin}?format=json`);
-    const decodeData = await decodeRes.json();
-    const fields = decodeData.Results || [];
+    // Step 1: Decode VIN via server proxy
+    const decodeData = await apiFetch(`/api/vin-decode?vin=${vin}`);
+    const fields = decodeData.Results || decodeData.results || [];
     const get = (id) => (fields.find(f => f.VariableId === id) || {}).Value || '—';
 
     const year  = get(29);   // Model Year
@@ -1142,8 +1141,7 @@ async function vinLookup() {
     results.innerHTML = html + '<div class="vin-loading"><div class="spin"></div><span>Checking recalls for this VIN…</span></div>';
 
     try {
-      const recallRes = await fetch(`https://api.nhtsa.gov/recalls/recallsByVehicleId?vinId=${vin}`);
-      const recallData = await recallRes.json();
+      const recallData = await apiFetch(`/api/vin-recalls?vin=${vin}`);
       const recalls = recallData.results || [];
 
       if (!recalls.length) {
