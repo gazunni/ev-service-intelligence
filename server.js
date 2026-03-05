@@ -629,21 +629,13 @@ app.post('/api/admin/dedupe', async (req, res) => {
     let total = 0;
 
     // 1. Dedupe TSBs by vehicle+year+bulletin_ref, then by title
-    const tsbRef = await query(`
+    // Dedupe TSBs by vehicle+year+title (bulletin_ref not in schema)
+    const tsbDel = await query(`
       DELETE FROM tsbs WHERE ctid NOT IN (
-        SELECT MIN(ctid) FROM tsbs
-        WHERE bulletin_ref IS NOT NULL AND bulletin_ref != ''
-        GROUP BY vehicle_key, year, bulletin_ref
-      ) AND bulletin_ref IS NOT NULL AND bulletin_ref != ''
-    `);
-    total += tsbRef.length || 0;
-
-    const tsbTitle = await query(`
-      DELETE FROM tsbs WHERE ctid NOT IN (
-        SELECT MIN(ctid) FROM tsbs GROUP BY vehicle_key, year, title
+        SELECT MIN(ctid) FROM tsbs GROUP BY vehicle_key, year, LOWER(TRIM(COALESCE(title,'')))
       )
     `);
-    total += tsbTitle.length || 0;
+    total += tsbDel.length || 0;
 
     // 2. Dedupe recalls by NHTSA campaign number extracted from raw_nhtsa
     // Keep the row with most data (prefer manually added with source_url over sweep)
@@ -689,7 +681,9 @@ app.post('/api/admin/dedupe', async (req, res) => {
 });
 
 app.get('/api/admin/recall-audit', async (req, res) => {
-  if (!checkAdmin(req, res)) return;
+  // Allow key via query param for GET requests
+  const key = req.query.key || req.headers['x-admin-key'] || '';
+  if (key !== ADMIN_KEY) return res.status(403).json({ error: 'Forbidden' });
   try {
     // Find recalls that look like duplicates (same vehicle+year, similar title)
     const all = await query(`
