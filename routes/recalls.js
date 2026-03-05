@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
   if (!vehicle || !year) return res.status(400).json({ error: 'vehicle and year required' });
   try {
     const rows = await query(
-      `SELECT * FROM recalls WHERE vehicle_key=$1 AND year=$2 ORDER BY created_at DESC`,
+      `SELECT * FROM recalls WHERE vehicle_key=$1 AND year=$2 AND COALESCE(status,'active') != 'suppressed' ORDER BY created_at DESC`,
       [vehicle, parseInt(year)]
     );
     res.json(rows);
@@ -54,6 +54,7 @@ router.post('/nhtsa-import', async (req, res) => {
          ON CONFLICT (id) DO UPDATE SET
            title=EXCLUDED.title, risk=EXCLUDED.risk, remedy=EXCLUDED.remedy,
            severity=EXCLUDED.severity, raw_nhtsa=EXCLUDED.raw_nhtsa, updated_at=NOW()
+         WHERE recalls.status IS DISTINCT FROM 'suppressed'
          RETURNING (xmax = 0) AS inserted`,
         [id, vehicle, yr, rc.Component || 'Unknown', severity, title,
          rc.Consequence || '', rc.Remedy || '', rc.PotentialNumberOfUnitsAffected || null,
@@ -153,7 +154,10 @@ router.post('/sweep', async (req, res) => {
       await query(
         `INSERT INTO recalls (id,vehicle_key,year,component,severity,title,risk,remedy,affected_units,source_pills,raw_nhtsa,updated_at)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW())
-         ON CONFLICT (id) DO UPDATE SET title=EXCLUDED.title,risk=EXCLUDED.risk,remedy=EXCLUDED.remedy,severity=EXCLUDED.severity,raw_nhtsa=EXCLUDED.raw_nhtsa,updated_at=NOW()`,
+         ON CONFLICT (id) DO UPDATE SET
+           title=EXCLUDED.title, risk=EXCLUDED.risk, remedy=EXCLUDED.remedy,
+           severity=EXCLUDED.severity, raw_nhtsa=EXCLUDED.raw_nhtsa, updated_at=NOW()
+         WHERE recalls.status IS DISTINCT FROM 'suppressed'`,
         [id, vehicle, yr, r.Component || 'Unknown', detectSeverity(r.Consequence), title,
          r.Consequence || '', r.Remedy || '', r.PotentialNumberOfUnitsAffected || null, ['NHTSA Official'], JSON.stringify(r)]
       );
