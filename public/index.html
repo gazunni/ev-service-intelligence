@@ -636,7 +636,11 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
   </div>
   <div class="form-group" style="margin-bottom:10px">
     <label>Source URL (PDF or page)</label>
-    <input id="tsbUrl" placeholder="https://static.nhtsa.gov/odi/tsbs/…">
+    <div style="display:flex;gap:8px">
+      <input id="tsbUrl" placeholder="https://static.nhtsa.gov/odi/tsbs/…" style="flex:1">
+      <button class="admin-btn" id="tsbFetchBtn" style="white-space:nowrap">⊕ Fetch &amp; Fill</button>
+    </div>
+    <div id="tsbFetchStatus" style="font-size:10px;color:var(--muted);margin-top:4px"></div>
   </div>
   <div class="btn-row">
     <button class="submit-btn" id="addTsbBtn">＋ Add TSB</button>
@@ -1323,6 +1327,52 @@ async function addRecall() {
 }
 
 // ── ADD TSB DIRECTLY ────────────────────────
+async function fetchAndFillTsb() {
+  const url = document.getElementById('tsbUrl').value.trim();
+  if (!url) return;
+  const btn    = document.getElementById('tsbFetchBtn');
+  const status = document.getElementById('tsbFetchStatus');
+  btn.disabled = true; btn.textContent = 'Fetching…';
+  status.textContent = 'Extracting data from document…';
+  try {
+    const res = await apiFetch('/api/tsb-fetch', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ url })
+    });
+    if (res.error) throw new Error(res.error);
+
+    if (res.title)     document.getElementById('tsbTitle').value     = res.title;
+    if (res.bulletin)  document.getElementById('tsbBulletin').value  = res.bulletin;
+    if (res.component) document.getElementById('tsbComponent').value = res.component;
+    if (res.summary)   document.getElementById('tsbSummary').value   = res.summary;
+    if (res.remedy)    document.getElementById('tsbRemedy').value    = res.remedy;
+    if (res.severity)  document.getElementById('tsbSeverity').value  = res.severity;
+
+    // Auto-check affected vehicles/years
+    document.querySelectorAll('input[name="tsb-vehicle"]').forEach(cb => cb.checked = false);
+    let autoChecked = 0;
+    if (res.affected_vehicles && res.affected_vehicles.length > 0) {
+      for (const av of res.affected_vehicles) {
+        for (const yr of (av.years || [])) {
+          const cb = document.querySelector(`input[name="tsb-vehicle"][value="${av.vehicle}|${yr}"]`);
+          if (cb) { cb.checked = true; autoChecked++; }
+        }
+      }
+    }
+
+    const msg = autoChecked > 0
+      ? `✓ Fields populated — Auto-selected ${autoChecked} vehicle/year combination${autoChecked!==1?'s':''} — verify before submitting.`
+      : `✓ Fields populated from document — No matching vehicles auto-detected, please select manually.`;
+    status.style.color = 'var(--green)';
+    status.textContent = msg;
+  } catch(e) {
+    status.style.color = 'var(--recall)';
+    status.textContent = 'Error: ' + e.message;
+  }
+  btn.disabled = false; btn.textContent = '⊕ Fetch & Fill';
+}
+
 async function addTsb() {
   const title     = document.getElementById('tsbTitle').value.trim();
   const bulletin  = document.getElementById('tsbBulletin').value.trim();
@@ -1847,6 +1897,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (id === 'clearResearchBtn') { e.stopPropagation(); clearResearch(); return; }
     if (id === 'rcFetchBtn')       { e.stopPropagation(); fetchAndFillRecall(); return; }
     if (id === 'addRecallBtn')     { e.stopPropagation(); addRecall(); return; }
+    if (id === 'tsbFetchBtn')       { e.stopPropagation(); fetchAndFillTsb(); return; }
     if (id === 'addTsbBtn')        { e.stopPropagation(); addTsb(); return; }
     if (id === 'vinImportBtn')     { e.stopPropagation(); vinImportMissing(); return; }
     if (id === 'vinLookupBtn')     { e.stopPropagation(); openVinModal(); return; }
