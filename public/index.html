@@ -1043,7 +1043,7 @@ function buildCard(rec, type, idx) {
     ${rec.remedy ? '<div class="cf"><div class="cf-label">Remedy</div><div class="cf-val">'+esc(rec.remedy)+'</div></div>' : ''}
     ${(rec.bulletin_ref||(rec.raw_nhtsa&&rec.raw_nhtsa.bulletin_ref)) ? '<div class="cf"><div class="cf-label">Bulletin</div><div class="cf-val">'+esc(rec.bulletin_ref||rec.raw_nhtsa.bulletin_ref)+'</div></div>' : ''}
     ${(rec.raw_nhtsa&&rec.raw_nhtsa.source_url) ? '<div class="link-row"><a class="ext-link" href="'+esc(rec.raw_nhtsa.source_url)+'" target="_blank" rel="noopener">📄 View '+(type==='recall'?'Recall':'TSB')+' Document</a></div>' : ''}
-    ${(type==='recall'&&rec.raw_nhtsa&&rec.raw_nhtsa.NHTSACampaignNumber) ? '<div class="link-row"><a class="ext-link" href="https://www.nhtsa.gov/recalls/'+esc(rec.raw_nhtsa.NHTSACampaignNumber)+'" target="_blank" rel="noopener">🔗 View on NHTSA.gov</a></div>' : ''}
+    ${(type==='recall'&&rec.raw_nhtsa&&rec.raw_nhtsa.NHTSACampaignNumber) ? '<div class="link-row"><a class="ext-link" href="https://www.nhtsa.gov/recalls?nhtsaId='+esc(rec.raw_nhtsa.NHTSACampaignNumber)+'" target="_blank" rel="noopener">🔗 View on NHTSA.gov</a></div>' : ''}
     ${(type==='recall'&&rec.raw_nhtsa&&rec.raw_nhtsa.tc_campaign_id) ? '<div class="link-row"><a class="ext-link" href="https://tc.canada.ca/en/road-transportation/motor-vehicle-safety/defect-investigations-recalls?rec='+esc(rec.raw_nhtsa.tc_campaign_id)+'" target="_blank" rel="noopener">🍁 View on Transport Canada</a></div>' : ''}
     ${rec.affected_units ? '<div class="cf"><div class="cf-label">Units Affected</div><div class="cf-val">'+esc(String(rec.affected_units))+'</div></div>' : ''}
     ${linkHtml ? '<div class="link-row">'+linkHtml+'</div>' : ''}
