@@ -261,11 +261,39 @@ router.get('/recall-audit', async (req, res) => {
 router.post('/stats', async (req, res) => {
   if (!checkAdmin(req, res)) return;
   try {
-    const tables = ['recalls', 'tsbs', 'community', 'review_queue', 'sweep_log'];
-    const counts = await Promise.all(
-      tables.map(t => query(`SELECT COUNT(*) FROM ${t}`).then(r => `${t}: ${r[0].count}`))
-    );
-    res.json({ message: counts.join(' · ') });
+    const [recalls, tsbs, community, queue, suppressed, lastSweep, byVehicle] = await Promise.all([
+      query(`SELECT COUNT(*) FROM recalls WHERE COALESCE(status,'active') != 'suppressed'`),
+      query(`SELECT COUNT(*) FROM tsbs WHERE COALESCE(status,'active') != 'suppressed'`),
+      query(`SELECT COUNT(*) FROM community WHERE status='active'`),
+      query(`SELECT COUNT(*) FROM review_queue WHERE status='pending'`),
+      query(`SELECT COUNT(*) FROM recalls WHERE status='suppressed'`),
+      query(`SELECT vehicle_key, MAX(swept_at) as last_swept FROM sweep_log GROUP BY vehicle_key ORDER BY last_swept DESC LIMIT 1`),
+      query(`SELECT vehicle_key,
+               COUNT(*) FILTER (WHERE COALESCE(r.status,'active')!='suppressed') as recalls
+             FROM recalls r GROUP BY vehicle_key ORDER BY vehicle_key`),
+    ]);
+
+    // Legacy message format for existing UI
+    const message = [
+      `recalls: ${recalls[0].count}`,
+      `tsbs: ${tsbs[0].count}`,
+      `community: ${community[0].count}`,
+      `review_queue: ${queue[0].count}`,
+    ].join(' · ');
+
+    res.json({
+      message,
+      dashboard: {
+        recalls:      parseInt(recalls[0].count),
+        tsbs:         parseInt(tsbs[0].count),
+        community:    parseInt(community[0].count),
+        pendingQueue: parseInt(queue[0].count),
+        suppressed:   parseInt(suppressed[0].count),
+        lastSwept:    lastSweep[0]?.last_swept || null,
+        lastSweptVehicle: lastSweep[0]?.vehicle_key || null,
+        byVehicle:    byVehicle.map(r => ({ vehicle: r.vehicle_key, recalls: parseInt(r.recalls) })),
+      }
+    });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
