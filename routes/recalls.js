@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { query } from '../services/database.js';
-import { VEHICLES, fetchNHTSARecalls, canonicalRecallId, detectSeverity } from '../services/nhtsa.js';
+import { VEHICLES, fetchNHTSARecalls, fetchAllNHTSARecalls, canonicalRecallId, detectSeverity } from '../services/nhtsa.js';
 import { extractRecallFromUrl, summarizeRecall, summarizeTSB, validateRecallExtraction } from '../services/ai.js';
 import { fetchNHTSATSBs } from '../services/nhtsa.js';
 
@@ -24,11 +24,12 @@ router.get('/', async (req, res) => {
 // ── NHTSA DIRECT IMPORT ───────────────────────────────────────────────────
 router.post('/nhtsa-import', async (req, res) => {
   const { vehicle, year } = req.body || {};
-  if (!vehicle || !year) return res.status(400).json({ error: 'vehicle and year required' });
+  if (!vehicle) return res.status(400).json({ error: 'vehicle required' });
   if (!VEHICLES[vehicle]) return res.status(400).json({ error: 'Unknown vehicle' });
-  const yr = parseInt(year);
+  // If year provided, fetch that year only; if omitted, fetch ALL years at once
+  const yr = year ? parseInt(year) : null;
   try {
-    const recalls = await fetchNHTSARecalls(vehicle, yr);
+    const recalls = yr ? await fetchNHTSARecalls(vehicle, yr) : await fetchAllNHTSARecalls(vehicle);
     // Merge duplicate campaign entries from NHTSA (same campaign, different Component)
     const importMap = new Map();
     for (const rc of recalls) {
@@ -50,7 +51,9 @@ router.post('/nhtsa-import', async (req, res) => {
       const id = canonicalRecallId(rc.NHTSACampaignNumber || rc.recallId, 'r-' + Date.now() + '-' + stored);
       const title = (rc.Component || rc.Summary || 'Recall').substring(0, 120);
       const severity = detectSeverity(rc.Consequence);
-      const result = await query(
+      // Use ModelYear from NHTSA record when doing a bulk import (yr=null)
+        const recallYear = yr || parseInt(rc.ModelYear || rc.modelYear || 0) || yr;
+        await query(
         `INSERT INTO recalls (id,vehicle_key,year,component,severity,title,risk,remedy,affected_units,source_pills,raw_nhtsa,updated_at)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW())
          ON CONFLICT (id) DO UPDATE SET
@@ -58,7 +61,7 @@ router.post('/nhtsa-import', async (req, res) => {
            severity=EXCLUDED.severity, raw_nhtsa=EXCLUDED.raw_nhtsa, updated_at=NOW()
          WHERE recalls.status IS DISTINCT FROM 'suppressed'
          RETURNING (xmax = 0) AS inserted`,
-        [id, vehicle, yr, rc.Component || 'Unknown', severity, title,
+        [id, vehicle, recallYear, rc.Component || 'Unknown', severity, title,
          rc.Consequence || '', rc.Remedy || '', rc.PotentialNumberOfUnitsAffected || null,
          ['NHTSA Official'], JSON.stringify(rc)]
       );
