@@ -626,14 +626,99 @@ function checkAdmin(req, res) {
 app.post('/api/admin/dedupe', async (req, res) => {
   if (!checkAdmin(req, res)) return;
   try {
-    // Delete duplicate TSBs keeping the oldest row per vehicle_key+year+title
-    const result = await query(`
+    let total = 0;
+
+    // 1. Dedupe TSBs by vehicle+year+bulletin_ref, then by title
+    const tsbRef = await query(`
+      DELETE FROM tsbs WHERE ctid NOT IN (
+        SELECT MIN(ctid) FROM tsbs
+        WHERE bulletin_ref IS NOT NULL AND bulletin_ref != ''
+        GROUP BY vehicle_key, year, bulletin_ref
+      ) AND bulletin_ref IS NOT NULL AND bulletin_ref != ''
+    `);
+    total += tsbRef.length || 0;
+
+    const tsbTitle = await query(`
       DELETE FROM tsbs WHERE ctid NOT IN (
         SELECT MIN(ctid) FROM tsbs GROUP BY vehicle_key, year, title
       )
     `);
-    const count = result.rowCount || 0;
-    res.json({ message: count > 0 ? `✓ Removed ${count} duplicate TSB row${count>1?'s':''}` : '✓ No duplicates found' });
+    total += tsbTitle.length || 0;
+
+    // 2. Dedupe recalls by NHTSA campaign number extracted from raw_nhtsa
+    // Keep the row with most data (prefer manually added with source_url over sweep)
+    const dupCampaigns = await query(`
+      SELECT vehicle_key, year, raw_nhtsa->>'NHTSACampaignNumber' as campaign
+      FROM recalls
+      WHERE raw_nhtsa->>'NHTSACampaignNumber' IS NOT NULL
+      GROUP BY vehicle_key, year, raw_nhtsa->>'NHTSACampaignNumber'
+      HAVING COUNT(*) > 1
+    `);
+
+    for (const dup of dupCampaigns) {
+      // Keep row with source_url if exists, otherwise keep oldest
+      await query(`
+        DELETE FROM recalls WHERE id IN (
+          SELECT id FROM recalls
+          WHERE vehicle_key=$1 AND year=$2
+            AND raw_nhtsa->>'NHTSACampaignNumber'=$3
+          ORDER BY
+            CASE WHEN raw_nhtsa->>'source_url' IS NOT NULL THEN 0 ELSE 1 END,
+            created_at ASC
+          OFFSET 1
+        )
+      `, [dup.vehicle_key, dup.year, dup.campaign]);
+      total++;
+    }
+
+    // 3. Dedupe recalls by vehicle+year+title (catches manual + sweep same recall)
+    const recallTitle = await query(`
+      DELETE FROM recalls WHERE ctid NOT IN (
+        SELECT MIN(ctid) FROM recalls GROUP BY vehicle_key, year, LOWER(TRIM(title))
+      )
+    `);
+    total += recallTitle.length || 0;
+
+    res.json({ message: total > 0
+      ? `✓ Removed ${total} duplicate rows (recalls + TSBs)`
+      : '✓ No duplicates found' });
+  } catch(e) {
+    console.error('dedupe error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+app.get('/api/admin/recall-audit', async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+  try {
+    // Find recalls that look like duplicates (same vehicle+year, similar title)
+    const all = await query(`
+      SELECT id, vehicle_key, year, title, created_at,
+             raw_nhtsa->>'NHTSACampaignNumber' as campaign
+      FROM recalls ORDER BY vehicle_key, year, title
+    `);
+    // Group by vehicle+year, find title overlaps
+    const groups = {};
+    for (const r of all) {
+      const key = r.vehicle_key + '-' + r.year;
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(r);
+    }
+    const dupes = [];
+    for (const [key, rows] of Object.entries(groups)) {
+      // Find rows with same campaign number
+      const byCampaign = {};
+      for (const r of rows) {
+        if (r.campaign) {
+          if (!byCampaign[r.campaign]) byCampaign[r.campaign] = [];
+          byCampaign[r.campaign].push(r);
+        }
+      }
+      for (const [camp, campRows] of Object.entries(byCampaign)) {
+        if (campRows.length > 1) dupes.push({ reason: 'same_campaign', campaign: camp, rows: campRows });
+      }
+    }
+    res.json({ total: all.length, duplicates: dupes });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
 
