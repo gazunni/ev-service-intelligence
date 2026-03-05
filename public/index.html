@@ -330,19 +330,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
   </div>
   <div class="sg">
     <label>Year</label>
-    <select id="selYear">
-      <option value="2026">2026</option>
-      <option value="2025">2025</option>
-      <option value="2024">2024</option>
-      <option value="2023">2023</option>
-      <option value="2022">2022</option>
-      <option value="2021">2021</option>
-      <option value="2020">2020</option>
-      <option value="2019">2019</option>
-      <option value="2018">2018</option>
-      <option value="2017">2017</option>
-      <option value="2023">2023</option>
-    </select>
+    <select id="selYear"></select>
   </div>
   <button class="tool-btn" id="vinLookupBtn" style="background:#0a1a2e;border-color:#38bdf8;color:#38bdf8">🔍 VIN Lookup</button>
   <button class="sweep-btn" id="sweepBtn">⚡ Run AI Sweep</button>
@@ -1564,6 +1552,8 @@ const vehicleYears = {
   blazer_ev:      [2026, 2025, 2024],
   mach_e:         [2026, 2025, 2024, 2023, 2022, 2021],
   honda_prologue: [2026, 2025, 2024],
+  tesla_model_3:  [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017],
+  tesla_model_y:  [2026, 2025, 2024, 2023, 2022, 2021, 2020],
 };
 
 function updateYearOptions() {
