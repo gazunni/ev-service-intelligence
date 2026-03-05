@@ -1196,16 +1196,15 @@ async function vinLookup() {
     results.innerHTML = html + '<div class="vin-loading"><div class="spin"></div><span>Checking recalls for this VIN…</span></div>';
 
     try {
-      const recallData = await apiFetch(`/api/vin-recalls?vin=${vin}`);
+      const recallData = await apiFetch(`/api/vin-recalls?vin=${vin}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&year=${encodeURIComponent(year)}`);
       const recalls = recallData.results || [];
 
-      // Also fetch completed recalls - NHTSA returns all for the VIN
       if (!recalls.length) {
-        html += `<div class="vin-section"><div class="vin-section-title">Recall Status</div><div class="vin-empty" style="color:var(--green)">✓ No recalls on record for this VIN.</div></div>`;
+        html += `<div class="vin-section"><div class="vin-section-title">Recall Status</div><div class="vin-empty" style="color:var(--green)">✓ No recalls have been issued for this vehicle.</div></div>`;
       } else {
-        // NHTSA fields: completionDate means remedy was performed on this VIN
-        const completed   = recalls.filter(r => r.completionDate && r.completionDate !== '');
-        const outstanding = recalls.filter(r => !r.completionDate || r.completionDate === '');
+        // Use server-tagged isOutstanding flag (cross-referenced against VIN-specific unrepaired list)
+        const outstanding = recalls.filter(r => r.isOutstanding);
+        const completed   = recalls.filter(r => !r.isOutstanding);
 
         // Cross-check against our database
         const vkey = getVehicle();
@@ -1272,7 +1271,7 @@ async function vinLookup() {
                 <div style="font-size:20px;line-height:1;margin-top:2px">✅</div>
                 <div style="flex:1">
                   <div class="vin-recall-title">${esc(r.Component||r.component||'Unknown Component')}</div>
-                  <div class="vin-recall-meta">Campaign: ${esc(r.NHTSACampaignNumber||r.recallId||'—')} · Completed: ${esc(r.completionDate||'—')}</div>
+                  <div class="vin-recall-meta">Campaign: ${esc(r.NHTSACampaignNumber||r.recallId||'—')} · Status: Remedied at Dealer</div>
                   <div class="vin-recall-meta" style="margin-top:2px">${esc(r.Summary||r.summary||'')}</div>
                   <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px">
                     <div class="vin-recall-status">✓ REMEDY COMPLETED</div>
