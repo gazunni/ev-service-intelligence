@@ -549,6 +549,10 @@ let loadedSections = 0;
 let totalSections = 3;
 
 async function loadAll() {
+  // Close all open panels and collapse sections on vehicle/year change
+  document.querySelectorAll('.tool-panel.open').forEach(p => p.classList.remove('open'));
+  document.querySelectorAll('.sec-body.open').forEach(s => s.classList.remove('open'));
+  document.querySelectorAll('button.chv').forEach(b => { b.textContent = 'Show'; });
   loadedSections = 0;
   const vkey = getVehicle(), year = getYear();
   setGZ('loading', 'Loading data…');
