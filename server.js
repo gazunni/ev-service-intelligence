@@ -416,7 +416,8 @@ app.post('/api/nhtsa-import', async (req, res) => {
     let stored = 0, skipped = 0;
     for (const rc of recalls) {
       const campaignRaw = rc.NHTSACampaignNumber || rc.recallId || '';
-      const id = campaignRaw.toLowerCase().replace(/[^a-z0-9]+/g,'-') || ('r-'+Date.now()+'-'+stored);
+      // Canonical uppercase ID: "25V012000" — consistent across sweep and manual add
+      const id = campaignRaw ? campaignRaw.toUpperCase().replace(/[^A-Z0-9]/g,'') : ('r-'+Date.now()+'-'+stored);
       const title = (rc.Component || rc.Summary || 'Recall').substring(0, 120);
       const severity = (rc.Consequence||'').toLowerCase().match(/crash|injur|fatal|death/) ? 'CRITICAL' : 'MODERATE';
       const result = await query(
@@ -520,7 +521,11 @@ app.post('/api/recall-add', async (req, res) => {
     if (!vehicle || !year || !title || !summary) return res.status(400).json({ error: 'vehicle, year, title and summary required' });
     const yr = parseInt(year);
     const primaryId = source === 'tc' ? (tc_campaign_id || title) : (campaign_id || title);
-    const id = primaryId.toLowerCase().replace(/[^a-z0-9]+/g,'-').substring(0,60);
+    // Canonical: if it looks like a campaign number (alphanumeric, short), uppercase it
+    const rawId = primaryId.replace(/[^A-Za-z0-9]/g,'');
+    const id = rawId.length <= 12 && rawId.length >= 6 && /\d/.test(rawId)
+      ? rawId.toUpperCase()
+      : primaryId.toLowerCase().replace(/[^a-z0-9]+/g,'-').substring(0,60);
     const pillsArr = source === 'tc'   ? ['Transport Canada']
                    : source === 'both' ? ['NHTSA Official','Transport Canada']
                    :                    ['NHTSA Official'];
@@ -690,11 +695,13 @@ app.post('/api/admin/dedupe', async (req, res) => {
   try {
     let total = 0;
 
-    // Step 1: Normalize all recall IDs to lowercase in-place
-    // This prevents 25V012000 and 25v012000 from being treated as different
+    // Step 1: Normalize recall IDs — strip non-alphanumeric, uppercase
+    // Converts 25v012000, 25-v012000 etc all to canonical 25V012000
     await query(`
-      UPDATE recalls SET id = LOWER(id)
-      WHERE id != LOWER(id)
+      UPDATE recalls
+      SET id = UPPER(REGEXP_REPLACE(id, '[^A-Za-z0-9]', '', 'g'))
+      WHERE id ~ '[^A-Z0-9]' AND LENGTH(REGEXP_REPLACE(id,'[^A-Za-z0-9]','','g')) BETWEEN 6 AND 12
+        AND REGEXP_REPLACE(id,'[^A-Za-z0-9]','','g') ~ '[0-9]'
     `);
 
     // Step 2: Dedupe recalls by campaign number (case-insensitive) per vehicle+year
