@@ -14,6 +14,7 @@ remedy          TEXT,
 affected_units  INT,
 source_pills    TEXT[] DEFAULT ARRAY['NHTSA Official'],
 raw_nhtsa       JSONB,
+status          TEXT DEFAULT 'active',
 created_at      TIMESTAMPTZ DEFAULT NOW(),
 updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
@@ -30,6 +31,7 @@ summary         TEXT,
 remedy          TEXT,
 source_pills    TEXT[] DEFAULT ARRAY['NHTSA Filed'],
 raw_nhtsa       JSONB,
+status          TEXT DEFAULT 'active',
 created_at      TIMESTAMPTZ DEFAULT NOW(),
 updated_at      TIMESTAMPTZ DEFAULT NOW()
 );
