@@ -49,6 +49,18 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.static(join(__dirname, 'public')));
 
+// ── REQUEST LOGGING ───────────────────────────────────────────────────────
+app.use((req, res, next) => {
+  const start = Date.now();
+  res.on('finish', () => {
+    const ms = Date.now() - start;
+    if (req.path.startsWith('/api')) {
+      console.log(`${req.method} ${req.path} ${res.statusCode} ${ms}ms`);
+    }
+  });
+  next();
+});
+
 // ── ROUTES ────────────────────────────────────────────────────────────────
 app.use('/api/recalls',   recallsRouter);
 app.use('/api/tsbs',      tsbsRouter);
