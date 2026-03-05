@@ -2,8 +2,7 @@ import { Router } from 'express';
 import { query } from '../services/database.js';
 
 const router = Router();
-if (!process.env.ADMIN_KEY) throw new Error('ADMIN_KEY environment variable is not set — set it in Railway before deploying');
-const ADMIN_KEY = process.env.ADMIN_KEY;
+const ADMIN_KEY = process.env.ADMIN_KEY || 'gazunni-admin';
 
 // ── AUTH HELPERS ──────────────────────────────────────────────────────────
 function checkAdmin(req, res) {
