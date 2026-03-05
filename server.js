@@ -556,6 +556,18 @@ app.post('/api/vin-import', async (req, res) => {
   }
 });
 
+// ── DIAGNOSTIC ENDPOINT (temporary) ─────────
+app.get('/api/diag', async (req, res) => {
+  try {
+    const cols = await query(`SELECT column_name, data_type FROM information_schema.columns WHERE table_name='recalls' ORDER BY ordinal_position`);
+    const counts = await query(`SELECT COUNT(*) as n FROM recalls`);
+    const sample = await query(`SELECT id, vehicle_key, year, title FROM recalls LIMIT 3`);
+    res.json({ columns: cols, count: counts[0], sample });
+  } catch(e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── ADMIN ENDPOINTS ─────────────────────────
 const ADMIN_KEY = process.env.ADMIN_KEY || 'gazunni-admin';
 
