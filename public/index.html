@@ -1862,16 +1862,20 @@ async function adminNhtsaImport() {
   result.textContent = 'Fetching from NHTSA for all vehicles and years…';
   setGZ('loading', 'Running NHTSA import…');
 
+  // Year-by-year vehicles (NHTSA data is clean per year for these)
   const combos = [
     {vehicle:'equinox_ev',     years:[2024,2025,2026]},
     {vehicle:'blazer_ev',      years:[2024,2025,2026]},
     {vehicle:'mach_e',         years:[2021,2022,2023,2024,2025,2026]},
     {vehicle:'honda_prologue', years:[2024,2025,2026]},
   ];
+  // Bulk (all-years) vehicles — Tesla has many multi-year campaigns
+  const bulkVehicles = ['tesla_model_3', 'tesla_model_y'];
 
   let totalStored = 0, totalUpdated = 0, totalFound = 0;
   const lines = [];
 
+  // Year-by-year imports
   for (const {vehicle, years} of combos) {
     for (const year of years) {
       try {
@@ -1889,8 +1893,25 @@ async function adminNhtsaImport() {
         if (!e.message.includes('400') && !e.message.includes('502')) {
           lines.push(`${vehicle} ${year}: ⚠ ${msg}`);
         }
-        // Silently skip 400/502 — just means NHTSA has no records for that year
       }
+    }
+  }
+
+  // Bulk all-years imports for Tesla
+  for (const vehicle of bulkVehicles) {
+    try {
+      result.textContent = `Fetching ALL years for ${vehicle} from NHTSA…`;
+      const res = await apiFetch('/api/nhtsa-import', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({vehicle})  // no year = all years
+      });
+      totalFound   += res.found   || 0;
+      totalStored  += res.stored  || 0;
+      totalUpdated += res.updated || 0;
+      lines.push(`${vehicle} ALL YEARS: ${res.found} found · ${res.stored} new · ${res.updated} updated`);
+    } catch(e) {
+      lines.push(`${vehicle}: ⚠ ${e.message}`);
     }
   }
 
