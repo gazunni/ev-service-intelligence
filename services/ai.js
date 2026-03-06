@@ -86,12 +86,24 @@ export async function summarizeTSB(item, vehicleName) {
   } catch { return null; }
 }
 
+// ── BROWSER-LIKE FETCH (bypasses 403 blocks on PDF hosts) ───────────────
+const BROWSER_HEADERS = {
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Accept': 'text/html,application/xhtml+xml,application/xml,application/pdf;q=0.9,*/*;q=0.8',
+  'Accept-Language': 'en-US,en;q=0.9',
+  'Referer': 'https://www.google.com/',
+};
+async function fetchWithHeaders(url) {
+  const r = await fetch(url, { headers: BROWSER_HEADERS });
+  if (!r.ok) throw new Error(`HTTP ${r.status} fetching URL`);
+  return r;
+}
+
 // ── EXTRACT RECALL FROM PDF/URL ───────────────────────────────────────────
 export async function extractRecallFromUrl(url) {
   const cached = cacheGet('recall:' + url);
   if (cached) { console.log('cache hit: recall', url); return cached; }
-  const r = await fetch(url);
-  if (!r.ok) throw new Error(`HTTP ${r.status} fetching URL`);
+  const r = await fetchWithHeaders(url);
   const contentType = r.headers.get('content-type') || '';
   const isPdf = contentType.includes('pdf') || url.toLowerCase().endsWith('.pdf');
 
@@ -139,15 +151,14 @@ export async function extractTSBFromUrl(url) {
   let messageContent;
 
   if (isPdf) {
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(`Failed to fetch PDF: ${r.status}`);
+    const r = await fetchWithHeaders(url);
     const base64 = Buffer.from(await r.arrayBuffer()).toString('base64');
     messageContent = [
       { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
       { type: 'text', text: `Extract TSB information. Return ONLY valid JSON: {"bulletin":"...","title":"max 10 words","component":"...","severity":"CRITICAL|MODERATE|LOW","summary":"2-3 sentences","remedy":"...","affected_vehicles":[{"vehicle":"key","years":[2024]}]}\nMap vehicles: ${VEHICLE_MAP}. Empty array if none match. Return ONLY JSON.` }
     ];
   } else {
-    const r = await fetch(url);
+    const r = await fetchWithHeaders(url);
     const text = (await r.text()).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').substring(0, 10000);
     messageContent = `Extract TSB info. Return ONLY JSON: {bulletin,title,component,severity,summary,remedy,affected_vehicles}\n\n${text}`;
   }
@@ -176,10 +187,7 @@ export async function extractForumThread(url) {
   const cached = cacheGet('forum:' + url);
   if (cached) { console.log('cache hit: forum', url); return cached; }
 
-  const r = await fetch(url, {
-    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; EVServiceBot/1.0)' }
-  });
-  if (!r.ok) throw new Error(`HTTP ${r.status} fetching forum URL`);
+  const r = await fetchWithHeaders(url);
 
   // Strip HTML tags, collapse whitespace, limit size
   const raw = await r.text();
