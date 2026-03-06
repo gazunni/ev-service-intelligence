@@ -86,7 +86,6 @@ app.post('/api/tsb-clone',       fwd(tsbsRouter,      '/clone'));
 app.post('/api/community-clone', fwd(communityRouter, '/clone'));
 app.post('/api/forum-fetch',       fwd(communityRouter, '/forum-fetch'));
 app.post('/api/community-dedupe',   fwd(communityRouter, '/dedupe'));
-app.post('/api/community-rescue',   fwd(communityRouter, '/rescue-pills'));
 app.post('/api/tsb-add',         fwd(tsbsRouter,      '/add'));
 app.post('/api/tsb-fetch',       fwd(tsbsRouter,      '/fetch'));
 app.post('/api/recall-fetch',    fwd(recallsRouter,   '/fetch'));
