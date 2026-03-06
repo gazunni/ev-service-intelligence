@@ -729,8 +729,6 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
       <div class="admin-card-title">Deduplicate Community Issues</div>
       <div class="admin-card-desc">Finds and merges duplicate community issues — matches by title similarity within same vehicle/year. Keeps the record with most confirmations, combines counts, suppresses duplicates.</div>
       <button class="admin-btn" id="adminCommDedupeBtn" style="margin-bottom:6px">⊘ Dedupe Community</button>
-      <button class="admin-btn" id="adminRescuePillsBtn" style="margin-bottom:6px">🔧 Rescue Missing Pills</button>
-      <button class="admin-btn admin-btn-warn" id="adminFixPillsBtn">🩹 Fix Malformed Pills</button>
       <div class="admin-result" id="adminCommDedupeResult"></div>
     </div>
     <div class="admin-card">
@@ -1684,60 +1682,6 @@ function cancelGzHold() {
   document.getElementById('gzIcon').classList.remove('holding');
 }
 
-async function fixPills() {
-  const btn    = document.getElementById('adminFixPillsBtn');
-  const result = document.getElementById('adminCommDedupeResult');
-  btn.disabled = true; btn.textContent = 'Fixing…';
-  result.textContent = 'Running SQL-level pill repair…';
-  try {
-    const data = await apiFetch('/api/admin/fix-pills', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: window.__adminKey || '' })
-    });
-    const parts = [];
-    if (data.resetCount) parts.push(`${data.resetCount} malformed records reset`);
-    if (data.mergeCount) parts.push(`${data.mergeCount} pills merged from suppressed records`);
-    result.textContent = parts.length
-      ? '✓ ' + parts.join(' · ')
-      : '✓ No malformed pills found';
-    if (data.results?.length) {
-      result.textContent += '\n' + data.results.map(r =>
-        `  • [${r.action}] ${r.title || r.activeId}`
-      ).join('\n');
-    }
-    loadAdminDashboard();
-  } catch(e) {
-    result.textContent = '⚠ ' + e.message;
-  } finally {
-    btn.disabled = false; btn.textContent = '🩹 Fix Malformed Pills';
-  }
-}
-
-async function rescuePills() {
-  const btn    = document.getElementById('adminRescuePillsBtn');
-  const result = document.getElementById('adminCommDedupeResult');
-  btn.disabled = true; btn.textContent = 'Rescuing…';
-  result.textContent = 'Scanning suppressed records for missing source pills…';
-  try {
-    const data = await apiFetch('/api/community-rescue', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: window.__adminKey || '' })
-    });
-    if (data.fixed === 0) {
-      result.textContent = '✓ No missing pills found — all records up to date';
-    } else {
-      result.textContent = `✓ Fixed ${data.fixed} record${data.fixed > 1 ? 's' : ''}:\n` +
-        data.details.map(d => `  • ${d.active} ← added: ${d.addedPills.join(', ')}`).join('\n');
-    }
-  } catch(e) {
-    result.textContent = '⚠ ' + e.message;
-  } finally {
-    btn.disabled = false; btn.textContent = '🔧 Rescue Missing Pills';
-  }
-}
-
 async function communityDedupe() {
   const btn    = document.getElementById('adminCommDedupeBtn');
   const result = document.getElementById('adminCommDedupeResult');
@@ -2382,8 +2326,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (id === 'adminDedupeBtn')      { e.stopPropagation(); adminAction('dedupe', 'adminDedupeResult', 'adminDedupeBtn'); return; }
     if (id === 'adminCommDedupeBtn')   { e.stopPropagation(); communityDedupe(); return; }
-    if (id === 'adminRescuePillsBtn')  { e.stopPropagation(); rescuePills(); return; }
-    if (id === 'adminFixPillsBtn')     { e.stopPropagation(); fixPills(); return; }
     if (id === 'adminStatsBtn')    { e.stopPropagation(); loadAdminDashboard(); return; }
     if (id === 'adminMigrateBtn'){ e.stopPropagation(); adminAction('migrate', 'adminMigrateResult', 'adminMigrateBtn'); return; }
     if (id === 'adminClearSweepBtn'){ e.stopPropagation(); adminAction('clear-sweep', 'adminClearSweepResult', 'adminClearSweepBtn'); return; }
