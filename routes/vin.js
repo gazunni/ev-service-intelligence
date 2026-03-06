@@ -105,6 +105,7 @@ router.post('/import', async (req, res) => {
     }
 
     let inserted = 0;
+    let existing = 0;
     let skipped = 0;
 
     for (const r of recalls) {
@@ -149,10 +150,10 @@ router.post('/import', async (req, res) => {
       );
 
       if (result.rowCount > 0) inserted++;
-      else skipped++;
+      else existing++;
     }
 
-    res.json({ ok: true, count: inserted, inserted, skipped });
+    res.json({ ok: true, count: inserted, inserted, existing, skipped });
   } catch (e) {
     console.error('vin-import error:', e.message);
     res.status(500).json({ error: e.message });
