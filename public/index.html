@@ -1697,7 +1697,10 @@ async function communityDedupe() {
       result.textContent = '✓ No duplicates found';
     } else {
       result.textContent = `✓ Merged ${data.mergedCount} duplicate${data.mergedCount > 1 ? 's' : ''}:\n` +
-        data.merged.map(m => `  • "${m.title}" (${m.similarity}% match)`).join('\n');
+        data.merged.map(m => {
+          const pills = m.addedPills?.length ? ` — added: ${m.addedPills.join(', ')}` : '';
+          return `  • "${m.title}" (${m.similarity}% match${pills})`;
+        }).join('\n');
       loadAdminDashboard(); // refresh counts
     }
   } catch(e) {
