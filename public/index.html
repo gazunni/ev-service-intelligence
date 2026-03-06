@@ -343,28 +343,40 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 
 <!-- SELBAR -->
 <div class="selbar">
-  <div class="sg">
-    <label>Vehicle</label>
-    <select id="selModel">
-      <option value="equinox_ev">Chevrolet Equinox EV</option>
-      <option value="blazer_ev">Chevrolet Blazer EV</option>
-      <option value="mach_e">Ford Mustang Mach-E</option>
-      <option value="honda_prologue">Honda Prologue</option>
-      <option value="tesla_model_3">Tesla Model 3</option>
-      <option value="tesla_model_y">Tesla Model Y</option>
-    </select>
+  <div class="sel-section">
+    <div class="sel-section-label">Lookup Context</div>
+    <div class="sel-row sel-row-context">
+      <div class="sg">
+        <label>Vehicle</label>
+        <select id="selModel">
+          <option value="equinox_ev">Chevrolet Equinox EV</option>
+          <option value="blazer_ev">Chevrolet Blazer EV</option>
+          <option value="mach_e">Ford Mustang Mach-E</option>
+          <option value="honda_prologue">Honda Prologue</option>
+          <option value="tesla_model_3">Tesla Model 3</option>
+          <option value="tesla_model_y">Tesla Model Y</option>
+        </select>
+      </div>
+      <div class="sg">
+        <label>Year</label>
+        <select id="selYear"></select>
+      </div>
+      <div class="sel-link-arrow" aria-hidden="true">→</div>
+      <button class="tool-btn" id="vinLookupBtn" style="background:#0a1a2e;border-color:#38bdf8;color:#38bdf8">🔍 VIN Lookup</button>
+    </div>
+    <div class="sel-context-note">VIN results are matched against the selected vehicle and year before import.</div>
   </div>
-  <div class="sg">
-    <label>Year</label>
-    <select id="selYear"></select>
+  <div class="sel-section">
+    <div class="sel-section-label">Actions</div>
+    <div class="sel-row">
+      <button class="sweep-btn" id="sweepBtn">⚡ Run AI Sweep</button>
+      <button class="tool-btn" data-panel="submitPanel">＋ Submit Issue</button>
+      <button class="tool-btn" data-panel="researchPanel">🔬 Research Sweep</button>
+      <button class="tool-btn" data-panel="forumPanel">🧵 Forum Thread</button>
+      <button class="tool-btn" data-panel="tsbPanel">＋ Add TSB</button>
+      <button class="tool-btn" data-panel="recallPanel" style="border-color:var(--recall);color:var(--recall)">＋ Add Recall</button>
+    </div>
   </div>
-  <button class="tool-btn" id="vinLookupBtn" style="background:#0a1a2e;border-color:#38bdf8;color:#38bdf8">🔍 VIN Lookup</button>
-  <button class="sweep-btn" id="sweepBtn">⚡ Run AI Sweep</button>
-  <button class="tool-btn" data-panel="submitPanel">＋ Submit Issue</button>
-  <button class="tool-btn" data-panel="researchPanel">🔬 Research Sweep</button>
-  <button class="tool-btn" data-panel="forumPanel">🧵 Forum Thread</button>
-  <button class="tool-btn" data-panel="tsbPanel">＋ Add TSB</button>
-  <button class="tool-btn" data-panel="recallPanel" style="border-color:var(--recall);color:var(--recall)">＋ Add Recall</button>
 </div>
 
 <!-- STATS -->
