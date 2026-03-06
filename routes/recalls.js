@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { query } from '../services/database.js';
 import { VEHICLES, fetchNHTSARecalls, fetchAllNHTSARecalls, canonicalRecallId, detectSeverity } from '../services/nhtsa.js';
-import { extractRecallFromUrl, summarizeRecall, summarizeTSB, validateRecallExtraction } from '../services/ai.js';
+import { extractRecallFromUrl, extractRecallFromBase64, summarizeRecall, summarizeTSB, validateRecallExtraction } from '../services/ai.js';
 import { fetchNHTSATSBs } from '../services/nhtsa.js';
 
 const router = Router();
@@ -75,10 +75,12 @@ router.post('/nhtsa-import', async (req, res) => {
 
 // ── FETCH & EXTRACT FROM PDF/URL ──────────────────────────────────────────
 router.post('/fetch', async (req, res) => {
-  const { url } = req.body || {};
-  if (!url) return res.status(400).json({ error: 'url required' });
+  const { url, pdfBase64, filename } = req.body || {};
+  if (!url && !pdfBase64) return res.status(400).json({ error: 'url or pdfBase64 required' });
   try {
-    const raw = await extractRecallFromUrl(url);
+    const raw = pdfBase64
+      ? await extractRecallFromBase64(pdfBase64, filename || 'upload.pdf')
+      : await extractRecallFromUrl(url);
     const data = validateRecallExtraction(raw);
     res.json(data);
   } catch (e) {
