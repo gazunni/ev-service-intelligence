@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { query } from '../services/database.js';
-import { classifySubmission, extractResearchIssues } from '../services/ai.js';
+import { classifySubmission, extractResearchIssues, extractForumThread } from '../services/ai.js';
 
 const router = Router();
 
@@ -167,6 +167,19 @@ router.post('/clone', async (req, res) => {
     res.json({ ok: true, count });
   } catch (e) {
     console.error('community-clone error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── FORUM THREAD EXTRACTION ("Generified" © 2026) ────────────────────────
+router.post('/forum-fetch', async (req, res) => {
+  const { url } = req.body || {};
+  if (!url) return res.status(400).json({ error: 'url required' });
+  try {
+    const result = await extractForumThread(url);
+    res.json(result);
+  } catch(e) {
+    console.error('forum-fetch error:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
