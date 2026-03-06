@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>EV Service Intelligence</title>
+
+<style>
+body{font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:#0f172a;color:#e5e7eb;}
+header{padding:20px;border-bottom:1px solid #334155;}
+.container{padding:20px;}
+.control-group{display:flex;gap:12px;align-items:center;flex-wrap:wrap;}
+.section{margin-bottom:16px;}
+.section-title{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:#94a3b8;margin-bottom:6px;}
+.divider{border-top:1px solid #334155;margin:18px 0;}
+button{background:#1e293b;border:1px solid #334155;color:#e5e7eb;padding:8px 14px;border-radius:6px;cursor:pointer;}
+button:hover{background:#334155;}
+input,select{background:#020617;border:1px solid #334155;color:#e5e7eb;padding:8px;border-radius:6px;}
+.vin-box{display:flex;gap:8px;}
+.arrow{font-size:18px;opacity:.6;}
+</style>
+</head>
+
+<body>
+
+<header>
+<h2>EV Service Intelligence</h2>
+</header>
+
+<div class="container">
+
+<div class="section">
+<div class="section-title">Lookup Context</div>
+
+<div class="control-group">
+
+<select id="vehicle">
+<option value="equinox">Chevrolet Equinox EV</option>
+<option value="blazer">Chevrolet Blazer EV</option>
+<option value="model3">Tesla Model 3</option>
+<option value="modely">Tesla Model Y</option>
+</select>
+
+<select id="year">
+<option value="2026">2026</option>
+<option value="2025">2025</option>
+<option value="2024">2024</option>
+</select>
+
+<div class="arrow">→</div>
+
+<div class="vin-box">
+<input id="vinInput" placeholder="Enter VIN">
+<button onclick="lookupVIN()">VIN Lookup</button>
+</div>
+
+</div>
+</div>
+
+<div class="divider"></div>
+
+<div class="section">
+<div class="section-title">Actions</div>
+
+<div class="control-group">
+<button onclick="runSweep()">Run AI Sweep</button>
+<button onclick="researchSweep()">Research Sweep</button>
+<button onclick="forumThread()">Forum Thread</button>
+<button onclick="submitIssue()">Submit Issue</button>
+<button onclick="addTSB()">Add TSB</button>
+<button onclick="addRecall()">Add Recall</button>
+</div>
+</div>
+
+<div id="vinResults"></div>
+
+</div>
+
+<script>
+
+function getVehicle(){return document.getElementById('vehicle').value}
+function getYear(){return document.getElementById('year').value}
+
+async function lookupVIN(){
+  const vin=document.getElementById('vinInput').value.trim()
+  if(!vin){alert("VIN required");return}
+  const res=await fetch('/api/vin/lookup',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vin})})
+  const data=await res.json()
+  renderVIN(data)
+}
+
+function renderVIN(data){
+  const container=document.getElementById('vinResults')
+  if(!data || !data.recalls){container.innerHTML="No results";return}
+  const recalls=data.recalls
+  let html="<h3>NHTSA Recalls</h3><ul>"
+  recalls.forEach(r=>{html+=`<li>${r.campaign} — ${r.title}</li>`})
+  html+="</ul>"
+  if(data.missing && data.missing.length){
+    html+=`<button onclick="importMissing()">Import ${data.missing.length} Missing</button>`
+  }
+  container.innerHTML=html
+}
+
+async function importMissing(){
+  const vin=document.getElementById('vinInput').value.trim()
+  const res=await fetch('/api/vin/import',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vin,vehicle:getVehicle(),year:getYear()})})
+  const data=await res.json()
+  alert("Imported "+data.inserted+" recalls")
+}
+
+function runSweep(){ alert("Sweep started") }
+function researchSweep(){ alert("Research started") }
+function forumThread(){ alert("Forum thread") }
+function submitIssue(){ alert("Submit issue") }
+function addTSB(){ alert("Add TSB") }
+function addRecall(){ alert("Add recall") }
+
+</script>
+
+</body>
+</html>
