@@ -178,7 +178,9 @@ router.post('/clone', async (req, res) => {
 router.post('/dedupe', async (req, res) => {
   try {
     const issues = await query(
-      `SELECT id, vehicle_key, year, title, summary, component, confirmations, status, source_pills, links
+      `SELECT id, vehicle_key, year, title, summary, component, confirmations, status,
+              source_pills::text AS source_pills,
+              links::text AS links
        FROM community WHERE status='active' ORDER BY vehicle_key, year, confirmations DESC`
     );
 
@@ -208,7 +210,17 @@ router.post('/dedupe', async (req, res) => {
           const parseArr = v => {
             if (!v) return [];
             if (Array.isArray(v)) return v;
-            try { return JSON.parse(v); } catch { return []; }
+            const s = String(v).trim();
+            if (s.startsWith('{') && s.endsWith('}')) {
+              try {
+                const inner = s.slice(1,-1); const items = []; let cur='', inQ=false;
+                for (let i=0;i<inner.length;i++){const c=inner[i];if(c==='"'){inQ=!inQ;}else if(c===','&&!inQ){items.push(cur.replace(/^"|"$/g,''));cur='';}else cur+=c;}
+                if(cur)items.push(cur.replace(/^"|"$/g,''));
+                return items.filter(x=>x.length>0);
+              } catch { return []; }
+            }
+            if (s.startsWith('[')) { try { return JSON.parse(s); } catch { return []; } }
+            return [];
           };
           const cleanPills = arr => arr
             .map(p => { const s = String(p); return s.replace(/\r/g," ").replace(/\n/g," ").replace(/\t/g," ").replace(/  +/g," ").trim(); })
@@ -257,16 +269,40 @@ router.post('/dedupe', async (req, res) => {
 // their surviving counterparts. Safe to run multiple times.
 router.post('/rescue-pills', async (req, res) => {
   try {
-    // Get all suppressed records that have source_pills
+    // Get all suppressed records — cast to text to avoid malformed array errors
     const suppressed = await query(
-      `SELECT id, vehicle_key, year, title, source_pills, links
+      `SELECT id, vehicle_key, year, title,
+              source_pills::text AS source_pills,
+              links::text AS links
        FROM community WHERE status='suppressed'`
     );
 
     const parseArr = v => {
       if (!v) return [];
       if (Array.isArray(v)) return v;
-      try { return JSON.parse(v); } catch { return []; }
+      const s = String(v).trim();
+      // PostgreSQL array literal: {val1,"val2 with spaces"}
+      if (s.startsWith('{') && s.endsWith('}')) {
+        try {
+          // Parse PG array format into JS array
+          const inner = s.slice(1, -1);
+          const items = [];
+          let cur = '', inQuote = false;
+          for (let i = 0; i < inner.length; i++) {
+            const c = inner[i];
+            if (c === '"' && inner[i-1] !== '\\') { inQuote = !inQuote; }
+            else if (c === ',' && !inQuote) { items.push(cur.replace(/^"|"$/g,'').replace(/\\"/g,'"')); cur = ''; }
+            else cur += c;
+          }
+          if (cur) items.push(cur.replace(/^"|"$/g,'').replace(/\\"/g,'"'));
+          return items.filter(x => x.length > 0);
+        } catch { return []; }
+      }
+      // JSON array
+      if (s.startsWith('[')) {
+        try { return JSON.parse(s); } catch { return []; }
+      }
+      return [];
     };
     // Sanitize pills — strip newlines, extra whitespace, empty strings
     const cleanPills = arr => arr
@@ -285,8 +321,10 @@ router.post('/rescue-pills', async (req, res) => {
 
       // Find active records for same vehicle/year with similar title
       const candidates = await query(
-        `SELECT id, title, source_pills, links FROM community
-         WHERE vehicle_key=$1 AND year=$2 AND status='active'`,
+        `SELECT id, title,
+                source_pills::text AS source_pills,
+                links::text AS links
+         FROM community WHERE vehicle_key=$1 AND year=$2 AND status='active'`,
         [sup.vehicle_key, sup.year]
       );
 
