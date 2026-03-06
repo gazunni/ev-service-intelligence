@@ -108,6 +108,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
 
 /* ── VIN CROSS-CHECK ── */
 .vin-crosscheck{display:flex;align-items:center;gap:16px;background:var(--surface2);border-radius:4px;padding:10px 14px;flex-wrap:wrap}
+.vin-match-banner{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:10px 12px;margin:0 0 12px}.vin-match-copy{font-size:10px;line-height:1.5;color:var(--text)}.vin-match-title{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px}.vin-match-ok{border-color:#166534;background:#07160b}.vin-match-ok .vin-match-title{color:var(--green)}.vin-match-warn{border-color:#92400e;background:#1a1208}.vin-match-warn .vin-match-title{color:var(--tsb)}.vin-match-badge{font-size:10px;font-weight:700;letter-spacing:.05em;white-space:nowrap}.vin-match-ok .vin-match-badge{color:var(--green)}.vin-match-warn .vin-match-badge{color:var(--tsb)}
 .vin-cc-stat{display:flex;flex-direction:column;align-items:center;min-width:50px}
 .vin-cc-num{font-size:22px;font-weight:800;font-family:var(--mono);line-height:1}
 .vin-cc-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
@@ -1898,18 +1899,38 @@ async function vinImportMissing() {
   const data = window.__vinMissing;
   if (!data || !data.recalls.length) return;
   const btn = document.getElementById('vinImportBtn');
-  if (btn) { btn.disabled = true; btn.textContent = 'Importing…'; }
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'Importing…';
+  }
   try {
     const res = await apiFetch('/api/vin-import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ vehicle: data.vehicle, year: data.year, recalls: data.recalls })
+      body: JSON.stringify({ vehicle: data.vehicle, year: data.year, recalls: data.recalls, vin: data.vin, make: data.make, model: data.model })
     });
-    if (btn) { btn.textContent = `✓ Imported ${res.count} recall${res.count!==1?'s':''}`; btn.style.borderColor='var(--green)'; btn.style.color='var(--green)'; }
+    const inserted = Number(res.inserted ?? res.count ?? 0);
+    const existing = Number(res.existing ?? 0);
+    const skipped  = Number(res.skipped ?? 0);
+    if (btn) {
+      btn.textContent = `✓ Added ${inserted} · Existing ${existing} · Skipped ${skipped}`;
+      btn.style.borderColor = 'var(--green)';
+      btn.style.color = 'var(--green)';
+    }
+    const summary = document.getElementById('vinImportSummary');
+    if (summary) {
+      summary.innerHTML = `${inserted} inserted · ${existing} already in DB · ${skipped} skipped`;
+      summary.style.display = 'block';
+    }
     window.__vinMissing = null;
     loadAll();
   } catch(e) {
-    if (btn) { btn.disabled = false; btn.textContent = 'Import failed — retry'; }
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'Import failed — retry';
+      btn.style.borderColor = 'var(--recall)';
+      btn.style.color = 'var(--recall)';
+    }
   }
 }
 
@@ -2147,15 +2168,29 @@ async function vinLookup() {
 
         // Cross-check summary
         const inDb = recalls.length - missing.length;
+        const selectedVehicleLabel = document.getElementById('selModel').options[document.getElementById('selModel').selectedIndex]?.text || 'selected dashboard vehicle';
+        const dashboardMatches = !!mappedVehicle && mappedVehicle === selectedVehicle && String(yr) === String(selectedYear);
+        const dashboardMatchClass = dashboardMatches ? 'vin-match-banner vin-match-ok' : 'vin-match-banner vin-match-warn';
+        const dashboardMatchTitle = dashboardMatches ? 'VIN matches selected dashboard context' : 'VIN does not match selected dashboard context';
+        const dashboardMatchCopy = dashboardMatches
+          ? `${esc(make)} ${esc(model)} ${esc(String(yr))} is aligned with ${esc(selectedVehicleLabel)} ${esc(String(selectedYear))}.`
+          : `${esc(make)} ${esc(model)} ${esc(String(yr))} is being checked against ${esc(selectedVehicleLabel)} ${esc(String(selectedYear))}. Review before importing.`;
         html += `<div class="vin-section">
           <div class="vin-section-title">Database Cross-Check</div>
-          ${mappedVehicle && mappedVehicle !== selectedVehicle ? `<div class="vin-empty" style="margin-bottom:10px;color:var(--blue)">Matched against ${esc(document.getElementById('selModel').options[document.getElementById('selModel').selectedIndex]?.text || 'selected dashboard vehicle')} ${esc(String(yr))}.</div>` : ''}
+          <div class="${dashboardMatchClass}">
+            <div class="vin-match-copy">
+              <div class="vin-match-title">${dashboardMatchTitle}</div>
+              <div>${dashboardMatchCopy}</div>
+            </div>
+            <div class="vin-match-badge">${dashboardMatches ? '✓ Context confirmed' : '⚠ Review context'}</div>
+          </div>
           <div class="vin-crosscheck">
             <div class="vin-cc-stat"><span class="vin-cc-num">${recalls.length}</span><span class="vin-cc-label">NHTSA Recalls</span></div>
             <div class="vin-cc-stat"><span class="vin-cc-num" style="color:var(--green)">${inDb}</span><span class="vin-cc-label">In Our DB</span></div>
             <div class="vin-cc-stat"><span class="vin-cc-num" style="color:${missing.length?'var(--recall)':'var(--green)'}">${missing.length}</span><span class="vin-cc-label">Missing</span></div>
             ${missing.length ? `<button class="submit-btn" id="vinImportBtn" style="font-size:10px;padding:4px 12px">⊕ Import ${missing.length} Missing</button>` : '<div class="vin-cc-complete">✓ Database up to date</div>'}
           </div>
+          <div class="vin-empty" id="vinImportSummary" style="display:none;margin-top:8px;color:var(--green)"></div>
         </div>`;
 
         html += `<div class="vin-section"><div class="vin-section-title">Outstanding Recalls (${outstanding.length})</div>`;
