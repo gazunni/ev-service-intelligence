@@ -362,6 +362,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
   <button class="sweep-btn" id="sweepBtn">⚡ Run AI Sweep</button>
   <button class="tool-btn" data-panel="submitPanel">＋ Submit Issue</button>
   <button class="tool-btn" data-panel="researchPanel">🔬 Research Sweep</button>
+  <button class="tool-btn" data-panel="forumPanel">🧵 Forum Thread</button>
   <button class="tool-btn" data-panel="tsbPanel">＋ Add TSB</button>
   <button class="tool-btn" data-panel="recallPanel" style="border-color:var(--recall);color:var(--recall)">＋ Add Recall</button>
 </div>
@@ -747,6 +748,48 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
   </div>
   <div style="margin-top:12px;text-align:right">
     <button class="cancel-btn" data-panel="adminPanel">✕ Close Admin</button>
+  </div>
+</div>
+
+<!-- FORUM THREAD PANEL -->
+<div class="tool-panel" id="forumPanel">
+  <h3>🧵 Forum Thread Extractor</h3>
+  <p class="tool-note">Paste a forum thread URL. Claude will read the thread and synthesize a generified™ community issue — anonymized, no quotes, no personal data. Result goes to your review queue for approval.</p>
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <input id="forumUrl" placeholder="https://forum.example.com/thread/..." style="flex:1;padding:8px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+    <button class="submit-btn" id="forumFetchBtn">🧵 Generify Thread</button>
+  </div>
+  <div id="forumStatus" style="font-size:12px;color:var(--text-muted);margin-bottom:10px"></div>
+  <div id="forumPreview" style="display:none">
+    <div style="background:var(--card-bg);border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:12px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
+        <div id="fp-title" style="font-weight:600;font-size:14px;flex:1"></div>
+        <div style="display:flex;gap:6px;margin-left:10px">
+          <span id="fp-severity" style="font-size:10px;padding:2px 8px;border-radius:4px;font-weight:600"></span>
+          <span id="fp-confidence" style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--border);color:var(--text-muted)"></span>
+          <span id="fp-frequency" style="font-size:10px;padding:2px 8px;border-radius:4px;background:var(--border);color:var(--text-muted)"></span>
+        </div>
+      </div>
+      <div id="fp-component" style="font-size:11px;color:var(--text-muted);margin-bottom:8px"></div>
+      <div id="fp-summary" style="font-size:13px;line-height:1.5;margin-bottom:8px"></div>
+      <div id="fp-symptoms-wrap" style="margin-bottom:8px;display:none">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:4px">SYMPTOMS</div>
+        <div id="fp-symptoms" style="font-size:12px"></div>
+      </div>
+      <div id="fp-remedy-wrap" style="margin-bottom:8px;display:none">
+        <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:4px">COMMUNITY REMEDY</div>
+        <div id="fp-remedy" style="font-size:12px"></div>
+      </div>
+      <div id="fp-confidence-reason" style="font-size:11px;color:var(--text-muted);font-style:italic"></div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="submit-btn" id="forumSubmitBtn">⊕ Add to Review Queue</button>
+      <button class="cancel-btn" id="forumClearBtn">✕ Clear</button>
+    </div>
+    <div id="forumResult" style="font-size:12px;margin-top:8px"></div>
+  </div>
+  <div style="margin-top:16px;text-align:right">
+    <button class="cancel-btn" data-panel="forumPanel">✕ Close</button>
   </div>
 </div>
 
