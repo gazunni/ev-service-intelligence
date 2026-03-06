@@ -178,7 +178,7 @@ router.post('/clone', async (req, res) => {
 router.post('/dedupe', async (req, res) => {
   try {
     const issues = await query(
-      `SELECT id, vehicle_key, year, title, summary, component, confirmations, status
+      `SELECT id, vehicle_key, year, title, summary, component, confirmations, status, source_pills, links
        FROM community WHERE status='active' ORDER BY vehicle_key, year, confirmations DESC`
     );
 
@@ -204,14 +204,40 @@ router.post('/dedupe', async (req, res) => {
         const similarity = baseTok.size > 0 ? overlap / Math.max(baseTok.size, candTok.length) : 0;
 
         if (similarity >= 0.4) {
-          // Merge: add confirmations to winner, suppress loser
+          // Merge source_pills — combine unique pills from both records
+          const parseArr = v => {
+            if (!v) return [];
+            if (Array.isArray(v)) return v;
+            try { return JSON.parse(v); } catch { return []; }
+          };
+          const basePills = parseArr(base.source_pills);
+          const candPills = parseArr(cand.source_pills);
+          const mergedPills = [...new Set([...basePills, ...candPills])];
+
+          // Merge links — combine unique links from both records
+          const baseLinks = parseArr(base.links);
+          const candLinks = parseArr(cand.links);
+          const seenUrls = new Set(baseLinks.map(l => l.url || l));
+          const newLinks = candLinks.filter(l => !seenUrls.has(l.url || l));
+          const mergedLinks = [...baseLinks, ...newLinks];
+
+          // Update winner with merged pills, links and combined confirmations
           await query(
-            `UPDATE community SET confirmations=confirmations+$1, updated_at=NOW() WHERE id=$2`,
-            [cand.confirmations || 1, base.id]
+            `UPDATE community SET
+               confirmations = confirmations + $1,
+               source_pills  = $2,
+               links         = $3,
+               updated_at    = NOW()
+             WHERE id = $4`,
+            [cand.confirmations || 1, JSON.stringify(mergedPills), JSON.stringify(mergedLinks), base.id]
           );
           await query(`UPDATE community SET status='suppressed' WHERE id=$1`, [cand.id]);
           suppressed.add(cand.id);
-          merged.push({ kept: base.id, suppressed: cand.id, title: base.title, similarity: Math.round(similarity * 100) });
+          merged.push({
+            kept: base.id, suppressed: cand.id, title: base.title,
+            similarity: Math.round(similarity * 100),
+            addedPills: candPills.filter(p => !basePills.includes(p))
+          });
         }
       }
     }
