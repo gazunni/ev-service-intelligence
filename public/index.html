@@ -726,6 +726,12 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
       <div class="admin-result" id="adminDedupeResult"></div>
     </div>
     <div class="admin-card">
+      <div class="admin-card-title">Deduplicate Community Issues</div>
+      <div class="admin-card-desc">Finds and merges duplicate community issues — matches by title similarity within same vehicle/year. Keeps the record with most confirmations, combines counts, suppresses duplicates.</div>
+      <button class="admin-btn" id="adminCommDedupeBtn">⊘ Dedupe Community</button>
+      <div class="admin-result" id="adminCommDedupeResult"></div>
+    </div>
+    <div class="admin-card">
       <div class="admin-card-title">Database Stats</div>
       <div class="admin-card-desc">Current row counts across all tables.</div>
       <button class="admin-btn" id="adminStatsBtn">⊞ Refresh Stats</button>
@@ -1676,6 +1682,31 @@ function cancelGzHold() {
   document.getElementById('gzIcon').classList.remove('holding');
 }
 
+async function communityDedupe() {
+  const btn    = document.getElementById('adminCommDedupeBtn');
+  const result = document.getElementById('adminCommDedupeResult');
+  btn.disabled = true; btn.textContent = 'Running…';
+  result.textContent = 'Scanning community issues for duplicates…';
+  try {
+    const data = await apiFetch('/api/community-dedupe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: window.__adminKey || '' })
+    });
+    if (data.mergedCount === 0) {
+      result.textContent = '✓ No duplicates found';
+    } else {
+      result.textContent = `✓ Merged ${data.mergedCount} duplicate${data.mergedCount > 1 ? 's' : ''}:\n` +
+        data.merged.map(m => `  • "${m.title}" (${m.similarity}% match)`).join('\n');
+      loadAdminDashboard(); // refresh counts
+    }
+  } catch(e) {
+    result.textContent = '⚠ ' + e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = '⊘ Dedupe Community';
+  }
+}
+
 async function loadAdminDashboard() {
   const status = document.getElementById('adminDashStatus');
   if (status) status.textContent = 'Loading…';
@@ -2290,7 +2321,8 @@ document.addEventListener('DOMContentLoaded', () => {
         .catch(e => { result.style.color='var(--recall)'; result.textContent = 'Error: '+e.message; });
       return;
     }
-    if (id === 'adminDedupeBtn')   { e.stopPropagation(); adminAction('dedupe', 'adminDedupeResult', 'adminDedupeBtn'); return; }
+    if (id === 'adminDedupeBtn')      { e.stopPropagation(); adminAction('dedupe', 'adminDedupeResult', 'adminDedupeBtn'); return; }
+    if (id === 'adminCommDedupeBtn')  { e.stopPropagation(); communityDedupe(); return; }
     if (id === 'adminStatsBtn')    { e.stopPropagation(); loadAdminDashboard(); return; }
     if (id === 'adminMigrateBtn'){ e.stopPropagation(); adminAction('migrate', 'adminMigrateResult', 'adminMigrateBtn'); return; }
     if (id === 'adminClearSweepBtn'){ e.stopPropagation(); adminAction('clear-sweep', 'adminClearSweepResult', 'adminClearSweepBtn'); return; }
