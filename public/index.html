@@ -491,6 +491,11 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
     <label>Source PDF / URL <span style="color:var(--muted);font-weight:400">(optional — will auto-extract if provided)</span></label>
     <div style="display:flex;gap:8px">
       <input id="rcUrl" placeholder="https://static.nhtsa.gov/odi/rcl/..." style="flex:1">
+      <span style="font-size:11px;color:var(--text-muted);align-self:center">or</span>
+      <label style="cursor:pointer;padding:6px 10px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text-muted);white-space:nowrap" title="Upload PDF directly if URL is blocked">
+        📎 Upload PDF
+        <input type="file" id="rcFile" accept=".pdf" style="display:none">
+      </label>
       <button class="admin-btn" id="rcFetchBtn" style="white-space:nowrap">⊕ Fetch &amp; Fill</button>
     </div>
     <div id="rcFetchStatus" style="font-size:10px;color:var(--muted);margin-top:4px"></div>
@@ -662,6 +667,11 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
     <label>Source URL (PDF or page)</label>
     <div style="display:flex;gap:8px">
       <input id="tsbUrl" placeholder="https://static.nhtsa.gov/odi/tsbs/…" style="flex:1">
+      <span style="font-size:11px;color:var(--text-muted);align-self:center">or</span>
+      <label style="cursor:pointer;padding:6px 10px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;font-size:12px;color:var(--text-muted);white-space:nowrap" title="Upload PDF directly if URL is blocked">
+        📎 Upload PDF
+        <input type="file" id="tsbFile" accept=".pdf" style="display:none">
+      </label>
       <button class="admin-btn" id="tsbFetchBtn" style="white-space:nowrap">⊕ Fetch &amp; Fill</button>
     </div>
     <div id="tsbFetchStatus" style="font-size:10px;color:var(--muted);margin-top:4px"></div>
@@ -1361,19 +1371,34 @@ function updateRecallSourceUI() {
 }
 
 async function fetchAndFillRecall() {
-  const url = document.getElementById('rcUrl').value.trim();
-  const status = document.getElementById('rcFetchStatus');
-  if (!url) { status.textContent = 'Enter a URL first.'; return; }
+  const url       = document.getElementById('rcUrl').value.trim();
+  const fileInput = document.getElementById('rcFile');
+  const file      = fileInput?.files?.[0];
+  const status    = document.getElementById('rcFetchStatus');
+  if (!url && !file) { status.textContent = 'Enter a URL or upload a PDF.'; return; }
   const btn = document.getElementById('rcFetchBtn');
   btn.disabled = true; btn.textContent = 'Fetching…';
   status.style.color = 'var(--muted)';
   status.textContent = 'Fetching and reading document…';
   setGZ('loading', 'Reading recall document…');
   try {
+    let body;
+    if (file) {
+      status.textContent = 'Reading PDF locally…';
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      body = JSON.stringify({ pdfBase64: base64, filename: file.name });
+    } else {
+      body = JSON.stringify({ url });
+    }
     const res = await apiFetch('/api/recall-fetch', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ url })
+      body
     });
     if (res.campaign)  document.getElementById('rcCampaign').value  = res.campaign;
     if (res.title)     document.getElementById('rcTitle').value     = res.title;
@@ -1461,17 +1486,33 @@ async function addRecall() {
 
 // ── ADD TSB DIRECTLY ────────────────────────
 async function fetchAndFillTsb() {
-  const url = document.getElementById('tsbUrl').value.trim();
-  if (!url) return;
+  const url      = document.getElementById('tsbUrl').value.trim();
+  const fileInput = document.getElementById('tsbFile');
+  const file     = fileInput?.files?.[0];
+  if (!url && !file) return;
   const btn    = document.getElementById('tsbFetchBtn');
   const status = document.getElementById('tsbFetchStatus');
   btn.disabled = true; btn.textContent = 'Fetching…';
   status.textContent = 'Extracting data from document…';
   try {
+    let body;
+    if (file) {
+      // Client-side PDF read — bypasses server-side 403 blocks
+      status.textContent = 'Reading PDF locally…';
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      body = JSON.stringify({ pdfBase64: base64, filename: file.name });
+    } else {
+      body = JSON.stringify({ url });
+    }
     const res = await apiFetch('/api/tsb-fetch', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ url })
+      body
     });
     if (res.error) throw new Error(res.error);
 
