@@ -1772,6 +1772,97 @@ async function vinImportMissing() {
   }
 }
 
+// ── FORUM THREAD EXTRACTOR ("Generified" © 2026) ────────────────────────
+let __forumData = null;
+
+async function forumFetch() {
+  const url = document.getElementById('forumUrl').value.trim();
+  if (!url) { document.getElementById('forumStatus').textContent = '⚠ Please enter a forum URL'; return; }
+  const btn     = document.getElementById('forumFetchBtn');
+  const status  = document.getElementById('forumStatus');
+  const preview = document.getElementById('forumPreview');
+  btn.disabled = true; btn.textContent = 'Analysing…';
+  status.textContent = 'Claude is reading and generifying the thread — this may take 15-30 seconds…';
+  preview.style.display = 'none';
+  __forumData = null;
+  setGZ('loading', 'Generifying thread…');
+  try {
+    const data = await apiFetch('/api/forum-fetch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url })
+    });
+    __forumData = { ...data, source_url: url };
+    document.getElementById('fp-title').textContent     = data.title || 'Untitled Issue';
+    document.getElementById('fp-component').textContent = data.component || '';
+    document.getElementById('fp-summary').textContent   = data.summary || '';
+    const sevEl = document.getElementById('fp-severity');
+    sevEl.textContent = data.severity || 'MODERATE';
+    sevEl.style.background = data.severity==='CRITICAL' ? 'var(--recall)' : data.severity==='LOW' ? '#22c55e' : '#f59e0b';
+    sevEl.style.color = '#fff';
+    document.getElementById('fp-confidence').textContent = (data.confidence||'MEDIUM') + ' CONFIDENCE';
+    document.getElementById('fp-frequency').textContent  = data.frequency || '';
+    document.getElementById('fp-confidence-reason').textContent = data.confidence_reason || '';
+    const sympWrap = document.getElementById('fp-symptoms-wrap');
+    if (data.symptoms && data.symptoms.length) {
+      document.getElementById('fp-symptoms').innerHTML = data.symptoms.map(s => '<div>• ' + esc(s) + '</div>').join('');
+      sympWrap.style.display = 'block';
+    } else { sympWrap.style.display = 'none'; }
+    const remWrap = document.getElementById('fp-remedy-wrap');
+    if (data.remedy) {
+      document.getElementById('fp-remedy').textContent = data.remedy;
+      remWrap.style.display = 'block';
+    } else { remWrap.style.display = 'none'; }
+    document.getElementById('forumResult').textContent = '';
+    preview.style.display = 'block';
+    status.textContent = data.confidence === 'LOW'
+      ? '⚠ Low confidence — review carefully before approving'
+      : '✓ Thread generified — review and add to queue if appropriate';
+    setGZ('done', '');
+  } catch(e) {
+    status.textContent = '⚠ ' + e.message;
+    setGZ('err', e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = '🧵 Generify Thread';
+  }
+}
+
+async function forumSubmit() {
+  if (!__forumData) return;
+  const btn    = document.getElementById('forumSubmitBtn');
+  const result = document.getElementById('forumResult');
+  btn.disabled = true; btn.textContent = 'Adding…';
+  try {
+    const av      = __forumData.affected_vehicles?.[0];
+    const vehicle = av?.vehicle || getVehicle();
+    const yr      = av?.years?.[0] || parseInt(getYear());
+    await apiFetch('/api/community/submit', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        vehicle_key:  vehicle,
+        year:         yr,
+        title:        __forumData.title,
+        component:    __forumData.component,
+        severity:     __forumData.severity,
+        summary:      __forumData.summary,
+        symptoms:     __forumData.symptoms || [],
+        remedy:       __forumData.remedy   || '',
+        source_pills: ['Community Forum'],
+        links:        [{ label: 'Forum Thread', url: __forumData.source_url }],
+      })
+    });
+    result.style.color = '#22c55e';
+    result.textContent = '✓ Added to review queue — approve from the Research Sweep panel';
+    __forumData = null;
+  } catch(e) {
+    result.style.color = 'var(--recall)';
+    result.textContent = '⚠ ' + e.message;
+  } finally {
+    btn.disabled = false; btn.textContent = '⊕ Add to Review Queue';
+  }
+}
+
 // ── VIN LOOKUP ───────────────────────────────
 function openVinModal() {
   document.getElementById('vinOverlay').classList.add('open');
@@ -2091,6 +2182,16 @@ document.addEventListener('DOMContentLoaded', () => {
     if (id === 'tsbFetchBtn')       { e.stopPropagation(); fetchAndFillTsb(); return; }
     if (id === 'addTsbBtn')        { e.stopPropagation(); addTsb(); return; }
     if (id === 'vinImportBtn')     { e.stopPropagation(); vinImportMissing(); return; }
+    if (id === 'forumFetchBtn')   { e.stopPropagation(); forumFetch(); return; }
+    if (id === 'forumSubmitBtn')  { e.stopPropagation(); forumSubmit(); return; }
+    if (id === 'forumClearBtn')   {
+      e.stopPropagation();
+      document.getElementById('forumPreview').style.display='none';
+      document.getElementById('forumUrl').value='';
+      document.getElementById('forumStatus').textContent='';
+      document.getElementById('forumResult').textContent='';
+      __forumData=null; return;
+    }
     if (id === 'vinLookupBtn')     { e.stopPropagation(); openVinModal(); return; }
     if (id === 'vinCloseBtn')      { e.stopPropagation(); closeVinModal(); return; }
     if (id === 'vinSearchBtn')     { e.stopPropagation(); vinLookup(); return; }
