@@ -1130,13 +1130,14 @@ function buildCard(rec, type, idx) {
   if(!rec) return '';
   const id = 'card-'+type+'-'+idx;
   const sc = rec.severity==='CRITICAL'?'sv-critical':rec.severity==='LOW'?'sv-low':'sv-moderate';
-  const pills = (rec.source_pills||rec.sourcePills||[]).map(p=>{
+  const safeArr = v => { if (!v) return []; if (Array.isArray(v)) return v; try { return JSON.parse(v); } catch { return []; } };
+  const pills = safeArr(rec.source_pills||rec.sourcePills).map(p=>{
     const c=/nhtsa/i.test(p)?'p-nhtsa':/transport canada/i.test(p)?'p-tc':/reddit/i.test(p)?'p-reddit':/forum/i.test(p)?'p-forum':/dealer/i.test(p)?'p-dealer':/facebook/i.test(p)?'p-facebook':/tsb/i.test(p)?'p-tsb':'p-submitted';
     const icon=/transport canada/i.test(p)?'🍁 ':'';
     return `<span class="pill ${c}">${icon}${esc(p)}</span>`;
   }).join('');
-  const symptoms = (rec.symptoms||[]).map(s=>`<li>${esc(s)}</li>`).join('');
-  const links = (() => { try { return Array.isArray(rec.links) ? rec.links : JSON.parse(rec.links||'[]'); } catch{ return []; }})();
+  const symptoms = safeArr(rec.symptoms).map(s=>`<li>${esc(s)}</li>`).join('');
+  const links = safeArr(rec.links);
   const linkHtml = links.map(l=>`<a class="ext-link" href="${esc(l.url)}" target="_blank" rel="noopener">${esc(l.label||'Source')}</a>`).join('');
   const dateStr = rec.created_at ? esc(String(rec.created_at).substring(0,10)) : '';
 
