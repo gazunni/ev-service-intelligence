@@ -2160,6 +2160,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const gzEl = document.getElementById('gzIcon');
   gzEl.addEventListener('mousedown', startGzHold);
   gzEl.addEventListener('touchstart', startGzHold, {passive:true});
+  // Click red GZ to reset it
+  gzEl.addEventListener('click', () => {
+    if (gzEl.classList.contains('err')) setGZ('done', '');
+  });
   gzEl.addEventListener('mouseup', cancelGzHold);
   gzEl.addEventListener('mouseleave', cancelGzHold);
   gzEl.addEventListener('touchend', cancelGzHold);
