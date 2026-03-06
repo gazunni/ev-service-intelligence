@@ -250,6 +250,76 @@ Respond ONLY with a valid JSON object.`,
   return result;
 }
 
+// ── EXTRACT RECALL FROM BASE64 PDF (client-uploaded, bypasses 403) ─────────
+export async function extractRecallFromBase64(base64, filename) {
+  const cacheKey = 'recall-b64:' + filename + ':' + base64.substring(0, 32);
+  const cached = cacheGet(cacheKey);
+  if (cached) return cached;
+
+  const messageContent = [
+    { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
+    { type: 'text', text: `Extract NHTSA recall fields. Respond ONLY with valid JSON, no markdown. Fields: campaign, title, summary, risk, remedy, units, affected_vehicles.\nMap vehicles: ${VEHICLE_MAP}.\nExample affected_vehicles: [{"vehicle":"mach_e","years":[2021,2022]}]. Empty array if none match.` }
+  ];
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'pdfs-2024-09-25',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: `You extract NHTSA recall data. Respond ONLY with a valid JSON object. Map vehicles: ${VEHICLE_MAP}.`,
+      messages: [{ role: 'user', content: messageContent }],
+    })
+  });
+
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || 'Claude API error');
+  const raw = (data.content?.[0]?.text || '{}').replace(/\`\`\`json|\`\`\`/g, '').trim();
+  const result = JSON.parse(raw);
+  cacheSet(cacheKey, result);
+  return result;
+}
+
+// ── EXTRACT TSB FROM BASE64 PDF (client-uploaded, bypasses 403) ──────────
+export async function extractTSBFromBase64(base64, filename) {
+  const cacheKey = 'tsb-b64:' + filename + ':' + base64.substring(0, 32);
+  const cached = cacheGet(cacheKey);
+  if (cached) return cached;
+
+  const messageContent = [
+    { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: base64 } },
+    { type: 'text', text: `Extract TSB information. Return ONLY valid JSON: {"bulletin":"...","title":"max 10 words","component":"...","severity":"CRITICAL|MODERATE|LOW","summary":"2-3 sentences","remedy":"...","affected_vehicles":[{"vehicle":"key","years":[2024]}]}\nMap vehicles: ${VEHICLE_MAP}. Empty array if none match. Return ONLY JSON.` }
+  ];
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+      'anthropic-beta': 'pdfs-2024-09-25',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1000,
+      system: `You extract TSB data from PDFs. Respond ONLY with a valid JSON object. Map vehicles: ${VEHICLE_MAP}.`,
+      messages: [{ role: 'user', content: messageContent }],
+    })
+  });
+
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || 'Claude API error');
+  const raw = (data.content?.[0]?.text || '{}').replace(/\`\`\`json|\`\`\`/g, '').trim();
+  const result = JSON.parse(raw);
+  cacheSet(cacheKey, result);
+  return result;
+}
+
 // ── MATCH/CLASSIFY COMMUNITY SUBMISSION ──────────────────────────────────
 export async function classifySubmission(title, detail, bulletin, existing) {
   const msg = await ai().messages.create({
