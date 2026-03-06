@@ -782,6 +782,25 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
       </div>
       <div id="fp-confidence-reason" style="font-size:11px;color:var(--text-muted);font-style:italic"></div>
     </div>
+    <div style="background:var(--input-bg);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px">
+      <div style="font-size:11px;font-weight:600;color:var(--text-muted);margin-bottom:8px">ASSIGN TO VEHICLE</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <select id="fp-vehicle" style="padding:6px 10px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+          <option value="equinox_ev">Chevrolet Equinox EV</option>
+          <option value="blazer_ev">Chevrolet Blazer EV</option>
+          <option value="mach_e">Ford Mustang Mach-E</option>
+          <option value="honda_prologue">Honda Prologue</option>
+          <option value="tesla_model_3">Tesla Model 3</option>
+          <option value="tesla_model_y">Tesla Model Y</option>
+        </select>
+        <select id="fp-year" style="padding:6px 10px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px">
+          <option>2026</option><option>2025</option><option>2024</option>
+          <option>2023</option><option>2022</option><option>2021</option>
+          <option>2020</option><option>2019</option><option>2018</option><option>2017</option>
+        </select>
+        <span style="font-size:11px;color:var(--text-muted)">(Claude's best guess pre-selected — adjust if needed)</span>
+      </div>
+    </div>
     <div style="display:flex;gap:8px">
       <button class="submit-btn" id="forumSubmitBtn">⊕ Add to Review Queue</button>
       <button class="cancel-btn" id="forumClearBtn">✕ Clear</button>
@@ -1814,6 +1833,18 @@ async function forumFetch() {
       remWrap.style.display = 'block';
     } else { remWrap.style.display = 'none'; }
     document.getElementById('forumResult').textContent = '';
+
+    // Pre-populate vehicle/year selectors from Claude's extraction
+    const av = data.affected_vehicles?.[0];
+    if (av?.vehicle) {
+      const vSel = document.getElementById('fp-vehicle');
+      if ([...vSel.options].some(o => o.value === av.vehicle)) vSel.value = av.vehicle;
+    }
+    if (av?.years?.[0]) {
+      const ySel = document.getElementById('fp-year');
+      if ([...ySel.options].some(o => o.value === String(av.years[0]))) ySel.value = String(av.years[0]);
+    }
+
     preview.style.display = 'block';
     status.textContent = data.confidence === 'LOW'
       ? '⚠ Low confidence — review carefully before approving'
@@ -1833,23 +1864,20 @@ async function forumSubmit() {
   const result = document.getElementById('forumResult');
   btn.disabled = true; btn.textContent = 'Adding…';
   try {
-    const av      = __forumData.affected_vehicles?.[0];
-    const vehicle = av?.vehicle || getVehicle();
-    const yr      = av?.years?.[0] || parseInt(getYear());
-    await apiFetch('/api/community/submit', {
+    // Read from the vehicle/year selectors in the preview panel
+    const vehicle = document.getElementById('fp-vehicle').value;
+    const yr      = parseInt(document.getElementById('fp-year').value);
+    await apiFetch('/api/submit', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        vehicle_key:  vehicle,
-        year:         yr,
-        title:        __forumData.title,
-        component:    __forumData.component,
-        severity:     __forumData.severity,
-        summary:      __forumData.summary,
-        symptoms:     __forumData.symptoms || [],
-        remedy:       __forumData.remedy   || '',
-        source_pills: ['Community Forum'],
-        links:        [{ label: 'Forum Thread', url: __forumData.source_url }],
+        vehicle:    vehicle,
+        year:       yr,
+        title:      __forumData.title      || '',
+        detail:     __forumData.summary    || '',
+        bulletin:   __forumData.component  || '',
+        sourceUrl:  __forumData.source_url || '',
+        srcType:    'forum',
       })
     });
     result.style.color = '#22c55e';
