@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { query } from '../services/database.js';
-import { extractTSBFromUrl, validateTSBExtraction } from '../services/ai.js';
+import { extractTSBFromUrl, extractTSBFromBase64, validateTSBExtraction } from '../services/ai.js';
 
 const router = Router();
 
@@ -19,10 +19,12 @@ router.get('/', async (req, res) => {
 
 // ── FETCH & EXTRACT FROM PDF/URL ──────────────────────────────────────────
 router.post('/fetch', async (req, res) => {
-  const { url } = req.body || {};
-  if (!url) return res.status(400).json({ error: 'url required' });
+  const { url, pdfBase64, filename } = req.body || {};
+  if (!url && !pdfBase64) return res.status(400).json({ error: 'url or pdfBase64 required' });
   try {
-    const raw = await extractTSBFromUrl(url);
+    const raw = pdfBase64
+      ? await extractTSBFromBase64(pdfBase64, filename || 'upload.pdf')
+      : await extractTSBFromUrl(url);
     const data = validateTSBExtraction(raw);
     res.json(data);
   } catch (e) {
