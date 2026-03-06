@@ -249,6 +249,75 @@ router.post('/dedupe', async (req, res) => {
   }
 });
 
+// ── RESCUE SUPPRESSED PILLS ──────────────────────────────────────────────
+// One-time fix: copies source_pills and links from suppressed records onto
+// their surviving counterparts. Safe to run multiple times.
+router.post('/rescue-pills', async (req, res) => {
+  try {
+    // Get all suppressed records that have source_pills
+    const suppressed = await query(
+      `SELECT id, vehicle_key, year, title, source_pills, links
+       FROM community WHERE status='suppressed'`
+    );
+
+    const parseArr = v => {
+      if (!v) return [];
+      if (Array.isArray(v)) return v;
+      try { return JSON.parse(v); } catch { return []; }
+    };
+
+    const normalize = s => (s||'').toLowerCase().replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();
+
+    let fixed = 0;
+    const details = [];
+
+    for (const sup of suppressed) {
+      const supPills = parseArr(sup.source_pills);
+      const supLinks = parseArr(sup.links);
+      if (!supPills.length && !supLinks.length) continue;
+
+      // Find active records for same vehicle/year with similar title
+      const candidates = await query(
+        `SELECT id, title, source_pills, links FROM community
+         WHERE vehicle_key=$1 AND year=$2 AND status='active'`,
+        [sup.vehicle_key, sup.year]
+      );
+
+      for (const active of candidates) {
+        const supTok  = new Set(normalize(sup.title).split(' ').filter(w => w.length > 3));
+        const actTok  = normalize(active.title).split(' ').filter(w => w.length > 3);
+        const overlap = actTok.filter(w => supTok.has(w)).length;
+        const sim     = supTok.size > 0 ? overlap / Math.max(supTok.size, actTok.length) : 0;
+
+        if (sim >= 0.4) {
+          const activePills = parseArr(active.source_pills);
+          const activeLinks = parseArr(active.links);
+          const newPills = supPills.filter(p => !activePills.includes(p));
+          const seenUrls = new Set(activeLinks.map(l => l.url || l));
+          const newLinks = supLinks.filter(l => !seenUrls.has(l.url || l));
+
+          if (newPills.length || newLinks.length) {
+            const mergedPills = [...activePills, ...newPills];
+            const mergedLinks = [...activeLinks, ...newLinks];
+            await query(
+              `UPDATE community SET source_pills=$1, links=$2, updated_at=NOW() WHERE id=$3`,
+              [JSON.stringify(mergedPills), JSON.stringify(mergedLinks), active.id]
+            );
+            fixed++;
+            details.push({ active: active.id, addedPills: newPills, from: sup.id });
+          }
+          break;
+        }
+      }
+    }
+
+    res.json({ ok: true, fixed, details });
+  } catch(e) {
+    console.error('rescue-pills error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── FORUM THREAD EXTRACTION ("Generified" © 2026) ────────────────────────
 router.post('/forum-fetch', async (req, res) => {
   const { url } = req.body || {};
