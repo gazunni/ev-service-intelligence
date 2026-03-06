@@ -10,7 +10,12 @@ router.get('/', async (req, res) => {
   if (!vehicle || !year) return res.status(400).json({ error: 'vehicle and year required' });
   try {
     const rows = await query(
-      `SELECT * FROM community WHERE vehicle_key=$1 AND year=$2 AND status='active'
+      `SELECT id, vehicle_key, year, title, component, severity, summary, remedy,
+              bulletin_ref, confirmations, ai_sweep, status, created_at, updated_at,
+              array_to_json(symptoms)::text     AS symptoms,
+              array_to_json(source_pills)::text AS source_pills,
+              links::text                       AS links
+       FROM community WHERE vehicle_key=$1 AND year=$2 AND status='active'
        ORDER BY is_seeded DESC, confirmations DESC, created_at DESC`,
       [vehicle, parseInt(year)]
     );
@@ -138,14 +143,24 @@ router.post('/clone', async (req, res) => {
   if (!src_id || !targets?.length)
     return res.status(400).json({ error: 'src_id and targets required' });
   try {
-    const rows = await query(`SELECT * FROM community WHERE id=$1`, [src_id]);
+    // Cast array columns to text to avoid malformed array errors on bad data
+    const rows = await query(
+      `SELECT id, vehicle_key, year, title, component, severity, summary, remedy,
+              bulletin_ref, confirmations, ai_sweep, status,
+              array_to_json(symptoms)::text      AS symptoms,
+              array_to_json(source_pills)::text  AS source_pills,
+              links::text                        AS links
+       FROM community WHERE id=$1`, [src_id]);
     if (!rows.length) return res.status(404).json({ error: 'Source community issue not found' });
     const src = rows[0];
 
-    const toJsonStr = v => {
-      if (!v) return '[]';
-      if (typeof v === 'string') return v;
-      return JSON.stringify(v);
+    // Parse text-cast arrays back safely
+    const safeArr = v => {
+      if (!v || v === 'null') return '[]';
+      if (typeof v === 'string' && (v.startsWith('[') || v.startsWith('{'))) {
+        try { return JSON.stringify(JSON.parse(v)); } catch {}
+      }
+      return v;
     };
 
     let count = 0;
@@ -158,8 +173,8 @@ router.post('/clone', async (req, res) => {
          ON CONFLICT (id) DO NOTHING`,
         [newId, vehicle, parseInt(year),
          src.title, src.component, src.severity, src.summary,
-         toJsonStr(src.symptoms), src.remedy, src.bulletin_ref,
-         toJsonStr(src.source_pills), toJsonStr(src.links),
+         safeArr(src.symptoms), src.remedy, src.bulletin_ref,
+         safeArr(src.source_pills), safeArr(src.links),
          src.confirmations || 1, src.ai_sweep || false, src.status || 'active']
       );
       count++;
