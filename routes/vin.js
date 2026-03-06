@@ -22,6 +22,29 @@ function pickRecallArray(payload) {
   return [];
 }
 
+function scopedRecallId(vehicle, year, campaignId, fallback) {
+  if (!campaignId) return fallback;
+  return `${vehicle}:${year}:${campaignId}`;
+}
+
+async function findRecallRowForContext(vehicle, year, campaignId) {
+  if (!campaignId) return null;
+  const rows = await query(
+    `SELECT id
+       FROM recalls
+      WHERE vehicle_key = $1
+        AND year = $2
+        AND (
+          UPPER(REGEXP_REPLACE(COALESCE(id,''), '[^A-Z0-9]', '', 'g')) = $3
+          OR UPPER(REGEXP_REPLACE(COALESCE(raw_nhtsa->>'NHTSACampaignNumber', raw_nhtsa->>'campaign_id', ''), '[^A-Z0-9]', '', 'g')) = $3
+        )
+      ORDER BY updated_at DESC NULLS LAST, created_at DESC NULLS LAST
+      LIMIT 1`,
+    [vehicle, year, campaignId]
+  );
+  return rows[0] || null;
+}
+
 // ── DECODE VIN ────────────────────────────────────────────────────────────
 router.get('/decode', async (req, res) => {
   const vin = normalizeVin(req.query?.vin);
@@ -38,7 +61,6 @@ router.get('/decode', async (req, res) => {
   }
 });
 
-// Optional compatibility alias if any client calls POST /api/vin/lookup
 router.post('/lookup', async (req, res) => {
   const vin = normalizeVin(req.body?.vin);
   if (!isValidVin(vin)) {
@@ -75,11 +97,6 @@ router.get('/recalls', async (req, res) => {
 });
 
 // ── IMPORT VIN RECALLS TO DB ──────────────────────────────────────────────
-// Compatible with the existing client contract:
-//   { vehicle, year, recalls }
-// Also supports a fallback contract:
-//   { vehicle, year, vin, make, model }
-// In both cases it now reports actual inserts rather than attempted inserts.
 router.post('/import', async (req, res) => {
   const vehicle = String(req.body?.vehicle || '').trim();
   const year = parseInt(req.body?.year, 10);
@@ -94,7 +111,6 @@ router.post('/import', async (req, res) => {
   try {
     let recalls = pickRecallArray(req.body?.recalls);
 
-    // Fallback path if caller sends vin/make/model/year instead of recalls[]
     if (!recalls.length && isValidVin(vin)) {
       const recallData = await fetchVINRecalls(vin, make, model, String(year));
       recalls = pickRecallArray(recallData);
@@ -110,8 +126,8 @@ router.post('/import', async (req, res) => {
 
     for (const r of recalls) {
       const campaignRaw = r.NHTSACampaignNumber || r.recallId || r.campaign_id || '';
-      const id = canonicalCampaignId(campaignRaw);
-      if (!id) {
+      const campaignId = canonicalCampaignId(campaignRaw);
+      if (!campaignId) {
         skipped++;
         continue;
       }
@@ -131,26 +147,34 @@ router.post('/import', async (req, res) => {
         '';
 
       const remedy = r.Remedy || r.remedy || '';
-
-      const result = await query(
-        `INSERT INTO recalls (id, vehicle_key, year, title, risk, remedy, source_pills, raw_nhtsa)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb)
-         ON CONFLICT (id) DO NOTHING
-         RETURNING id`,
+      const existingRow = await findRecallRowForContext(vehicle, year, campaignId);
+      const rowId = existingRow?.id || scopedRecallId(vehicle, year, campaignId, `r-${Date.now()}-${Math.random().toString(36).slice(2,8)}`);
+      const rows = await query(
+        `INSERT INTO recalls (id, vehicle_key, year, title, risk, remedy, source_pills, raw_nhtsa, updated_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, NOW())
+         ON CONFLICT (id) DO UPDATE SET
+           title=EXCLUDED.title,
+           risk=EXCLUDED.risk,
+           remedy=EXCLUDED.remedy,
+           source_pills=EXCLUDED.source_pills,
+           raw_nhtsa=EXCLUDED.raw_nhtsa,
+           updated_at=NOW()
+         RETURNING id, (xmax = 0) AS inserted`,
         [
-          id,
+          rowId,
           vehicle,
           year,
           title,
           risk,
           remedy,
-          '{NHTSA Official}',
+          ['NHTSA Official'],
           JSON.stringify(r),
         ]
       );
 
-      if (result.rowCount > 0) inserted++;
-      else existing++;
+      if (rows[0]?.inserted) inserted++;
+      else if (existingRow) existing++;
+      else skipped++;
     }
 
     res.json({ ok: true, count: inserted, inserted, existing, skipped });
