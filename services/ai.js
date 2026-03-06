@@ -168,6 +168,80 @@ export async function extractTSBFromUrl(url) {
   return result;
 }
 
+// ── EXTRACT COMMUNITY ISSUE FROM FORUM THREAD ("Generified" © 2026) ────────
+// Synthesizes a forum thread into an anonymized, structured community issue.
+// No personal data, usernames, or quoted text is preserved — only the
+// generified pattern: what the problem is, how common, what helps.
+export async function extractForumThread(url) {
+  const cached = cacheGet('forum:' + url);
+  if (cached) { console.log('cache hit: forum', url); return cached; }
+
+  const r = await fetch(url, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; EVServiceBot/1.0)' }
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status} fetching forum URL`);
+
+  // Strip HTML tags, collapse whitespace, limit size
+  const raw = await r.text();
+  const text = raw
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .substring(0, 18000);
+
+  const prompt = `You are analyzing a community forum thread about an electric vehicle issue.
+Your job is to "generify" the thread — synthesize it into an anonymized, structured issue report.
+Do NOT quote any specific user. Do NOT include usernames, dates, or personal details.
+Only extract the pattern: what the problem is, how widespread it seems, what helps.
+
+Respond ONLY with valid JSON, no markdown, no preamble. Fields:
+
+{
+  "title": "Short descriptive title of the issue (max 80 chars)",
+  "component": "Affected system/component (e.g. ELECTRICAL SYSTEM, BRAKES, SOFTWARE)",
+  "severity": "CRITICAL | MODERATE | LOW",
+  "summary": "2-4 sentence generified description of the issue pattern. No personal details. No quotes.",
+  "symptoms": ["symptom 1", "symptom 2"],
+  "remedy": "Known fixes or workarounds reported by the community, or empty string if none",
+  "frequency": "WIDESPREAD | COMMON | OCCASIONAL | RARE — your assessment of how many owners affected",
+  "confidence": "HIGH | MEDIUM | LOW — based on number of corroborating reports and consistency",
+  "confidence_reason": "One sentence explaining the confidence rating",
+  "affected_vehicles": [{"vehicle": "vehicle_key", "years": [2022, 2023]}],
+  "source_type": "community_forum"
+}
+
+Vehicle keys: ${VEHICLE_MAP}
+
+Forum thread content:
+${text}`;
+
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': process.env.ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 1500,
+      system: `You synthesize forum threads into generified, anonymized vehicle issue reports.
+You never quote users directly. You never include personal information.
+You assess confidence based on how many distinct voices report the same pattern.
+Respond ONLY with a valid JSON object.`,
+      messages: [{ role: 'user', content: prompt }],
+    })
+  });
+
+  const data = await res.json();
+  if (data.error) throw new Error(data.error.message || 'Claude API error');
+  const cleaned = (data.content?.[0]?.text || '{}').replace(/\`\`\`json|\`\`\`/g, '').trim();
+  const result = JSON.parse(cleaned);
+  cacheSet('forum:' + url, result);
+  return result;
+}
+
 // ── MATCH/CLASSIFY COMMUNITY SUBMISSION ──────────────────────────────────
 export async function classifySubmission(title, detail, bulletin, existing) {
   const msg = await ai().messages.create({
