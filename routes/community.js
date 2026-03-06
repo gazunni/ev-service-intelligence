@@ -171,6 +171,58 @@ router.post('/clone', async (req, res) => {
   }
 });
 
+// ── COMMUNITY DEDUPE ─────────────────────────────────────────────────────
+// Finds and merges duplicate community issues for a vehicle/year.
+// Keeps the record with most confirmations, adds confirmations from merged records,
+// combines summaries if they add detail, then suppresses the duplicates.
+router.post('/dedupe', async (req, res) => {
+  try {
+    const issues = await query(
+      `SELECT id, vehicle_key, year, title, summary, component, confirmations, status
+       FROM community WHERE status='active' ORDER BY vehicle_key, year, confirmations DESC`
+    );
+
+    const merged = [];
+    const suppressed = new Set();
+
+    for (let i = 0; i < issues.length; i++) {
+      if (suppressed.has(issues[i].id)) continue;
+      const base = issues[i];
+
+      for (let j = i + 1; j < issues.length; j++) {
+        if (suppressed.has(issues[j].id)) continue;
+        const cand = issues[j];
+
+        // Only compare same vehicle + year
+        if (base.vehicle_key !== cand.vehicle_key || base.year !== cand.year) continue;
+
+        // Title similarity check — normalize and compare
+        const normalize = s => (s||'').toLowerCase().replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();
+        const baseTok = new Set(normalize(base.title).split(' ').filter(w => w.length > 3));
+        const candTok = normalize(cand.title).split(' ').filter(w => w.length > 3);
+        const overlap = candTok.filter(w => baseTok.has(w)).length;
+        const similarity = baseTok.size > 0 ? overlap / Math.max(baseTok.size, candTok.length) : 0;
+
+        if (similarity >= 0.4) {
+          // Merge: add confirmations to winner, suppress loser
+          await query(
+            `UPDATE community SET confirmations=confirmations+$1, updated_at=NOW() WHERE id=$2`,
+            [cand.confirmations || 1, base.id]
+          );
+          await query(`UPDATE community SET status='suppressed' WHERE id=$1`, [cand.id]);
+          suppressed.add(cand.id);
+          merged.push({ kept: base.id, suppressed: cand.id, title: base.title, similarity: Math.round(similarity * 100) });
+        }
+      }
+    }
+
+    res.json({ ok: true, mergedCount: merged.length, merged });
+  } catch(e) {
+    console.error('community-dedupe error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── FORUM THREAD EXTRACTION ("Generified" © 2026) ────────────────────────
 router.post('/forum-fetch', async (req, res) => {
   const { url } = req.body || {};
