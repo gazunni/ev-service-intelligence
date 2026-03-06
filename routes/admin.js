@@ -18,8 +18,9 @@ export function checkAdminAny(req, res) {
   return true;
 }
 
-// ── NHTSA TEST (no auth — remove after debugging) ───────────────────────
+// ── NHTSA TEST (admin only) ─────────────────────────────────────────────
 router.get('/nhtsa-test', async (req, res) => {
+  if (!checkAdminAny(req, res)) return;
   const { vehicle } = req.query;
   const VMAP = {
     tesla_model_3: { make: 'TESLA', model: 'MODEL 3' },
