@@ -179,7 +179,7 @@ router.post('/dedupe', async (req, res) => {
   try {
     const issues = await query(
       `SELECT id, vehicle_key, year, title, summary, component, confirmations, status,
-              source_pills::text AS source_pills,
+              array_to_json(source_pills)::text AS source_pills,
               links::text AS links
        FROM community WHERE status='active' ORDER BY vehicle_key, year, confirmations DESC`
     );
@@ -269,10 +269,10 @@ router.post('/dedupe', async (req, res) => {
 // their surviving counterparts. Safe to run multiple times.
 router.post('/rescue-pills', async (req, res) => {
   try {
-    // Get all suppressed records — cast to text to avoid malformed array errors
+    // Use array_to_json to safely read potentially malformed array columns
     const suppressed = await query(
       `SELECT id, vehicle_key, year, title,
-              source_pills::text AS source_pills,
+              array_to_json(source_pills)::text AS source_pills,
               links::text AS links
        FROM community WHERE status='suppressed'`
     );
@@ -322,7 +322,7 @@ router.post('/rescue-pills', async (req, res) => {
       // Find active records for same vehicle/year with similar title
       const candidates = await query(
         `SELECT id, title,
-                source_pills::text AS source_pills,
+                array_to_json(source_pills)::text AS source_pills,
                 links::text AS links
          FROM community WHERE vehicle_key=$1 AND year=$2 AND status='active'`,
         [sup.vehicle_key, sup.year]
