@@ -210,8 +210,11 @@ router.post('/dedupe', async (req, res) => {
             if (Array.isArray(v)) return v;
             try { return JSON.parse(v); } catch { return []; }
           };
-          const basePills = parseArr(base.source_pills);
-          const candPills = parseArr(cand.source_pills);
+          const cleanPills = arr => arr
+            .map(p => { const s = String(p); return s.replace(/\r/g," ").replace(/\n/g," ").replace(/\t/g," ").replace(/  +/g," ").trim(); })
+            .filter(p => p.length > 0);
+          const basePills = cleanPills(parseArr(base.source_pills));
+          const candPills = cleanPills(parseArr(cand.source_pills));
           const mergedPills = [...new Set([...basePills, ...candPills])];
 
           // Merge links — combine unique links from both records
@@ -265,14 +268,18 @@ router.post('/rescue-pills', async (req, res) => {
       if (Array.isArray(v)) return v;
       try { return JSON.parse(v); } catch { return []; }
     };
+    // Sanitize pills — strip newlines, extra whitespace, empty strings
+    const cleanPills = arr => arr
+            .map(p => { const s = String(p); return s.replace(/\r/g," ").replace(/\n/g," ").replace(/\t/g," ").replace(/  +/g," ").trim(); })
+      .filter(p => p.length > 0);
+
 
     const normalize = s => (s||'').toLowerCase().replace(/[^a-z0-9 ]/g,'').replace(/\s+/g,' ').trim();
-
     let fixed = 0;
     const details = [];
 
     for (const sup of suppressed) {
-      const supPills = parseArr(sup.source_pills);
+      const supPills = cleanPills(parseArr(sup.source_pills));
       const supLinks = parseArr(sup.links);
       if (!supPills.length && !supLinks.length) continue;
 
@@ -290,7 +297,7 @@ router.post('/rescue-pills', async (req, res) => {
         const sim     = supTok.size > 0 ? overlap / Math.max(supTok.size, actTok.length) : 0;
 
         if (sim >= 0.4) {
-          const activePills = parseArr(active.source_pills);
+          const activePills = cleanPills(parseArr(active.source_pills));
           const activeLinks = parseArr(active.links);
           const newPills = supPills.filter(p => !activePills.includes(p));
           const seenUrls = new Set(activeLinks.map(l => l.url || l));
