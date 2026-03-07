@@ -1915,19 +1915,27 @@ async function vinImportMissing() {
 
 
 
-function openVinReport(mode='view') {
-  const ctx = window.__vinReportContext;
-  if (!ctx || !ctx.vin || !ctx.vehicle || !ctx.year) {
-    alert('Run a VIN lookup first.');
-    return;
-  }
+function buildVinReportUrl(mode='view', ctxOverride=null) {
+  const ctx = ctxOverride || window.__vinReportContext || null;
+  if (!ctx || !ctx.vin || !ctx.vehicle || !ctx.year) return '';
   const qs = new URLSearchParams({
-    vin: ctx.vin,
-    vehicle: ctx.vehicle,
+    vin: String(ctx.vin || '').trim().toUpperCase(),
+    vehicle: String(ctx.vehicle || '').trim(),
     year: String(ctx.year),
     mode
   });
-  const url = `/report/vin?${qs.toString()}`;
+  return `/report/vin?${qs.toString()}`;
+}
+
+function openVinReport(mode='view') {
+  const url = buildVinReportUrl(mode);
+  if (!url) {
+    alert('Run a VIN lookup first.');
+    return;
+  }
+  try {
+    closeVinModal();
+  } catch(e) { /* ignore */ }
   window.location.assign(url);
 }
 
@@ -2186,8 +2194,8 @@ async function vinLookup() {
             ${missing.length ? `<button class="submit-btn" id="vinImportBtn" style="font-size:10px;padding:4px 12px">⊕ Import ${missing.length} Missing</button>` : '<div class="vin-cc-complete">✓ Database up to date</div>'}
           </div>
           <div class="vin-report-actions">
-            <button class="vin-report-btn" onclick="openVinReport('view')">📄 Open VIN Report</button>
-            <button class="vin-report-btn" onclick="openVinReport('print')">🖨 Print / Save PDF</button>
+            <a class="vin-report-btn" href="${buildVinReportUrl('view', window.__vinReportContext)}" onclick="event.preventDefault();openVinReport('view')">📄 Open VIN Report</a>
+            <a class="vin-report-btn" href="${buildVinReportUrl('print', window.__vinReportContext)}" onclick="event.preventDefault();openVinReport('print')">🖨 Print / Save PDF</a>
           </div>
         </div>`;
 
