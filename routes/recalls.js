@@ -6,57 +6,6 @@ import { fetchNHTSATSBs } from '../services/nhtsa.js';
 
 const router = Router();
 
-function normalizeCampaignId(raw) {
-  return String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-}
-
-function scopedRecallId(vehicle, year, campaignId, fallback) {
-  if (!campaignId) return fallback;
-  return `${vehicle}:${year}:${campaignId}`;
-}
-
-async function findRecallRowForContext(vehicle, year, campaignId) {
-  if (!campaignId) return null;
-  const rows = await query(
-    `SELECT id
-       FROM recalls
-      WHERE vehicle_key = $1
-        AND year = $2
-        AND (
-          UPPER(REGEXP_REPLACE(COALESCE(id,''), '[^A-Z0-9]', '', 'g')) = $3
-          OR UPPER(REGEXP_REPLACE(COALESCE(raw_nhtsa->>'NHTSACampaignNumber', raw_nhtsa->>'campaign_id', ''), '[^A-Z0-9]', '', 'g')) = $3
-        )
-      ORDER BY updated_at DESC NULLS LAST, created_at DESC NULLS LAST
-      LIMIT 1`,
-    [vehicle, year, campaignId]
-  );
-  return rows[0] || null;
-}
-
-async function upsertRecallForContext({ vehicle, year, campaignId, component, severity, title, risk, remedy, affectedUnits, sourcePills, rawNhtsa, status='active' }) {
-  const existing = campaignId ? await findRecallRowForContext(vehicle, year, campaignId) : null;
-  const fallbackId = `r-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
-  const rowId = existing?.id || scopedRecallId(vehicle, year, campaignId, fallbackId) || fallbackId;
-  const rows = await query(
-    `INSERT INTO recalls (id,vehicle_key,year,component,severity,title,risk,remedy,affected_units,source_pills,raw_nhtsa,status,updated_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,NOW())
-     ON CONFLICT (id) DO UPDATE SET
-       component=EXCLUDED.component,
-       severity=EXCLUDED.severity,
-       title=EXCLUDED.title,
-       risk=EXCLUDED.risk,
-       remedy=EXCLUDED.remedy,
-       affected_units=EXCLUDED.affected_units,
-       source_pills=EXCLUDED.source_pills,
-       raw_nhtsa=EXCLUDED.raw_nhtsa,
-       status=CASE WHEN recalls.status = 'suppressed' THEN recalls.status ELSE EXCLUDED.status END,
-       updated_at=NOW()
-     RETURNING id, (xmax = 0) AS inserted`,
-    [rowId, vehicle, year, component, severity, title, risk, remedy, affectedUnits, sourcePills, rawNhtsa, status]
-  );
-  return { id: rowId, inserted: !!rows[0]?.inserted, existed: !!existing };
-}
-
 // ── GET RECALLS ───────────────────────────────────────────────────────────
 router.get('/', async (req, res) => {
   const { vehicle, year } = req.query;
@@ -77,9 +26,11 @@ router.post('/nhtsa-import', async (req, res) => {
   const { vehicle, year } = req.body || {};
   if (!vehicle) return res.status(400).json({ error: 'vehicle required' });
   if (!VEHICLES[vehicle]) return res.status(400).json({ error: 'Unknown vehicle' });
+  // If year provided, fetch that year only; if omitted, fetch ALL years at once
   const yr = year ? parseInt(year) : null;
   try {
     const recalls = yr ? await fetchNHTSARecalls(vehicle, yr) : await fetchAllNHTSARecalls(vehicle);
+    // Merge duplicate campaign entries from NHTSA (same campaign, different Component)
     const importMap = new Map();
     for (const rc of recalls) {
       const id = canonicalRecallId(rc.NHTSACampaignNumber || rc.recallId, null);
@@ -94,29 +45,28 @@ router.post('/nhtsa-import', async (req, res) => {
       }
     }
     const dedupedRecalls = Array.from(importMap.values());
-    let stored = 0, updated = 0;
+    let stored = 0, skipped = 0;
 
     for (const rc of dedupedRecalls) {
-      const campaignId = normalizeCampaignId(rc.NHTSACampaignNumber || rc.recallId);
+      const id = canonicalRecallId(rc.NHTSACampaignNumber || rc.recallId, 'r-' + Date.now() + '-' + stored);
       const title = (rc.Component || rc.Summary || 'Recall').substring(0, 120);
       const severity = detectSeverity(rc.Consequence);
       const recallYear = yr || parseInt(rc.ModelYear || rc.modelYear || 0) || 2024;
-      const result = await upsertRecallForContext({
-        vehicle,
-        year: recallYear,
-        campaignId,
-        component: rc.Component || 'Unknown',
-        severity,
-        title,
-        risk: rc.Consequence || '',
-        remedy: rc.Remedy || '',
-        affectedUnits: rc.PotentialNumberOfUnitsAffected || null,
-        sourcePills: ['NHTSA Official'],
-        rawNhtsa: JSON.stringify(rc),
-      });
-      result.inserted ? stored++ : updated++;
+      const result = await query(
+        `INSERT INTO recalls (id,vehicle_key,year,component,severity,title,risk,remedy,affected_units,source_pills,raw_nhtsa,updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW())
+         ON CONFLICT (id) DO UPDATE SET
+           title=EXCLUDED.title, risk=EXCLUDED.risk, remedy=EXCLUDED.remedy,
+           severity=EXCLUDED.severity, raw_nhtsa=EXCLUDED.raw_nhtsa, updated_at=NOW()
+         WHERE recalls.status IS DISTINCT FROM 'suppressed'
+         RETURNING (xmax = 0) AS inserted`,
+        [id, vehicle, recallYear, rc.Component || 'Unknown', severity, title,
+         rc.Consequence || '', rc.Remedy || '', rc.PotentialNumberOfUnitsAffected || null,
+         ['NHTSA Official'], JSON.stringify(rc)]
+      );
+      result[0]?.inserted ? stored++ : skipped++;
     }
-    res.json({ ok: true, found: recalls.length, stored, updated });
+    res.json({ ok: true, found: recalls.length, stored, updated: skipped });
   } catch (e) {
     console.error('nhtsa-import error:', e.message);
     res.status(500).json({ error: e.message });
@@ -147,26 +97,23 @@ router.post('/add', async (req, res) => {
     return res.status(400).json({ error: 'vehicle, year, title and summary required' });
   try {
     const yr = parseInt(year);
-    const primaryId = source === 'tc' ? (tc_campaign_id || campaign_id || '') : (campaign_id || tc_campaign_id || '');
-    const campaignId = normalizeCampaignId(primaryId);
+    const primaryId = source === 'tc' ? (tc_campaign_id || title) : (campaign_id || title);
+    const rawId = primaryId.replace(/[^A-Za-z0-9]/g, '');
+    const id = rawId.length <= 12 && rawId.length >= 6 && /\d/.test(rawId)
+      ? rawId.toUpperCase()
+      : primaryId.toLowerCase().replace(/[^a-z0-9]+/g, '-').substring(0, 60);
     const pillsArr = source === 'tc'   ? ['Transport Canada']
                    : source === 'both' ? ['NHTSA Official', 'Transport Canada']
                    :                    ['NHTSA Official'];
+    const pills = '{' + pillsArr.join(',') + '}';
     const raw = JSON.stringify({ campaign_id, tc_campaign_id, source_url, affected_units });
-    const result = await upsertRecallForContext({
-      vehicle,
-      year: yr,
-      campaignId,
-      component: title || 'Unknown',
-      severity: severity || 'MODERATE',
-      title,
-      risk: (summary || risk) || '',
-      remedy: remedy || '',
-      affectedUnits: affected_units || null,
-      sourcePills: pillsArr,
-      rawNhtsa: raw,
-    });
-    res.json({ ok: true, inserted: result.inserted, updated: !result.inserted, id: result.id });
+    await query(
+      `INSERT INTO recalls (id,vehicle_key,year,title,risk,remedy,severity,source_pills,raw_nhtsa)
+       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+       ON CONFLICT (id) DO UPDATE SET title=EXCLUDED.title, risk=EXCLUDED.risk, remedy=EXCLUDED.remedy, updated_at=NOW()`,
+      [id, vehicle, yr, title, (summary || risk) || '', remedy || '', severity || 'MODERATE', pills, raw]
+    );
+    res.json({ ok: true });
   } catch (e) {
     console.error('recall-add error:', e.message);
     res.status(500).json({ error: e.message });
@@ -186,8 +133,10 @@ router.post('/sweep', async (req, res) => {
       fetchNHTSATSBs(vehicle, yr),
     ]);
 
-    let recallsStored = 0, recallsUpdated = 0, tsbsStored = 0;
+    let recallsStored = 0, tsbsStored = 0;
 
+    // NHTSA sometimes returns same campaign multiple times with different Component values
+    // Merge them: concatenate components, keep first for all other fields
     const recallMap = new Map();
     for (const r of rawRecalls) {
       const id = canonicalRecallId(r.NHTSACampaignNumber || r.recallId, null);
@@ -206,22 +155,19 @@ router.post('/sweep', async (req, res) => {
     const deduped = Array.from(recallMap.values());
 
     for (const r of deduped) {
-      const campaignId = normalizeCampaignId(r.NHTSACampaignNumber || r.recallId);
+      const id = canonicalRecallId(r.NHTSACampaignNumber || r.recallId, 'r-' + Date.now() + '-' + recallsStored);
       const title = (r.Component || r.Summary || 'Recall').substring(0, 120);
-      const result = await upsertRecallForContext({
-        vehicle,
-        year: yr,
-        campaignId,
-        component: r.Component || 'Unknown',
-        severity: detectSeverity(r.Consequence),
-        title,
-        risk: r.Consequence || '',
-        remedy: r.Remedy || '',
-        affectedUnits: r.PotentialNumberOfUnitsAffected || null,
-        sourcePills: ['NHTSA Official'],
-        rawNhtsa: JSON.stringify(r),
-      });
-      result.inserted ? recallsStored++ : recallsUpdated++;
+      await query(
+        `INSERT INTO recalls (id,vehicle_key,year,component,severity,title,risk,remedy,affected_units,source_pills,raw_nhtsa,updated_at)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,NOW())
+         ON CONFLICT (id) DO UPDATE SET
+           title=EXCLUDED.title, risk=EXCLUDED.risk, remedy=EXCLUDED.remedy,
+           severity=EXCLUDED.severity, raw_nhtsa=EXCLUDED.raw_nhtsa, updated_at=NOW()
+         WHERE recalls.status IS DISTINCT FROM 'suppressed'`,
+        [id, vehicle, yr, r.Component || 'Unknown', detectSeverity(r.Consequence), title,
+         r.Consequence || '', r.Remedy || '', r.PotentialNumberOfUnitsAffected || null, ['NHTSA Official'], JSON.stringify(r)]
+      );
+      recallsStored++;
     }
 
     for (const t of rawTSBs) {
@@ -241,10 +187,10 @@ router.post('/sweep', async (req, res) => {
     await query(
       `INSERT INTO sweep_log (vehicle_key,year,recalls_found,tsbs_found,swept_at) VALUES ($1,$2,$3,$4,NOW())
        ON CONFLICT (vehicle_key,year) DO UPDATE SET recalls_found=$3,tsbs_found=$4,swept_at=NOW()`,
-      [vehicle, yr, recallsStored + recallsUpdated, tsbsStored]
+      [vehicle, yr, recallsStored, tsbsStored]
     );
 
-    res.json({ success: true, recalls: recallsStored, recallUpdates: recallsUpdated, tsbs: tsbsStored });
+    res.json({ success: true, recalls: recallsStored, tsbs: tsbsStored });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 

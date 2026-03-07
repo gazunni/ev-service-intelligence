@@ -1,95 +1,27 @@
 import { Router } from 'express';
 import { query } from '../services/database.js';
-import { decodeVIN, fetchVINRecalls } from '../services/nhtsa.js';
+import { decodeVIN, fetchVINRecalls, VEHICLES } from '../services/nhtsa.js';
 
 const router = Router();
 
-function normalizeVin(vin) {
-  return String(vin || '').trim().toUpperCase();
-}
-
-function isValidVin(vin) {
-  return /^[A-HJ-NPR-Z0-9]{17}$/.test(vin);
-}
-
-function canonicalCampaignId(raw) {
-  return String(raw || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
-}
-
-function pickRecallArray(payload) {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.results)) return payload.results;
-  return [];
-}
-
-function scopedRecallId(vehicle, year, campaignId, fallback) {
-  if (!campaignId) return fallback;
-  return `${vehicle}:${year}:${campaignId}`;
-}
-
-async function findRecallRowForContext(vehicle, year, campaignId) {
-  if (!campaignId) return null;
-  const rows = await query(
-    `SELECT id
-       FROM recalls
-      WHERE vehicle_key = $1
-        AND year = $2
-        AND (
-          UPPER(REGEXP_REPLACE(COALESCE(id,''), '[^A-Z0-9]', '', 'g')) = $3
-          OR UPPER(REGEXP_REPLACE(COALESCE(raw_nhtsa->>'NHTSACampaignNumber', raw_nhtsa->>'campaign_id', ''), '[^A-Z0-9]', '', 'g')) = $3
-        )
-      ORDER BY updated_at DESC NULLS LAST, created_at DESC NULLS LAST
-      LIMIT 1`,
-    [vehicle, year, campaignId]
-  );
-  return rows[0] || null;
-}
-
 // ── DECODE VIN ────────────────────────────────────────────────────────────
 router.get('/decode', async (req, res) => {
-  const vin = normalizeVin(req.query?.vin);
-  if (!isValidVin(vin)) {
-    return res.status(400).json({ error: 'Valid 17-char VIN required' });
-  }
-
+  const { vin } = req.query;
+  if (!vin || vin.length !== 17) return res.status(400).json({ error: 'Valid 17-char VIN required' });
   try {
-    const data = await decodeVIN(vin);
-    res.json(data);
+    res.json(await decodeVIN(vin));
   } catch (e) {
     console.error('vin-decode error:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
 
-router.post('/lookup', async (req, res) => {
-  const vin = normalizeVin(req.body?.vin);
-  if (!isValidVin(vin)) {
-    return res.status(400).json({ error: 'Valid 17-char VIN required' });
-  }
-
-  try {
-    const data = await decodeVIN(vin);
-    res.json(data);
-  } catch (e) {
-    console.error('vin-lookup error:', e.message);
-    res.status(500).json({ error: e.message });
-  }
-});
-
 // ── FETCH VIN-SPECIFIC RECALLS ────────────────────────────────────────────
 router.get('/recalls', async (req, res) => {
-  const vin = normalizeVin(req.query?.vin);
-  const make = String(req.query?.make || '').trim();
-  const model = String(req.query?.model || '').trim();
-  const year = String(req.query?.year || '').trim();
-
-  if (!isValidVin(vin)) {
-    return res.status(400).json({ error: 'Valid 17-char VIN required' });
-  }
-
+  const { vin, make, model, year } = req.query;
+  if (!vin || vin.length !== 17) return res.status(400).json({ error: 'Valid 17-char VIN required' });
   try {
-    const data = await fetchVINRecalls(vin, make, model, year);
-    res.json(data);
+    res.json(await fetchVINRecalls(vin, make, model, year));
   } catch (e) {
     console.error('vin-recalls error:', e.message);
     res.status(500).json({ error: e.message });
@@ -97,87 +29,89 @@ router.get('/recalls', async (req, res) => {
 });
 
 // ── IMPORT VIN RECALLS TO DB ──────────────────────────────────────────────
-router.post('/import', async (req, res) => {
-  const vehicle = String(req.body?.vehicle || '').trim();
-  const year = parseInt(req.body?.year, 10);
-  const vin = normalizeVin(req.body?.vin);
-  const make = String(req.body?.make || '').trim();
-  const model = String(req.body?.model || '').trim();
+function normalizeVehicleKey(raw = '') {
+  const key = String(raw || '').trim();
+  return Object.prototype.hasOwnProperty.call(VEHICLES, key) ? key : '';
+}
 
-  if (!vehicle || !Number.isInteger(year)) {
+router.post('/import', async (req, res) => {
+  const {
+    vehicle,
+    year,
+    recalls,
+    decodedVehicle,
+    decodedYear,
+    vin,
+  } = req.body || {};
+
+  if (!vehicle || !year || !recalls?.length) {
     return res.status(400).json({ error: 'vehicle, year and recalls required' });
   }
 
+  const selectedVehicle = normalizeVehicleKey(vehicle);
+  const sourceVehicle = normalizeVehicleKey(decodedVehicle || vehicle);
+  const selectedYear = parseInt(year, 10);
+  const sourceYear = parseInt(decodedYear || year, 10);
+
+  if (!selectedVehicle || !sourceVehicle) {
+    return res.status(400).json({ error: 'Unsupported vehicle for VIN import' });
+  }
+  if (!Number.isInteger(selectedYear) || !Number.isInteger(sourceYear)) {
+    return res.status(400).json({ error: 'Valid year required for VIN import' });
+  }
+  if (selectedVehicle !== sourceVehicle || selectedYear !== sourceYear) {
+    return res.status(409).json({
+      error: 'VIN vehicle/year does not match selected vehicle/year',
+      selectedVehicle,
+      selectedYear,
+      decodedVehicle: sourceVehicle,
+      decodedYear: sourceYear,
+    });
+  }
+
   try {
-    let recalls = pickRecallArray(req.body?.recalls);
-
-    if (!recalls.length && isValidVin(vin)) {
-      const recallData = await fetchVINRecalls(vin, make, model, String(year));
-      recalls = pickRecallArray(recallData);
-    }
-
-    if (!recalls.length) {
-      return res.status(400).json({ error: 'vehicle, year and recalls required' });
-    }
-
     let inserted = 0;
-    let existing = 0;
     let skipped = 0;
+    const insertedIds = [];
 
     for (const r of recalls) {
-      const campaignRaw = r.NHTSACampaignNumber || r.recallId || r.campaign_id || '';
-      const campaignId = canonicalCampaignId(campaignRaw);
-      if (!campaignId) {
+      const campaignRaw = r.NHTSACampaignNumber || r.recallId || '';
+      if (!campaignRaw) {
+        skipped++;
+        continue;
+      }
+      const id = campaignRaw.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (!id) {
         skipped++;
         continue;
       }
 
-      const title =
-        r.Component ||
-        r.component ||
-        r.Summary ||
-        r.summary ||
-        'Unknown Component';
-
-      const risk =
-        r.Summary ||
-        r.summary ||
-        r.Consequence ||
-        r.consequence ||
-        '';
-
-      const remedy = r.Remedy || r.remedy || '';
-      const existingRow = await findRecallRowForContext(vehicle, year, campaignId);
-      const rowId = existingRow?.id || scopedRecallId(vehicle, year, campaignId, `r-${Date.now()}-${Math.random().toString(36).slice(2,8)}`);
-      const rows = await query(
-        `INSERT INTO recalls (id, vehicle_key, year, title, risk, remedy, source_pills, raw_nhtsa, updated_at)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, NOW())
-         ON CONFLICT (id) DO UPDATE SET
-           title=EXCLUDED.title,
-           risk=EXCLUDED.risk,
-           remedy=EXCLUDED.remedy,
-           source_pills=EXCLUDED.source_pills,
-           raw_nhtsa=EXCLUDED.raw_nhtsa,
-           updated_at=NOW()
-         RETURNING id, (xmax = 0) AS inserted`,
+      const result = await query(
+        `INSERT INTO recalls (id,vehicle_key,year,title,risk,remedy,source_pills,raw_nhtsa)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+         ON CONFLICT (id) DO NOTHING
+         RETURNING id`,
         [
-          rowId,
-          vehicle,
-          year,
-          title,
-          risk,
-          remedy,
-          ['NHTSA Official'],
-          JSON.stringify(r),
+          id,
+          sourceVehicle,
+          sourceYear,
+          r.Component || r.component || 'Unknown Component',
+          r.Summary || r.summary || r.Consequence || r.consequence || '',
+          r.Remedy || r.remedy || '',
+          '{NHTSA Official}',
+          JSON.stringify({ ...r, __vin_import: { vin: vin || null, sourceVehicle, sourceYear } }),
         ]
       );
 
-      if (rows[0]?.inserted) inserted++;
-      else if (existingRow) existing++;
-      else skipped++;
+      if (result.rowCount > 0) {
+        inserted++;
+        insertedIds.push(id);
+      } else {
+        skipped++;
+      }
     }
 
-    res.json({ ok: true, count: inserted, inserted, existing, skipped });
+    res.json({ ok: true, inserted, skipped, insertedIds });
   } catch (e) {
     console.error('vin-import error:', e.message);
     res.status(500).json({ error: e.message });
