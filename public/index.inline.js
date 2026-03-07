@@ -28,6 +28,8 @@ function detectVehicleKey(make, model) {
   const d = canonicalKey(model);
   if (m === 'chevrolet' && d === 'equinoxev') return 'equinox_ev';
   if (m === 'chevrolet' && d === 'blazerev') return 'blazer_ev';
+  if (m === 'chevrolet' && d === 'bolteuv') return 'bolt_euv';
+  if (m === 'chevrolet' && d === 'boltev') return 'bolt_ev';
   if (m === 'ford' && (d === 'mustangmache' || d === 'mache')) return 'mach_e';
   if (m === 'honda' && d === 'prologue') return 'honda_prologue';
   if (m === 'tesla' && d === 'model3') return 'tesla_model_3';
@@ -932,6 +934,8 @@ async function adminAction(endpoint, resultId, btnId) {
 const vehicleYears = {
   equinox_ev:     [2026, 2025, 2024],
   blazer_ev:      [2026, 2025, 2024],
+  bolt_ev:        [2022, 2021, 2020, 2019, 2018, 2017],
+  bolt_euv:       [2023, 2022],
   mach_e:         [2026, 2025, 2024, 2023, 2022, 2021],
   honda_prologue: [2026, 2025, 2024],
   tesla_model_3:  [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017],
@@ -1354,8 +1358,6 @@ async function adminNhtsaImport() {
   const combos = [
     {vehicle:'equinox_ev',     years:[2024,2025,2026]},
     {vehicle:'blazer_ev',      years:[2024,2025,2026]},
-    {vehicle:'bolt_ev',        years:[2017,2018,2019,2020,2021,2022]},
-    {vehicle:'bolt_euv',       years:[2022,2023]},
     {vehicle:'mach_e',         years:[2021,2022,2023,2024,2025,2026]},
     {vehicle:'honda_prologue', years:[2024,2025,2026]},
   ];

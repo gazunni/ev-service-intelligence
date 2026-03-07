@@ -1986,6 +1986,8 @@ const vehicleCatalog = {
   chevrolet: [
     { key:'equinox_ev', label:'Chevrolet Equinox EV', years:[2026, 2025, 2024] },
     { key:'blazer_ev',  label:'Chevrolet Blazer EV',  years:[2026, 2025, 2024] },
+    { key:'bolt_ev',    label:'Chevrolet Bolt EV',    years:[2022, 2021, 2020, 2019, 2018, 2017] },
+    { key:'bolt_euv',   label:'Chevrolet Bolt EUV',   years:[2023, 2022] },
   ],
   ford: [
     { key:'mach_e', label:'Ford Mustang Mach-E', years:[2026, 2025, 2024, 2023, 2022, 2021] },
@@ -2083,6 +2085,8 @@ function mapDecodedVehicleKey(make, model){
   if (mk.includes('chevrolet') || mk.includes('chevy')) {
     if (md.includes('equinox')) return 'equinox_ev';
     if (md.includes('blazer')) return 'blazer_ev';
+    if (md.includes('bolt euv')) return 'bolt_euv';
+    if (md.includes('bolt')) return 'bolt_ev';
   }
   if (mk.includes('ford')) {
     if (md.includes('mach') || md.includes('mustang')) return 'mach_e';
