@@ -128,18 +128,19 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
 .footer-btn{font-size:11px;font-weight:700;color:#38bdf8;border:1px solid #0e3a4a;background:#020c14;padding:8px 18px;border-radius:4px;text-decoration:none;letter-spacing:.05em;transition:all .2s;white-space:nowrap;align-self:center}
 .footer-btn:hover{background:#0a2030;border-color:#38bdf8;box-shadow:0 0 12px #38bdf840}
 /* ── HEADER ── */
-.hdr{background:linear-gradient(135deg,#111c2a,#0b1118);border-bottom:1px solid var(--border);padding:18px 24px 14px;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px)}
-.hdr-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-.hdr-title{font-family:var(--sans);font-size:17px;font-weight:800;letter-spacing:-.02em;background:linear-gradient(90deg,#ff6b6b,#ffb84d,#53c5ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.hdr-sub{font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
+.hdr{background:linear-gradient(135deg,#121d2b 0%,#0b1118 55%,#0e1621 100%);border-bottom:1px solid var(--border);padding:20px 26px 16px;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px);box-shadow:0 12px 32px rgba(0,0,0,.14)}
+.hdr-top{display:flex;align-items:center;gap:18px;margin-bottom:12px}
+.hdr-title{font-family:var(--sans);font-size:20px;font-weight:800;letter-spacing:-.025em;background:linear-gradient(90deg,#ffd39a 0%,#a9d8ff 42%,#53c5ff 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;text-shadow:0 0 18px rgba(83,197,255,.08)}
+.hdr-sub{font-size:10px;color:#99acc2;letter-spacing:.14em;text-transform:uppercase}
+.hdr-copy{padding-left:2px}
 
 /* ── GAZUNNI BRAND LOADER ── */
-.gazunni-loader{display:flex;align-items:center;gap:6px}
-.gz-icon{position:relative;width:48px;height:48px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
-.gz-ring-outer{position:absolute;inset:0;border-radius:50%;border:3px solid #0e3a4a;transition:border-color .4s}
-.gz-ring-inner{position:absolute;inset:0;border-radius:50%;border:3px solid transparent;border-top-color:#38bdf8;transition:border-color .4s}
-.gz-letter{position:relative;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-family:var(--sans);font-size:22px;font-weight:800;color:#1a5a6a;transition:color .4s, text-shadow .4s, opacity .4s;z-index:1;line-height:1}
-.gz-logo-img{width:38px;height:38px;border-radius:50%;display:block;object-fit:cover;filter:drop-shadow(0 0 8px rgba(83,197,255,.28));}
+.gazunni-loader{display:flex;align-items:center;gap:10px;padding-right:2px}
+.gz-icon{position:relative;width:72px;height:72px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.gz-ring-outer{position:absolute;inset:0;border-radius:50%;border:3px solid #1f5b7b;transition:border-color .4s;box-shadow:0 0 0 1px rgba(83,197,255,.10) inset}
+.gz-ring-inner{position:absolute;inset:0;border-radius:50%;border:3px solid transparent;border-top-color:#53c5ff;transition:border-color .4s}
+.gz-letter{position:relative;width:57px;height:57px;display:flex;align-items:center;justify-content:center;font-family:var(--sans);font-size:22px;font-weight:800;color:#1a5a6a;transition:color .4s, text-shadow .4s, opacity .4s;z-index:1;line-height:1}
+.gz-logo-img{width:57px;height:57px;border-radius:50%;display:block;object-fit:cover;filter:drop-shadow(0 0 12px rgba(83,197,255,.32));}
 .gz-icon.loading .gz-ring-inner{animation:gz-spin 1.2s linear infinite, gz-pulse-border 1.8s ease-in-out infinite}
 .gz-icon.loading .gz-letter{color:#38bdf8;text-shadow:0 0 8px #38bdf8}
 .gz-icon.done .gz-ring-outer{border-color:#38bdf8}
@@ -155,11 +156,11 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
   0%,100%{box-shadow:0 0 4px #38bdf840;opacity:.8}
   50%{box-shadow:0 0 14px #38bdf8,0 0 28px #38bdf840;opacity:1}
 }
-.gz-status{font-size:10px;color:var(--muted);letter-spacing:.06em;transition:color .3s;text-align:center;min-width:160px}
+.gz-status{font-size:10px;color:var(--muted);letter-spacing:.06em;transition:color .3s;text-align:left;min-width:160px}
 .gz-status.live{color:#38bdf8}
 .gz-status.err{color:var(--recall)}
 .gz-status.ok{color:var(--green)}
-.hdr-brand-note{font-size:10px;color:#8fd0ff;letter-spacing:.08em;margin-top:4px;text-transform:uppercase}
+.hdr-brand-note{font-size:10px;color:#9fd8ff;letter-spacing:.12em;margin-top:5px;text-transform:uppercase;font-weight:700}
 
 /* ── SELBAR ── */
 .selbar{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;padding:12px 24px;background:var(--surface);border-bottom:1px solid var(--border)}
@@ -388,7 +389,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
         <div class="gz-letter" id="gzG"><img class="gz-logo-img" src="/branding/generify-wolf.png" alt="Generify wolf logo"></div>
       </div>
     </div>
-    <div style="flex:1">
+    <div class="hdr-copy" style="flex:1">
       <div class="hdr-title">EV SERVICE INTELLIGENCE</div>
       <div class="hdr-sub">RECALLS · TSBS · COMMUNITY ISSUES</div>
       <div class="hdr-brand-note">Powered by Generify™</div>
