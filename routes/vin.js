@@ -35,6 +35,26 @@ function normalizeVehicleKey(raw = '') {
   return Object.prototype.hasOwnProperty.call(VEHICLES, key) ? key : '';
 }
 
+function extractCampaignId(r = {}) {
+  const candidates = [
+    r.NHTSACampaignNumber,
+    r.nhtsaCampaignNumber,
+    r.campaignNumber,
+    r.campaign_id,
+    r.campaignId,
+    r.recallId,
+    r.id,
+    r.raw_nhtsa?.NHTSACampaignNumber,
+    r.raw_nhtsa?.campaign_id,
+    r.raw_nhtsa?.recallId,
+  ];
+  for (const candidate of candidates) {
+    const clean = String(candidate || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (clean) return clean;
+  }
+  return '';
+}
+
 router.post('/import', async (req, res) => {
   const {
     vehicle,
@@ -76,12 +96,7 @@ router.post('/import', async (req, res) => {
     const insertedIds = [];
 
     for (const r of recalls) {
-      const campaignRaw = r.NHTSACampaignNumber || r.recallId || '';
-      if (!campaignRaw) {
-        skipped++;
-        continue;
-      }
-      const id = campaignRaw.toUpperCase().replace(/[^A-Z0-9]/g, '');
+      const id = extractCampaignId(r);
       if (!id) {
         skipped++;
         continue;
@@ -90,14 +105,14 @@ router.post('/import', async (req, res) => {
       const result = await query(
         `INSERT INTO recalls (id,vehicle_key,year,title,risk,remedy,source_pills,raw_nhtsa)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-         ON CONFLICT (vehicle_key, id) DO NOTHING
+         ON CONFLICT (vehicle_key, year, id) DO NOTHING
          RETURNING id`,
         [
           id,
           sourceVehicle,
           sourceYear,
-          r.Component || r.component || 'Unknown Component',
-          r.Summary || r.summary || r.Consequence || r.consequence || '',
+          r.Component || r.component || r.title || 'Unknown Component',
+          r.Summary || r.summary || r.Consequence || r.consequence || r.risk || '',
           r.Remedy || r.remedy || '',
           '{NHTSA Official}',
           JSON.stringify({ ...r, __vin_import: { vin: vin || null, sourceVehicle, sourceYear } }),
