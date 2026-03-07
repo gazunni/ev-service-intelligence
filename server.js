@@ -8,6 +8,7 @@ import tsbsRouter from './routes/tsbs.js';
 import vinRouter from './routes/vin.js';
 import communityRouter from './routes/community.js';
 import adminRouter from './routes/admin.js';
+import reportsRouter from './routes/reports.js';
 import pool, { closePool } from './services/database.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -109,11 +110,13 @@ app.use('/api/tsbs', tsbsRouter);
 app.use('/api/vin', vinRouter);
 app.use('/api/community', communityRouter);
 app.use('/api/admin', adminRouter);
+app.use('/report', reportsRouter);
 
 // ── LEGACY ROUTE ALIASES (keep old client URLs working) ───────────────────
 function fwd(router, newUrl) {
   return (req, res, next) => {
-    req.url = newUrl;
+    const q = req.url.includes('?') ? req.url.slice(req.url.indexOf('?')) : '';
+    req.url = newUrl + q;
     router(req, res, next);
   };
 }
