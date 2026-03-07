@@ -1,3 +1,4 @@
+//nhtsa.js
 // ── VEHICLE DEFINITIONS ───────────────────────────────────────────────────
 export const VEHICLES = {
   equinox_ev:     { make: 'Chevrolet', model: 'Equinox EV',     nhtsa_make: 'CHEVROLET', nhtsa_model: 'EQUINOX EV' },
