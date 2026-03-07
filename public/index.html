@@ -1,3 +1,4 @@
+//index.html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -498,7 +499,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
   <div class="form-row" style="margin-bottom:8px;align-items:flex-end">
     <div class="form-group" style="flex:1;margin-bottom:0">
       <label>Recall Source</label>
-      <select id="rcSource" onchange="updateRecallSourceUI()">
+      <select id="rcSource">
         <option value="nhtsa">🇺🇸 NHTSA (USA)</option>
         <option value="tc">🍁 Transport Canada</option>
         <option value="both">🇺🇸🍁 Both NHTSA + TC</option>
@@ -2194,8 +2195,8 @@ async function vinLookup() {
             ${missing.length ? `<button class="submit-btn" id="vinImportBtn" style="font-size:10px;padding:4px 12px">⊕ Import ${missing.length} Missing</button>` : '<div class="vin-cc-complete">✓ Database up to date</div>'}
           </div>
           <div class="vin-report-actions">
-            <a class="vin-report-btn" href="${buildVinReportUrl('view', window.__vinReportContext)}" onclick="event.preventDefault();openVinReport('view')">📄 Open VIN Report</a>
-            <a class="vin-report-btn" href="${buildVinReportUrl('print', window.__vinReportContext)}" onclick="event.preventDefault();openVinReport('print')">🖨 Print / Save PDF</a>
+            <a class="vin-report-btn" href="${buildVinReportUrl('view', window.__vinReportContext)}">📄 Open VIN Report</a>
+            <a class="vin-report-btn" href="${buildVinReportUrl('print', window.__vinReportContext)}">🖨 Print / Save PDF</a>
           </div>
         </div>`;
 
@@ -2515,5 +2516,18 @@ window.addEventListener('load', async () => {
   </div>
   <a href="https://ev-efficiency-calculator.netlify.app" target="_blank" rel="noopener" class="footer-btn">⚡ How efficient is your EV? →</a>
 </div>
+
+<script>
+//index.html listener patch v2.0.5
+document.addEventListener("DOMContentLoaded", function(){
+  const rc=document.getElementById("rcSource");
+  if(rc){
+    rc.addEventListener("change", function(){
+      if(typeof updateRecallSourceUI==="function"){updateRecallSourceUI();}
+    });
+  }
+});
+</script>
+
 </body>
 </html>
