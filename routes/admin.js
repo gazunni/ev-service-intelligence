@@ -1,3 +1,4 @@
+//admin.js
 import { Router } from 'express';
 import { query } from '../services/database.js';
 
@@ -102,7 +103,21 @@ router.post('/migrate', async (req, res) => {
       `ALTER TABLE tsbs     ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active'`,
     ];
     for (const sql of migrations) await query(sql);
-    res.json({ ok: true, message: `✓ ${migrations.length} indexes created (IF NOT EXISTS — safe to run again)` });
+
+    // Remove exact duplicate recall rows before changing the PK
+    await query(`
+      DELETE FROM recalls r1
+      USING recalls r2
+      WHERE r1.ctid < r2.ctid
+        AND r1.vehicle_key = r2.vehicle_key
+        AND r1.id = r2.id
+    `);
+
+    // Convert recalls PK from (id) to (vehicle_key, id) so campaigns can exist across vehicles
+    await query(`ALTER TABLE recalls DROP CONSTRAINT IF EXISTS recalls_pkey`);
+    await query(`ALTER TABLE recalls ADD CONSTRAINT recalls_pkey PRIMARY KEY (vehicle_key, id)`);
+
+    res.json({ ok: true, message: '✓ DB migration complete — indexes ensured, status columns ensured, recalls PK updated to (vehicle_key, id)' });
   } catch(e) {
     console.error('migrate error:', e.message);
     res.status(500).json({ error: e.message });

@@ -1,3 +1,4 @@
+//vin.js
 import { Router } from 'express';
 import { query } from '../services/database.js';
 import { decodeVIN, fetchVINRecalls, VEHICLES } from '../services/nhtsa.js';
@@ -89,7 +90,7 @@ router.post('/import', async (req, res) => {
       const result = await query(
         `INSERT INTO recalls (id,vehicle_key,year,title,risk,remedy,source_pills,raw_nhtsa)
          VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
-         ON CONFLICT (id) DO NOTHING
+         ON CONFLICT (vehicle_key, id) DO NOTHING
          RETURNING id`,
         [
           id,
@@ -111,7 +112,7 @@ router.post('/import', async (req, res) => {
       }
     }
 
-    res.json({ ok: true, inserted, skipped, insertedIds });
+    res.json({ ok: true, inserted, skipped, insertedIds, count: inserted });
   } catch (e) {
     console.error('vin-import error:', e.message);
     res.status(500).json({ error: e.message });
