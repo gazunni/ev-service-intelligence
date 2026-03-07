@@ -268,8 +268,8 @@ router.get('/vin', async (req, res) => {
         </div>
       </section>
       <div class="actions">
-        <button class="action-btn action-primary" id="reportPrintBottomBtn">Print / Save PDF</button>
-        <button class="action-btn action-secondary" id="reportRefreshBtn">Refresh report data</button>
+        <button class="action-btn action-secondary" id="reportBackBottomBtn">⬅ Back to Dashboard</button>
+        <button class="action-btn action-primary" id="reportPrintBottomBtn">🖨 Print / Save PDF</button>
       </div>
       <footer class="footer">
         <strong>Disclaimer.</strong> This report combines public recall information, EV Service Intelligence database content, and Generify™-processed community insight. While reasonable efforts are made to improve accuracy, details may contain errors, omissions, or outdated information. Always verify recall completion status and service requirements with the vehicle manufacturer or an authorized dealer before making repair, purchase, or safety decisions.
