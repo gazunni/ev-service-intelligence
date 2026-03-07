@@ -189,8 +189,8 @@ router.get('/vin', async (req, res) => {
 <body>
 <div class="report-wrap">
   <div class="page-tools">
-    <button type="button" id="reportPrintTopBtn">Print / Save PDF</button>
-    <button type="button" class="secondary" id="reportBackTopBtn">Back</button>
+    <button type="button" id="reportPrintTopBtn" style="padding:10px 18px;border-radius:8px;border:none;background:#2b7cff;color:white;cursor:pointer;">🖨 Print / Save PDF</button>
+    <button type="button" class="secondary" id="reportBackTopBtn" style="padding:10px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:#1e2a38;color:white;cursor:pointer;">⬅ Back to Dashboard</button>
   </div>
   <div class="report-sheet">
     <section class="hero">
@@ -311,6 +311,7 @@ document.addEventListener('DOMContentLoaded', function(){
   var printTop = document.getElementById('reportPrintTopBtn');
   var printBottom = document.getElementById('reportPrintBottomBtn');
   var backTop = document.getElementById('reportBackTopBtn');
+  var backBottom = document.getElementById('reportBackBottomBtn');
   var refreshBtn = document.getElementById('reportRefreshBtn');
 
   if (printTop) {
@@ -321,6 +322,9 @@ document.addEventListener('DOMContentLoaded', function(){
   }
   if (backTop) {
     backTop.addEventListener('click', function(ev){ goBackFromReport(ev); });
+  }
+  if (backBottom) {
+    backBottom.addEventListener('click', function(ev){ goBackFromReport(ev); });
   }
   if (refreshBtn) {
     refreshBtn.addEventListener('click', function(ev){
@@ -335,16 +339,6 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 });
 </script>
-
-<div style="display:flex;justify-content:center;gap:16px;margin:40px 0 20px 0;padding-top:20px;border-top:1px solid rgba(255,255,255,.08);">
-  <button onclick="history.back()" style="padding:10px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:#1e2a38;color:white;cursor:pointer;">
-    ⬅ Back to Dashboard
-  </button>
-  <button onclick="window.print()" style="padding:10px 18px;border-radius:8px;border:none;background:#2b7cff;color:white;cursor:pointer;">
-    🖨 Print / Save PDF
-  </button>
-</div>
-
 </body>
 </html>`;
 
@@ -381,6 +375,7 @@ document.addEventListener('DOMContentLoaded', function(){
   var printTop = document.getElementById('reportPrintTopBtn');
   var printBottom = document.getElementById('reportPrintBottomBtn');
   var backTop = document.getElementById('reportBackTopBtn');
+  var backBottom = document.getElementById('reportBackBottomBtn');
   var refreshBtn = document.getElementById('reportRefreshBtn');
 
   if (printTop) {
@@ -391,6 +386,9 @@ document.addEventListener('DOMContentLoaded', function(){
   }
   if (backTop) {
     backTop.addEventListener('click', function(ev){ goBackFromReport(ev); });
+  }
+  if (backBottom) {
+    backBottom.addEventListener('click', function(ev){ goBackFromReport(ev); });
   }
   if (refreshBtn) {
     refreshBtn.addEventListener('click', function(ev){
@@ -405,16 +403,6 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 });
 </script>
-
-<div style="display:flex;justify-content:center;gap:16px;margin:40px 0 20px 0;padding-top:20px;border-top:1px solid rgba(255,255,255,.08);">
-  <button onclick="history.back()" style="padding:10px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:#1e2a38;color:white;cursor:pointer;">
-    ⬅ Back to Dashboard
-  </button>
-  <button onclick="window.print()" style="padding:10px 18px;border-radius:8px;border:none;background:#2b7cff;color:white;cursor:pointer;">
-    🖨 Print / Save PDF
-  </button>
-</div>
-
 </body>`);
   }
 });
