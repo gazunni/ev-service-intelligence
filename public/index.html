@@ -67,7 +67,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
 .admin-result{font-size:10px;margin-top:6px;min-height:14px}
 
 /* ── G LOGO HOLD ── */
-.gz-icon{cursor:pointer;user-select:none}
+.gz-icon{cursor:pointer;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:none}
 .gz-icon.holding .gz-ring-outer{border-color:#38bdf8;animation:gz-hold-ring 3s linear forwards}
 @keyframes gz-hold-ring{
   0%{box-shadow:none}
@@ -1115,8 +1115,11 @@ function clearSearch() {
 }
 
 async function loadAll() {
-  // Close all open panels and collapse sections on vehicle/year change
-  document.querySelectorAll('.tool-panel.open').forEach(p => p.classList.remove('open'));
+  // Close open panels and collapse sections on vehicle/year change,
+  // but preserve the admin dashboard when admin mode is active
+  document.querySelectorAll('.tool-panel.open').forEach(p => {
+    if (!(window.__adminMode && p.id === 'adminPanel')) p.classList.remove('open');
+  });
   document.querySelectorAll('.sec-body.open').forEach(s => s.classList.remove('open'));
   document.querySelectorAll('button.chv').forEach(b => { b.textContent = 'Show'; });
   loadedSections = 0;
@@ -1208,31 +1211,39 @@ function togglePanel(id) {
     return;
   }
 
+  if (id === 'adminPanel') {
+    // Explicit admin open/close
+    panel.classList.toggle('open');
+    if (wasOpen) {
+      window.__adminMode = false;
+      const _vk = document.getElementById('selModel').value;
+      const _yr = document.getElementById('selYear').value;
+      loadSection('recalls', _vk, _yr);
+      loadSection('tsbs', _vk, _yr);
+      loadSection('community', _vk, _yr);
+    } else {
+      window.__adminMode = true;
+      loadAdminDashboard();
+      panel.scrollIntoView({ behavior:'smooth', block:'start' });
+    }
+    return;
+  }
+
+  // Normal public panel behavior
   document.querySelectorAll('.tool-panel.open').forEach(p => {
-    if (p.id !== id) p.classList.remove('open');
+    if (p.id !== id && p.id !== 'adminPanel') p.classList.remove('open');
   });
   panel.classList.toggle('open');
-
-  // Clear admin mode only when the admin dashboard itself is explicitly closed
-  if (id === 'adminPanel' && wasOpen) {
-    window.__adminMode = false;
-    const _vk = document.getElementById('selModel').value;
-    const _yr = document.getElementById('selYear').value;
-    loadSection('recalls', _vk, _yr);
-    loadSection('tsbs', _vk, _yr);
-    loadSection('community', _vk, _yr);
-  }
-
-  if (id === 'adminPanel' && !wasOpen) {
-    loadAdminDashboard();
-  }
   if (!wasOpen) panel.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 function openAdminTool(panelId) {
   if (!window.__adminMode) window.__adminMode = true;
   const panel = document.getElementById(panelId);
   const adminPanel = document.getElementById('adminPanel');
-  document.querySelectorAll('.tool-panel.open').forEach(p => p.classList.remove('open'));
+  if (adminPanel) adminPanel.classList.add('open');
+  document.querySelectorAll('.tool-panel.open').forEach(p => {
+    if (p.id !== 'adminPanel' && p.id !== panelId) p.classList.remove('open');
+  });
   if (panel) panel.classList.add('open');
   const result = document.getElementById('adminQuickToolsResult');
   if (result) {
@@ -1342,6 +1353,8 @@ async function runSweep() {
     }
     await loadAll();
     if (window.__adminMode) {
+      const adminPanel = document.getElementById('adminPanel');
+      if (adminPanel) adminPanel.classList.add('open');
       loadAdminDashboard();
     }
   } catch(e) {
@@ -1420,15 +1433,27 @@ async function runResearchSweep() {
   const srcType=document.getElementById('resSrcType').value;
   const srcUrl=document.getElementById('resSrcUrl').value.trim();
   const results=document.getElementById('resResults');
+  const adminResult = document.getElementById('adminQuickToolsResult');
   if(!text && !srcUrl){results.innerHTML='<div style="color:var(--recall);font-size:11px">Please paste text or enter a source URL.</div>';return;}
   if(!text && srcUrl){ results.innerHTML='<div class="loading"><div class="spin"></div><span>Fetching content from URL…</span></div>'; }
   const btn=document.getElementById('researchSweepBtn');
   btn.disabled=true; btn.textContent='🧠 Extracting…';
   results.innerHTML='<div class="loading"><div class="spin"></div><span>AI is reading the text…</span></div>';
+  if (adminResult) {
+    adminResult.style.color = 'var(--muted)';
+    adminResult.textContent = 'Research sweep running…';
+  }
   setGZ('loading', 'Extracting issues from text…');
   try {
     const res = await apiFetch('/api/research',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({vehicle:vkey,year:parseInt(year),text,srcType,srcUrl})});
-    if(!res.issues||!res.issues.length){results.innerHTML='<div style="color:var(--muted);font-size:11px;padding:10px 0">No distinct issues found in this text.</div>';return;}
+    if(!res.issues||!res.issues.length){
+      results.innerHTML='<div style="color:var(--muted);font-size:11px;padding:10px 0">No distinct issues found in this text.</div>';
+      if (adminResult) {
+        adminResult.style.color = 'var(--muted)';
+        adminResult.textContent = 'Research sweep complete — no distinct issues found.';
+      }
+      return;
+    }
     results.innerHTML=res.issues.map((issue,i)=>`
       <div class="rq-item">
         <div class="rq-title">${esc(issue.title||'Unknown')}</div>
@@ -1440,9 +1465,25 @@ async function runResearchSweep() {
           <button class="reject-btn" data-reject="1">✗ Reject</button>
         </div>
       </div>`).join('');
+    if (adminResult) {
+      adminResult.style.color = 'var(--green)';
+      adminResult.textContent = `Research sweep complete — ${res.issues.length} issue${res.issues.length !== 1 ? 's' : ''} extracted.`;
+    }
+    if (window.__adminMode) {
+      const adminPanel = document.getElementById('adminPanel');
+      if (adminPanel) adminPanel.classList.add('open');
+    }
   } catch(e){
     results.innerHTML=`<div style="color:var(--recall);font-size:11px">Error: ${esc(e.message)}</div>`;
-  } finally { btn.disabled=false; btn.textContent='🧠 Extract Issues'; setGZ('done', 'Extraction complete'); }
+    if (adminResult) {
+      adminResult.style.color = 'var(--recall)';
+      adminResult.textContent = 'Research sweep error: ' + e.message;
+    }
+  } finally {
+    btn.disabled=false;
+    btn.textContent='🧠 Extract Issues';
+    setGZ('done', 'Extraction complete');
+  }
 }
 
 async function approveIssue(idx, queueId, vkey, year) {
@@ -1804,39 +1845,48 @@ function printIssue(cardBodyId) {
 
 // ── ADMIN ────────────────────────────────────
 let gzHoldTimer = null;
+let gzAdminOpening = false;
 
-async function startGzHold() {
+async function startGzHold(ev) {
+  if (ev) { ev.preventDefault(); ev.stopPropagation(); }
   const icon = document.getElementById('gzIcon');
+  if (gzAdminOpening || gzHoldTimer) return;
   icon.classList.add('holding');
   gzHoldTimer = setTimeout(async () => {
+    gzHoldTimer = null;
+    gzAdminOpening = true;
     icon.classList.remove('holding');
     const pw = prompt('Admin passphrase:');
-    if (pw === null || pw.trim() === '') return;
-    // Verify passphrase server-side
+    if (pw === null || pw.trim() === '') { gzAdminOpening = false; return; }
     try {
       setGZ('loading', 'Verifying…');
       await apiFetch('/api/admin/stats', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ key: pw.trim() }) });
       window.__adminKey = pw.trim();
+      window.__adminMode = true;
       setGZ('done', 'Admin access granted');
-        window.__adminMode = true;
-        // Refresh cards in place to show delete buttons without closing panel
-        const vk = document.getElementById('selModel').value;
-        const yr = document.getElementById('selYear').value;
-        loadSection('recalls', vk, yr);
-        loadSection('tsbs', vk, yr);
-        loadSection('community', vk, yr);
-      // Close any open panels first, then open admin
-      document.querySelectorAll('.tool-panel.open').forEach(p => p.classList.remove('open'));
-      document.getElementById('adminPanel').classList.add('open');
+      const vk = document.getElementById('selModel').value;
+      const yr = document.getElementById('selYear').value;
+      loadSection('recalls', vk, yr);
+      loadSection('tsbs', vk, yr);
+      loadSection('community', vk, yr);
+      document.querySelectorAll('.tool-panel.open').forEach(p => { if (p.id !== 'adminPanel') p.classList.remove('open'); });
+      const adminPanel = document.getElementById('adminPanel');
+      if (adminPanel) {
+        adminPanel.classList.add('open');
+        adminPanel.scrollIntoView({ behavior:'smooth', block:'start' });
+      }
       loadAdminDashboard();
     } catch(e) {
       setGZ('err', 'Invalid passphrase');
       setTimeout(() => setGZ('done', ''), 2000);
+    } finally {
+      gzAdminOpening = false;
     }
   }, 3000);
 }
 
-function cancelGzHold() {
+function cancelGzHold(ev) {
+  if (ev) { ev.preventDefault(); ev.stopPropagation(); }
   if (gzHoldTimer) { clearTimeout(gzHoldTimer); gzHoldTimer = null; }
   document.getElementById('gzIcon').classList.remove('holding');
 }
@@ -2519,7 +2569,8 @@ document.addEventListener('DOMContentLoaded', () => {
   // G logo hold-to-admin
   const gzEl = document.getElementById('gzIcon');
   gzEl.addEventListener('mousedown', startGzHold);
-  gzEl.addEventListener('touchstart', startGzHold, {passive:true});
+  gzEl.addEventListener('touchstart', startGzHold, {passive:false});
+  gzEl.addEventListener('contextmenu', e => { e.preventDefault(); e.stopPropagation(); });
   // Click red GZ to reset it
   gzEl.addEventListener('click', () => {
     if (gzEl.classList.contains('err')) setGZ('done', '');
@@ -2527,6 +2578,7 @@ document.addEventListener('DOMContentLoaded', () => {
   gzEl.addEventListener('mouseup', cancelGzHold);
   gzEl.addEventListener('mouseleave', cancelGzHold);
   gzEl.addEventListener('touchend', cancelGzHold);
+  gzEl.addEventListener('touchcancel', cancelGzHold);
 
   document.getElementById('selMake').addEventListener('change', () => { updateModelOptions(false); updateYearOptions(); savePrefs(); loadAll(); });
   document.getElementById('selModel').addEventListener('change', () => { updateYearOptions(); savePrefs(); loadAll(); });
