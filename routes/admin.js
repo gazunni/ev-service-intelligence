@@ -1,16 +1,19 @@
 // routes/admin.js
-import express from 'express';
-import { query } from '../db.js';
 
-const router = express.Router();
+import { Router } from 'express';
+import { query } from '../services/database.js';
+
+const router = Router();
+
+
+// ─────────────────────────────────────────────
+// RUN DATABASE MIGRATIONS
+// ─────────────────────────────────────────────
 
 router.post('/admin/migrate', async (req, res) => {
   try {
 
-    // ─────────────────────────────────────────────
-    // Create indexes (safe to run repeatedly)
-    // ─────────────────────────────────────────────
-
+    // Indexes (safe to run repeatedly)
     await query(`
       CREATE INDEX IF NOT EXISTS idx_recalls_vehicle_year
       ON recalls(vehicle_key, year)
@@ -41,10 +44,8 @@ router.post('/admin/migrate', async (req, res) => {
       ON community_issues(status)
     `);
 
-    // ─────────────────────────────────────────────
-    // Ensure status column exists
-    // ─────────────────────────────────────────────
 
+    // Ensure status column exists
     await query(`
       ALTER TABLE recalls
       ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active'
@@ -60,10 +61,8 @@ router.post('/admin/migrate', async (req, res) => {
       ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active'
     `);
 
-    // ─────────────────────────────────────────────
-    // Remove duplicates before PK change
-    // ─────────────────────────────────────────────
 
+    // Remove duplicates before altering primary key
     await query(`
       DELETE FROM recalls r1
       USING recalls r2
@@ -73,12 +72,12 @@ router.post('/admin/migrate', async (req, res) => {
         AND r1.id = r2.id
     `);
 
-    // ─────────────────────────────────────────────
-    // Update PRIMARY KEY for recalls
-    // Needed for VIN imports
-    // ─────────────────────────────────────────────
 
-    await query(`ALTER TABLE recalls DROP CONSTRAINT IF EXISTS recalls_pkey`);
+    // Update PRIMARY KEY for recalls
+    await query(`
+      ALTER TABLE recalls
+      DROP CONSTRAINT IF EXISTS recalls_pkey
+    `);
 
     await query(`
       ALTER TABLE recalls
@@ -86,7 +85,6 @@ router.post('/admin/migrate', async (req, res) => {
       PRIMARY KEY (vehicle_key, year, id)
     `);
 
-    // ─────────────────────────────────────────────
 
     res.json({
       ok: true,
@@ -95,12 +93,18 @@ router.post('/admin/migrate', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Migration error:', err);
+
+    console.error("Migration error:", err);
+
     res.status(500).json({
-      error: 'Migration failed',
+      error: "Migration failed",
       details: err.message
     });
+
   }
 });
+
+
+// ─────────────────────────────────────────────
 
 export default router;
