@@ -1928,8 +1928,7 @@ function openVinReport(mode='view') {
     mode
   });
   const url = `/report/vin?${qs.toString()}`;
-  const w = window.open(url, '_blank', 'noopener');
-  if (mode === 'print' && w) w.focus();
+  window.location.assign(url);
 }
 
 // ── FORUM THREAD EXTRACTOR ("Generified" © 2026) ────────────────────────
