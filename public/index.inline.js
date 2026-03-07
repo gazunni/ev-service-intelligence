@@ -1358,6 +1358,8 @@ async function adminNhtsaImport() {
   const combos = [
     {vehicle:'equinox_ev',     years:[2024,2025,2026]},
     {vehicle:'blazer_ev',      years:[2024,2025,2026]},
+    {vehicle:'bolt_ev',        years:[2017,2018,2019,2020,2021,2022]},
+    {vehicle:'bolt_euv',       years:[2022,2023]},
     {vehicle:'mach_e',         years:[2021,2022,2023,2024,2025,2026]},
     {vehicle:'honda_prologue', years:[2024,2025,2026]},
   ];
