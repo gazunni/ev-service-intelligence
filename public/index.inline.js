@@ -1147,7 +1147,6 @@ function resetVinModalState() {
   }
   if (hint) hint.style.display = 'none';
 }
-
 function openVinModal() {
   resetVinModalState();
   document.getElementById('vinOverlay').classList.add('open');

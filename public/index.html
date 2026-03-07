@@ -428,7 +428,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
         <select id="selYear"></select>
       </div>
       <div class="sel-link-arrow" aria-hidden="true">→</div>
-      <button class="tool-btn" id="vinLookupBtn" style="background:#0a1a2e;border-color:#38bdf8;color:#38bdf8">🔍 VIN Lookup</button>
+      <button class="tool-btn" id="vinLookupBtn" style="background:#0a1a2e;border-color:#38bdf8;color:#38bdf8">🔎 🚗 Vehicle Lookup</button>
     </div>
     <div class="sel-context-note">VIN results are matched against the selected make, model, and year before import.</div>
   </div>
@@ -2253,15 +2253,27 @@ async function forumSubmit() {
 }
 
 // ── VIN LOOKUP ───────────────────────────────
+function resetVinModalState() {
+  const input = document.getElementById('vinInput');
+  const results = document.getElementById('vinResults');
+  const btn = document.getElementById('vinSearchBtn');
+  const hint = document.getElementById('vinScrollHint');
+  if (results) results.innerHTML = '';
+  if (input) input.value = '';
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '🔎 Get Vehicle Report';
+  }
+  if (hint) hint.style.display = 'none';
+}
 function openVinModal() {
+  resetVinModalState();
   document.getElementById('vinOverlay').classList.add('open');
   document.getElementById('vinInput').focus();
 }
 function closeVinModal() {
   document.getElementById('vinOverlay').classList.remove('open');
-  document.getElementById('vinResults').innerHTML = '';
-  document.getElementById('vinInput').value = '';
-  document.getElementById('vinScrollHint').style.display = 'none';
+  resetVinModalState();
 }
 
 function updateScrollHint() {
@@ -2280,7 +2292,7 @@ async function vinLookup() {
 
   const btn = document.getElementById('vinSearchBtn');
   btn.disabled = true; btn.textContent = 'Looking up…';
-  results.innerHTML = '<div class="vin-loading"><div class="spin"></div><span>Decoding VIN…</span></div>';
+  results.innerHTML = '<div class="vin-loading"><div class="spin"></div><span>Checking vehicle information…</span></div>';
 
   try {
     // Step 1: Decode VIN via server proxy
@@ -2469,9 +2481,9 @@ async function vinLookup() {
     results.innerHTML = html;
     setTimeout(updateScrollHint, 50);
   } catch(e) {
-    results.innerHTML = `<div class="vin-empty">VIN decode failed: ${esc(e.message)}</div>`;
+    results.innerHTML = `<div class="vin-empty">Vehicle lookup failed: ${esc(e.message)}</div>`;
   } finally {
-    btn.disabled = false; btn.textContent = 'Decode';
+    btn.disabled = false; btn.textContent = '🔎 Get Vehicle Report';
   }
 }
 
@@ -2550,6 +2562,7 @@ async function adminNhtsaImport() {
 
 // ── INIT ─────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  window.addEventListener('pageshow', () => { resetVinModalState(); closeVinModal(); });
   // Close VIN modal on overlay click
   document.getElementById('vinOverlay').addEventListener('click', e => {
     if (e.target === document.getElementById('vinOverlay')) closeVinModal();
