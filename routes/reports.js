@@ -1,3 +1,4 @@
+//reports.js
 import { Router } from 'express';
 import { query } from '../services/database.js';
 import { decodeVIN, fetchVINRecalls, VEHICLES } from '../services/nhtsa.js';
@@ -177,8 +178,8 @@ router.get('/vin', async (req, res) => {
 <body>
 <div class="report-wrap">
   <div class="page-tools">
-    <button type="button" onclick="window.print()">Print / Save PDF</button>
-    <button type="button" class="secondary" onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.href = '/'; }">Back</button>
+    <button type="button" id="reportPrintTopBtn" onclick="return triggerReportPrint(event)">Print / Save PDF</button>
+    <button type="button" class="secondary" onclick="return goBackFromReport(event)">Back</button>
   </div>
   <div class="report-sheet">
     <section class="hero">
@@ -256,7 +257,7 @@ router.get('/vin', async (req, res) => {
         </div>
       </section>
       <div class="actions">
-        <button class="action-btn action-primary" onclick="window.print()">Print / Save PDF</button>
+        <button class="action-btn action-primary" id="reportPrintBottomBtn" onclick="return triggerReportPrint(event)">Print / Save PDF</button>
         <button class="action-btn action-secondary" onclick="window.location.reload()">Refresh report data</button>
       </div>
       <footer class="footer">
@@ -270,6 +271,38 @@ router.get('/vin', async (req, res) => {
     window.addEventListener('load', () => setTimeout(() => window.print(), 250));
   }
 </script>
+
+<script>
+function triggerReportPrint(ev){
+  if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+  try { window.focus(); } catch (_) {}
+  const run = () => {
+    try { window.print(); } catch (_) {}
+  };
+  if (document.readyState === 'complete') {
+    setTimeout(run, 60);
+  } else {
+    window.addEventListener('load', () => setTimeout(run, 60), { once:true });
+  }
+  return false;
+}
+function goBackFromReport(ev){
+  if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+  try {
+    if (window.history.length > 1) window.history.back();
+    else window.location.href = '/';
+  } catch (_) {
+    window.location.href = '/';
+  }
+  return false;
+}
+document.addEventListener('DOMContentLoaded', function(){
+  var autoMode = new URLSearchParams(window.location.search).get('mode');
+  if (autoMode === 'print') {
+    setTimeout(function(){ triggerReportPrint(); }, 120);
+  }
+});
+</script>
 </body>
 </html>`;
 
@@ -277,7 +310,39 @@ router.get('/vin', async (req, res) => {
     res.send(html);
   } catch (error) {
     console.error('vin-report error:', error.message);
-    res.status(500).send(`<!doctype html><title>VIN Report Error</title><body style="font-family:system-ui;padding:24px"><h1>VIN report unavailable</h1><p>${esc(error.message)}</p></body>`);
+    res.status(500).send(`<!doctype html><title>VIN Report Error</title><body style="font-family:system-ui;padding:24px"><h1>VIN report unavailable</h1><p>${esc(error.message)}</p>
+<script>
+function triggerReportPrint(ev){
+  if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+  try { window.focus(); } catch (_) {}
+  const run = () => {
+    try { window.print(); } catch (_) {}
+  };
+  if (document.readyState === 'complete') {
+    setTimeout(run, 60);
+  } else {
+    window.addEventListener('load', () => setTimeout(run, 60), { once:true });
+  }
+  return false;
+}
+function goBackFromReport(ev){
+  if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+  try {
+    if (window.history.length > 1) window.history.back();
+    else window.location.href = '/';
+  } catch (_) {
+    window.location.href = '/';
+  }
+  return false;
+}
+document.addEventListener('DOMContentLoaded', function(){
+  var autoMode = new URLSearchParams(window.location.search).get('mode');
+  if (autoMode === 'print') {
+    setTimeout(function(){ triggerReportPrint(); }, 120);
+  }
+});
+</script>
+</body>`);
   }
 });
 
