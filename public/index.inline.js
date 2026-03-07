@@ -1134,15 +1134,28 @@ async function forumSubmit() {
 }
 
 // ── VIN LOOKUP ───────────────────────────────
+function resetVinModalState() {
+  const input = document.getElementById('vinInput');
+  const results = document.getElementById('vinResults');
+  const btn = document.getElementById('vinSearchBtn');
+  const hint = document.getElementById('vinScrollHint');
+  if (results) results.innerHTML = '';
+  if (input) input.value = '';
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '🔎 Get Vehicle Report';
+  }
+  if (hint) hint.style.display = 'none';
+}
+
 function openVinModal() {
+  resetVinModalState();
   document.getElementById('vinOverlay').classList.add('open');
   document.getElementById('vinInput').focus();
 }
 function closeVinModal() {
   document.getElementById('vinOverlay').classList.remove('open');
-  document.getElementById('vinResults').innerHTML = '';
-  document.getElementById('vinInput').value = '';
-  document.getElementById('vinScrollHint').style.display = 'none';
+  resetVinModalState();
 }
 
 function updateScrollHint() {
@@ -1415,6 +1428,7 @@ async function adminNhtsaImport() {
 
 // ── INIT ─────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  window.addEventListener('pageshow', () => { resetVinModalState(); closeVinModal(); });
   // Close VIN modal on overlay click
   document.getElementById('vinOverlay').addEventListener('click', e => {
     if (e.target === document.getElementById('vinOverlay')) closeVinModal();
