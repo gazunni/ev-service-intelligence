@@ -203,7 +203,19 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 .tb-recall{background:var(--recall-bg);color:var(--recall);border:1px solid var(--recall)}
 .tb-tsb{background:var(--tsb-bg);color:var(--tsb);border:1px solid var(--tsb)}
 .tb-comm{background:var(--comm-bg);color:var(--comm);border:1px solid var(--comm)}
+
 .sec-title{font-family:var(--sans);font-size:13px;font-weight:700;flex:1}
+.comm-hdr-sources{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-left:auto;margin-right:8px}
+.comm-hdr-pill{display:inline-flex;align-items:center;justify-content:center;padding:1px 0;font-family:var(--mono);font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;opacity:.95}
+.comm-hdr-pill.forum{color:var(--comm)}
+.comm-hdr-pill.reddit{color:#f97316}
+.comm-hdr-pill.facebook{color:#3b82f6}
+.comm-hdr-pill.user{color:var(--muted)}
+.comm-note{font-size:10px;color:var(--muted);padding:6px 0 10px;line-height:1.35}
+@media (max-width: 900px){
+  .comm-hdr-sources{display:none}
+}
+
 .sec-cnt{font-size:11px;color:var(--muted);margin-right:6px}
 .chv{color:var(--muted);font-size:11px;transition:transform .25s}
 .sec-body{display:none;padding:0 20px 16px}
@@ -499,7 +511,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
   <div class="form-row" style="margin-bottom:8px;align-items:flex-end">
     <div class="form-group" style="flex:1;margin-bottom:0">
       <label>Recall Source</label>
-      <select id="rcSource">
+      <select id="rcSource" onchange="updateRecallSourceUI()">
         <option value="nhtsa">🇺🇸 NHTSA (USA)</option>
         <option value="tc">🍁 Transport Canada</option>
         <option value="both">🇺🇸🍁 Both NHTSA + TC</option>
@@ -886,17 +898,17 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
   <div class="sec-hdr" data-sec="comm">
     <span class="type-badge tb-comm">COMMUNITY</span>
     <span class="sec-title">Community-Reported Issues</span>
+    <div class="comm-hdr-sources" aria-label="Community sources">
+      <span class="comm-hdr-pill forum">Forum</span>
+      <span class="comm-hdr-pill reddit">Reddit</span>
+      <span class="comm-hdr-pill facebook">Facebook</span>
+      <span class="comm-hdr-pill user">User Submitted</span>
+    </div>
     <span class="sec-cnt" id="cnt-comm">0</span>
     <button class="chv" id="chv-comm">Show</button>
   </div>
   <div class="sec-body" id="body-comm">
-    <div class="empty" style="font-size:10px;color:var(--muted);padding:12px 0 4px">
-      <span style="color:var(--comm)">FORUM</span> &nbsp;
-      <span style="color:#f97316">REDDIT</span> &nbsp;
-      <span style="color:#3b82f6">FACEBOOK</span> &nbsp;
-      <span style="color:var(--muted)">USER SUBMITTED</span>
-    </div>
-    <div style="font-size:10px;color:var(--muted);padding:4px 0 12px">Issues reported by owners before an official bulletin exists. AI clusters similar reports to prevent duplication.</div>
+    <div class="comm-note">Issues reported by owners before an official bulletin exists. AI clusters similar reports to prevent duplication.</div>
     <div id="cards-comm"><div class="loading"><div class="spin"></div><span>Loading…</span></div></div>
   </div>
 </div>
@@ -2195,8 +2207,8 @@ async function vinLookup() {
             ${missing.length ? `<button class="submit-btn" id="vinImportBtn" style="font-size:10px;padding:4px 12px">⊕ Import ${missing.length} Missing</button>` : '<div class="vin-cc-complete">✓ Database up to date</div>'}
           </div>
           <div class="vin-report-actions">
-            <a class="vin-report-btn" href="${buildVinReportUrl('view', window.__vinReportContext)}">📄 Open VIN Report</a>
-            <a class="vin-report-btn" href="${buildVinReportUrl('print', window.__vinReportContext)}">🖨 Print / Save PDF</a>
+            <a class="vin-report-btn" href="${buildVinReportUrl('view', window.__vinReportContext)}" onclick="event.preventDefault();openVinReport('view')">📄 Open VIN Report</a>
+            <a class="vin-report-btn" href="${buildVinReportUrl('print', window.__vinReportContext)}" onclick="event.preventDefault();openVinReport('print')">🖨 Print / Save PDF</a>
           </div>
         </div>`;
 
@@ -2516,18 +2528,5 @@ window.addEventListener('load', async () => {
   </div>
   <a href="https://ev-efficiency-calculator.netlify.app" target="_blank" rel="noopener" class="footer-btn">⚡ How efficient is your EV? →</a>
 </div>
-
-<script>
-//index.html listener patch v2.0.5
-document.addEventListener("DOMContentLoaded", function(){
-  const rc=document.getElementById("rcSource");
-  if(rc){
-    rc.addEventListener("change", function(){
-      if(typeof updateRecallSourceUI==="function"){updateRecallSourceUI();}
-    });
-  }
-});
-</script>
-
 </body>
 </html>
