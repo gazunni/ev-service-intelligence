@@ -335,6 +335,16 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 });
 </script>
+
+<div style="display:flex;justify-content:center;gap:16px;margin:40px 0 20px 0;padding-top:20px;border-top:1px solid rgba(255,255,255,.08);">
+  <button onclick="history.back()" style="padding:10px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:#1e2a38;color:white;cursor:pointer;">
+    ⬅ Back to Dashboard
+  </button>
+  <button onclick="window.print()" style="padding:10px 18px;border-radius:8px;border:none;background:#2b7cff;color:white;cursor:pointer;">
+    🖨 Print / Save PDF
+  </button>
+</div>
+
 </body>
 </html>`;
 
@@ -395,6 +405,16 @@ document.addEventListener('DOMContentLoaded', function(){
   }
 });
 </script>
+
+<div style="display:flex;justify-content:center;gap:16px;margin:40px 0 20px 0;padding-top:20px;border-top:1px solid rgba(255,255,255,.08);">
+  <button onclick="history.back()" style="padding:10px 18px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:#1e2a38;color:white;cursor:pointer;">
+    ⬅ Back to Dashboard
+  </button>
+  <button onclick="window.print()" style="padding:10px 18px;border-radius:8px;border:none;background:#2b7cff;color:white;cursor:pointer;">
+    🖨 Print / Save PDF
+  </button>
+</div>
+
 </body>`);
   }
 });
