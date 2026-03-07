@@ -428,7 +428,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
         <select id="selYear"></select>
       </div>
       <div class="sel-link-arrow" aria-hidden="true">→</div>
-      <button class="tool-btn" id="vinLookupBtn" style="background:#0a1a2e;border-color:#38bdf8;color:#38bdf8">🔍 🚗 Vehicle Lookup</button>
+      <button class="tool-btn" id="vinLookupBtn" style="background:#0a1a2e;border-color:#38bdf8;color:#38bdf8">🔍 VIN Lookup</button>
     </div>
     <div class="sel-context-note">VIN results are matched against the selected make, model, and year before import.</div>
   </div>
@@ -761,11 +761,11 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 <div class="vin-overlay" id="vinOverlay">
   <div class="vin-modal" id="vinModal">
     <div class="vin-modal-hdr">
-      <div class="vin-modal-title">🔍 🚗 Vehicle Lookup</div>
+      <div class="vin-modal-title">🚗 Vehicle Lookup</div>
       <button class="vin-close" id="vinCloseBtn">✕</button>
     </div>
     <div class="vin-input-row">
-      <input class="vin-field" id="vinInput" placeholder="Enter 17-character VIN" placeholder="Enter 17-character VIN" maxlength="17" autocomplete="off" spellcheck="false">
+      <input class="vin-field" id="vinInput" placeholder="Enter 17-character VIN" maxlength="17" autocomplete="off" spellcheck="false">
       <button class="submit-btn" id="vinSearchBtn">🔎 Get Vehicle Report</button>
     </div>
     <div id="vinResults" class="vin-results"></div>

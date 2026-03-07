@@ -1,3 +1,4 @@
+//index.inline.js
 // ── HELPERS ──────────────────────────────────
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function getVehicle(){ return document.getElementById('selModel').value; }
@@ -1160,7 +1161,7 @@ async function vinLookup() {
 
   const btn = document.getElementById('vinSearchBtn');
   btn.disabled = true; btn.textContent = 'Looking up…';
-  results.innerHTML = '<div class="vin-loading"><div class="spin"></div><span>Decoding VIN…</span></div>';
+  results.innerHTML = '<div class="vin-loading"><div class="spin"></div><span>Checking vehicle information…</span></div>';
 
   try {
     // Step 1: Decode VIN via server proxy
@@ -1333,9 +1334,9 @@ async function vinLookup() {
     results.innerHTML = html;
     setTimeout(updateScrollHint, 50);
   } catch(e) {
-    results.innerHTML = `<div class="vin-empty">VIN decode failed: ${esc(e.message)}</div>`;
+    results.innerHTML = `<div class="vin-empty">Vehicle lookup failed: ${esc(e.message)}</div>`;
   } finally {
-    btn.disabled = false; btn.textContent = 'Decode';
+    btn.disabled = false; btn.textContent = '🔎 Get Vehicle Report';
   }
 }
 
