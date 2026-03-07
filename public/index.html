@@ -1,4 +1,4 @@
-//index.html
+<!--index.html-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -138,12 +138,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
 .gz-icon{position:relative;width:48px;height:48px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .gz-ring-outer{position:absolute;inset:0;border-radius:50%;border:3px solid #0e3a4a;transition:border-color .4s}
 .gz-ring-inner{position:absolute;inset:0;border-radius:50%;border:3px solid transparent;border-top-color:#38bdf8;transition:border-color .4s}
-.gz-letter{position:relative;font-family:var(--sans);font-size:22px;font-weight:800;color:#1a5a6a;transition:color .4s, text-shadow .4s;z-index:1;line-height:1}
+.gz-letter{position:relative;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-family:var(--sans);font-size:22px;font-weight:800;color:#1a5a6a;transition:color .4s, text-shadow .4s, opacity .4s;z-index:1;line-height:1}
+.gz-logo-img{width:38px;height:38px;border-radius:50%;display:block;object-fit:cover;filter:drop-shadow(0 0 8px rgba(83,197,255,.28));}
 .gz-icon.loading .gz-ring-inner{animation:gz-spin 1.2s linear infinite, gz-pulse-border 1.8s ease-in-out infinite}
 .gz-icon.loading .gz-letter{color:#38bdf8;text-shadow:0 0 8px #38bdf8}
 .gz-icon.done .gz-ring-outer{border-color:#38bdf8}
 .gz-icon.done .gz-ring-inner{border-color:#38bdf8;animation:none}
 .gz-icon.done .gz-letter{color:#38bdf8;text-shadow:0 0 10px #38bdf8}
+.gz-icon.done .gz-logo-img,.gz-icon.loading .gz-logo-img{filter:drop-shadow(0 0 10px rgba(83,197,255,.42));}
+.gz-icon.err .gz-logo-img{filter:drop-shadow(0 0 8px rgba(239,68,68,.35));}
 .gz-icon.err .gz-ring-outer{border-color:#7f1d1d}
 .gz-icon.err .gz-ring-inner{border-color:#ef4444;animation:none}
 .gz-icon.err .gz-letter{color:#ef4444;text-shadow:none}
@@ -156,6 +159,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
 .gz-status.live{color:#38bdf8}
 .gz-status.err{color:var(--recall)}
 .gz-status.ok{color:var(--green)}
+.hdr-brand-note{font-size:10px;color:#8fd0ff;letter-spacing:.08em;margin-top:4px;text-transform:uppercase}
 
 /* ── SELBAR ── */
 .selbar{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;padding:12px 24px;background:var(--surface);border-bottom:1px solid var(--border)}
@@ -354,16 +358,17 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 <div class="hdr">
   <div class="hdr-top">
     <div class="gazunni-loader">
-      <div class="gz-icon loading" id="gzIcon" data-holdable="1">
+      <div class="gz-icon loading" id="gzIcon" data-holdable="1" aria-label="Generify wolf logo">
         <div class="gz-ring-outer">
           <div class="gz-ring-inner" id="gzRing"></div>
         </div>
-        <div class="gz-letter" id="gzG">G</div>
+        <div class="gz-letter" id="gzG"><img class="gz-logo-img" src="/branding/generify-wolf.png" alt="Generify wolf logo"></div>
       </div>
     </div>
     <div style="flex:1">
       <div class="hdr-title">EV SERVICE INTELLIGENCE</div>
       <div class="hdr-sub">RECALLS · TSBS · COMMUNITY ISSUES</div>
+      <div class="hdr-brand-note">Powered by Generify™</div>
       <div class="gz-status live" id="gzStatus">Initializing…</div>
     </div>
   </div>
