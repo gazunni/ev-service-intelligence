@@ -178,8 +178,8 @@ router.get('/vin', async (req, res) => {
 <body>
 <div class="report-wrap">
   <div class="page-tools">
-    <button type="button" id="reportPrintTopBtn" onclick="return triggerReportPrint(event)">Print / Save PDF</button>
-    <button type="button" class="secondary" onclick="return goBackFromReport(event)">Back</button>
+    <button type="button" id="reportPrintTopBtn">Print / Save PDF</button>
+    <button type="button" class="secondary" id="reportBackTopBtn">Back</button>
   </div>
   <div class="report-sheet">
     <section class="hero">
@@ -257,8 +257,8 @@ router.get('/vin', async (req, res) => {
         </div>
       </section>
       <div class="actions">
-        <button class="action-btn action-primary" id="reportPrintBottomBtn" onclick="return triggerReportPrint(event)">Print / Save PDF</button>
-        <button class="action-btn action-secondary" onclick="window.location.reload()">Refresh report data</button>
+        <button class="action-btn action-primary" id="reportPrintBottomBtn">Print / Save PDF</button>
+        <button class="action-btn action-secondary" id="reportRefreshBtn">Refresh report data</button>
       </div>
       <footer class="footer">
         <strong>Disclaimer.</strong> This report combines public recall information, EV Service Intelligence database content, and Generify™-processed community insight. While reasonable efforts are made to improve accuracy, details may contain errors, omissions, or outdated information. Always verify recall completion status and service requirements with the vehicle manufacturer or an authorized dealer before making repair, purchase, or safety decisions.
@@ -297,6 +297,27 @@ function goBackFromReport(ev){
   return false;
 }
 document.addEventListener('DOMContentLoaded', function(){
+  var printTop = document.getElementById('reportPrintTopBtn');
+  var printBottom = document.getElementById('reportPrintBottomBtn');
+  var backTop = document.getElementById('reportBackTopBtn');
+  var refreshBtn = document.getElementById('reportRefreshBtn');
+
+  if (printTop) {
+    printTop.addEventListener('click', function(ev){ triggerReportPrint(ev); });
+  }
+  if (printBottom) {
+    printBottom.addEventListener('click', function(ev){ triggerReportPrint(ev); });
+  }
+  if (backTop) {
+    backTop.addEventListener('click', function(ev){ goBackFromReport(ev); });
+  }
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', function(ev){
+      if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+      try { window.location.reload(); } catch (_) {}
+    });
+  }
+
   var autoMode = new URLSearchParams(window.location.search).get('mode');
   if (autoMode === 'print') {
     setTimeout(function(){ triggerReportPrint(); }, 120);
@@ -336,6 +357,27 @@ function goBackFromReport(ev){
   return false;
 }
 document.addEventListener('DOMContentLoaded', function(){
+  var printTop = document.getElementById('reportPrintTopBtn');
+  var printBottom = document.getElementById('reportPrintBottomBtn');
+  var backTop = document.getElementById('reportBackTopBtn');
+  var refreshBtn = document.getElementById('reportRefreshBtn');
+
+  if (printTop) {
+    printTop.addEventListener('click', function(ev){ triggerReportPrint(ev); });
+  }
+  if (printBottom) {
+    printBottom.addEventListener('click', function(ev){ triggerReportPrint(ev); });
+  }
+  if (backTop) {
+    backTop.addEventListener('click', function(ev){ goBackFromReport(ev); });
+  }
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', function(ev){
+      if (ev && typeof ev.preventDefault === 'function') ev.preventDefault();
+      try { window.location.reload(); } catch (_) {}
+    });
+  }
+
   var autoMode = new URLSearchParams(window.location.search).get('mode');
   if (autoMode === 'print') {
     setTimeout(function(){ triggerReportPrint(); }, 120);
