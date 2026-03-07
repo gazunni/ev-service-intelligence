@@ -3,6 +3,8 @@
 export const VEHICLES = {
   equinox_ev:     { make: 'Chevrolet', model: 'Equinox EV',     nhtsa_make: 'CHEVROLET', nhtsa_model: 'EQUINOX EV' },
   blazer_ev:      { make: 'Chevrolet', model: 'Blazer EV',      nhtsa_make: 'CHEVROLET', nhtsa_model: 'BLAZER EV'  },
+  bolt_ev:        { make: 'Chevrolet', model: 'Bolt EV',        nhtsa_make: 'CHEVROLET', nhtsa_model: 'BOLT EV'    },
+  bolt_euv:       { make: 'Chevrolet', model: 'Bolt EUV',       nhtsa_make: 'CHEVROLET', nhtsa_model: 'BOLT EUV'   },
   mach_e:         { make: 'Ford',      model: 'Mustang Mach-E', nhtsa_make: 'FORD',      nhtsa_model: 'MUSTANG MACH-E' },
   honda_prologue: { make: 'Honda',     model: 'Prologue',       nhtsa_make: 'HONDA',     nhtsa_model: 'PROLOGUE' },
   tesla_model_3:  { make: 'Tesla',     model: 'Model 3',        nhtsa_make: 'TESLA',     nhtsa_model: 'MODEL 3' },
