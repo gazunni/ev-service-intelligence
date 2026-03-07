@@ -108,7 +108,6 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
 
 /* ── VIN CROSS-CHECK ── */
 .vin-crosscheck{display:flex;align-items:center;gap:16px;background:var(--surface2);border-radius:4px;padding:10px 14px;flex-wrap:wrap}
-.vin-match-banner{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:10px 12px;margin:0 0 12px}.vin-match-copy{font-size:10px;line-height:1.5;color:var(--text)}.vin-match-title{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-bottom:2px}.vin-match-ok{border-color:#166534;background:#07160b}.vin-match-ok .vin-match-title{color:var(--green)}.vin-match-warn{border-color:#92400e;background:#1a1208}.vin-match-warn .vin-match-title{color:var(--tsb)}.vin-match-badge{font-size:10px;font-weight:700;letter-spacing:.05em;white-space:nowrap}.vin-match-ok .vin-match-badge{color:var(--green)}.vin-match-warn .vin-match-badge{color:var(--tsb)}
 .vin-cc-stat{display:flex;flex-direction:column;align-items:center;min-width:50px}
 .vin-cc-num{font-size:22px;font-weight:800;font-family:var(--mono);line-height:1}
 .vin-cc-label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-top:2px}
@@ -185,24 +184,6 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
   .sel-row-context{flex-wrap:wrap}
   .sel-link-arrow{padding-bottom:0}
 }
-
-
-/* ── SUMMARY BAR ── */
-.summary-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:12px 20px;background:linear-gradient(135deg,#06140a,#081a0c);border-bottom:1px solid var(--border)}
-.summary-main{display:flex;flex-direction:column;gap:2px;min-width:220px}
-.summary-kicker{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-.summary-title{font-family:var(--sans);font-size:15px;font-weight:700;line-height:1.2}
-.summary-sub{font-size:10px;color:var(--muted);line-height:1.5;max-width:760px}
-.summary-chips{display:flex;gap:8px;flex-wrap:wrap}
-.summary-chip{min-width:72px;padding:7px 10px;border:1px solid var(--border);border-radius:4px;background:var(--surface2);text-align:center}
-.summary-chip-num{display:block;font-family:var(--sans);font-size:16px;font-weight:800;line-height:1}
-.summary-chip-label{display:block;font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;margin-top:3px}
-#sumRecall{color:var(--recall)} #sumTsb{color:var(--tsb)} #sumComm{color:var(--comm)}
-.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:30px 20px;color:var(--muted)}
-.empty-kicker{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-.empty-title{font-family:var(--sans);font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px}
-.empty-sub{font-size:10px;line-height:1.6;max-width:460px}
-.empty-hint{font-size:9px;color:var(--muted);margin-top:8px;letter-spacing:.04em}
 
 /* ── STATS ── */
 .stats{display:flex;border-bottom:1px solid var(--border)}
@@ -319,7 +300,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 .reject-btn{background:#1a0808;border:1px solid var(--recall);color:var(--recall);font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:3px;cursor:pointer}
 
 /* ── EMPTY / LOADING ── */
-
+.empty{text-align:center;padding:30px 20px;color:var(--muted)}
 .ei{font-size:28px;margin-bottom:8px}
 .et{font-size:11px;line-height:1.6}
 .loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:30px;color:var(--muted);font-size:11px}
@@ -417,19 +398,6 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
   <div class="stat" data-sec="recall"><div class="sn" id="sn-recall">—</div><div class="sl">Recalls</div></div>
   <div class="stat" data-sec="tsb"><div class="sn" id="sn-tsb">—</div><div class="sl">TSBs</div></div>
   <div class="stat" data-sec="comm"><div class="sn" id="sn-comm">—</div><div class="sl">Community</div></div>
-</div>
-
-<div class="summary-bar" id="summaryBar">
-  <div class="summary-main">
-    <div class="summary-kicker">Vehicle Summary</div>
-    <div class="summary-title" id="summaryVehicle">—</div>
-    <div class="summary-sub" id="summarySub">Choose a vehicle and year to inspect recalls, TSBs, and community-reported issues.</div>
-  </div>
-  <div class="summary-chips" aria-label="current dashboard totals">
-    <div class="summary-chip"><span class="summary-chip-num" id="sumRecall">0</span><span class="summary-chip-label">Recalls</span></div>
-    <div class="summary-chip"><span class="summary-chip-num" id="sumTsb">0</span><span class="summary-chip-label">TSBs</span></div>
-    <div class="summary-chip"><span class="summary-chip-num" id="sumComm">0</span><span class="summary-chip-label">Community</span></div>
-  </div>
 </div>
 
 <!-- SEVERITY BANNER -->
@@ -938,39 +906,6 @@ function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;')
 function getVehicle(){ return document.getElementById('selModel').value; }
 function getYear(){ return document.getElementById('selYear').value; }
 
-function getVehicleLabel(){
-  const sel = document.getElementById('selModel');
-  return sel?.options?.[sel.selectedIndex]?.text || 'Selected Vehicle';
-}
-function getDashboardCounts(){
-  return {
-    recall: parseInt(document.getElementById('sn-recall').textContent) || 0,
-    tsb: parseInt(document.getElementById('sn-tsb').textContent) || 0,
-    comm: parseInt(document.getElementById('sn-comm').textContent) || 0
-  };
-}
-function updateSummaryBar(mode='ready'){
-  const vehicleLabel = getVehicleLabel();
-  const year = getYear();
-  const counts = getDashboardCounts();
-  const total = counts.recall + counts.tsb + counts.comm;
-  document.getElementById('summaryVehicle').textContent = `${vehicleLabel} · ${year}`;
-  document.getElementById('sumRecall').textContent = counts.recall;
-  document.getElementById('sumTsb').textContent = counts.tsb;
-  document.getElementById('sumComm').textContent = counts.comm;
-  let msg = 'Choose a vehicle and year to inspect recalls, TSBs, and community-reported issues.';
-  if (mode === 'loading') {
-    msg = 'Refreshing dashboard data for the selected vehicle and year…';
-  } else if (mode === 'error') {
-    msg = 'Some sections could not be loaded. You can retry or run a sweep if data is missing.';
-  } else if (total === 0) {
-    msg = 'No records are currently stored for this vehicle and year. Run an AI Sweep or add a source to build the dashboard.';
-  } else {
-    msg = `Dashboard currently shows ${counts.recall} recall${counts.recall!==1?'s':''}, ${counts.tsb} TSB${counts.tsb!==1?'s':''}, and ${counts.comm} community issue${counts.comm!==1?'s':''}.`;
-  }
-  document.getElementById('summarySub').textContent = msg;
-}
-
 // ── GAZUNNI STATUS ────────────────────────────
 function setGZ(state, msg) {
   const icon = document.getElementById('gzIcon');
@@ -1124,10 +1059,8 @@ async function loadAll() {
   // All sections start collapsed
   ['recall','tsb','comm'].forEach(s => {
     document.getElementById('cards-'+s).innerHTML = '<div class="loading"><div class="spin"></div><span>Loading…</span></div>';
-    document.getElementById('cnt-'+s).textContent = '0';
-    document.getElementById('sn-'+s).textContent = '0';
+    document.getElementById('cnt-'+s).textContent = '—';
   });
-  updateSummaryBar('loading');
 
   // Load all in parallel, independently
   loadSection('community', vkey, year);
@@ -1152,14 +1085,13 @@ async function loadSection(type, vkey, year) {
       } else {
         setGZ('done', 'Connected — no data found. Run an AI Sweep to fetch NHTSA data.');
       }
-      updateSummaryBar('done');
     }
   } catch(e) {
     loadedSections++;
     document.getElementById('cnt-'+key).textContent = '0';
     document.getElementById('sn-'+key).textContent = '0';
-    document.getElementById('cards-'+key).innerHTML = `<div class="empty"><div class="empty-kicker">Load error</div><div class="empty-title">Could not load this section</div><div class="empty-sub">${esc(e.message)}</div><div class="empty-hint"><button class="sweep-btn" style="margin-top:10px;font-size:10px" data-retry="1">↻ Retry</button></div></div>`;
-    if (loadedSections >= totalSections) { setGZ('err', 'Some sections failed to load'); updateSummaryBar('error'); }
+    document.getElementById('cards-'+key).innerHTML = `<div class="empty"><div class="ei">⚠️</div><div class="et">${esc(e.message)}<br><button class="sweep-btn" style="margin-top:10px;font-size:10px" data-retry="1">↻ Retry</button></div></div>`;
+    if (loadedSections >= totalSections) setGZ('err', 'Some sections failed to load');
   }
 }
 
@@ -1213,20 +1145,11 @@ function renderSection(cId, countId, items, type) {
   document.getElementById(countId).textContent = count;
   document.getElementById(snId).textContent = count;
   if (!count) {
-    const v = getVehicleLabel();
-    const y = getYear();
-    const msgs = {
-      recall:{title:'No recalls recorded', sub:`No official safety recalls are currently stored for ${v} ${y}.`, hint:'Run AI Sweep to check NHTSA and refresh this section.'},
-      tsb:{title:'No TSBs recorded', sub:`No technical service bulletins are currently stored for ${v} ${y}.`, hint:'Use Research Sweep or Add TSB to expand this section.'},
-      comm:{title:'No community issues yet', sub:`No owner-reported issues are currently stored for ${v} ${y}.`, hint:'Submit Issue to start building community intelligence.'}
-    };
-    const msg = msgs[type] || {title:'No data', sub:'No data available right now.', hint:''};
-    document.getElementById(cId).innerHTML = `<div class="empty"><div class="empty-kicker">${esc(type)}</div><div class="empty-title">${esc(msg.title)}</div><div class="empty-sub">${esc(msg.sub)}</div>${msg.hint ? `<div class="empty-hint">${esc(msg.hint)}</div>` : ''}</div>`;
-    updateSummaryBar();
+    const msgs = {recall:'No recalls found. Run AI Sweep to fetch NHTSA data.',tsb:'No TSBs found. Run AI Sweep to fetch NHTSA data.',comm:'No community issues yet.'};
+    document.getElementById(cId).innerHTML = `<div class="empty"><div class="et">${msgs[type]||'No data.'}</div></div>`;
     return;
   }
   document.getElementById(cId).innerHTML = items.map((item,i)=>buildCard(item,type,i)).join('');
-  updateSummaryBar();
 }
 
 function buildCard(rec, type, idx) {
@@ -1975,39 +1898,38 @@ async function vinImportMissing() {
   const data = window.__vinMissing;
   if (!data || !data.recalls.length) return;
   const btn = document.getElementById('vinImportBtn');
-  if (btn) {
-    btn.disabled = true;
-    btn.textContent = 'Importing…';
-  }
+  if (btn) { btn.disabled = true; btn.textContent = 'Importing…'; }
   try {
     const res = await apiFetch('/api/vin-import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ vehicle: data.vehicle, year: data.year, recalls: data.recalls, vin: data.vin, make: data.make, model: data.model })
+      body: JSON.stringify({ vehicle: data.vehicle, year: data.year, recalls: data.recalls })
     });
-    const inserted = Number(res.inserted ?? res.count ?? 0);
-    const existing = Number(res.existing ?? 0);
-    const skipped  = Number(res.skipped ?? 0);
-    if (btn) {
-      btn.textContent = `✓ Added ${inserted} · Existing ${existing} · Skipped ${skipped}`;
-      btn.style.borderColor = 'var(--green)';
-      btn.style.color = 'var(--green)';
-    }
-    const summary = document.getElementById('vinImportSummary');
-    if (summary) {
-      summary.innerHTML = `${inserted} inserted · ${existing} already in DB · ${skipped} skipped`;
-      summary.style.display = 'block';
-    }
+    if (btn) { btn.textContent = `✓ Imported ${res.count} recall${res.count!==1?'s':''}`; btn.style.borderColor='var(--green)'; btn.style.color='var(--green)'; }
     window.__vinMissing = null;
     loadAll();
   } catch(e) {
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = 'Import failed — retry';
-      btn.style.borderColor = 'var(--recall)';
-      btn.style.color = 'var(--recall)';
-    }
+    if (btn) { btn.disabled = false; btn.textContent = 'Import failed — retry'; }
   }
+}
+
+
+
+function openVinReport(mode='view') {
+  const ctx = window.__vinReportContext;
+  if (!ctx || !ctx.vin || !ctx.vehicle || !ctx.year) {
+    alert('Run a VIN lookup first.');
+    return;
+  }
+  const qs = new URLSearchParams({
+    vin: ctx.vin,
+    vehicle: ctx.vehicle,
+    year: String(ctx.year),
+    mode
+  });
+  const url = `/report/vin?${qs.toString()}`;
+  const w = window.open(url, '_blank', 'noopener');
+  if (mode === 'print' && w) w.focus();
 }
 
 // ── FORUM THREAD EXTRACTOR ("Generified" © 2026) ────────────────────────
@@ -2220,6 +2142,17 @@ async function vinLookup() {
         const mappedVehicle = mapDecodedVehicleKey(make, model);
         const vkey = mappedVehicle || selectedVehicle;
         const yr   = Number.isFinite(parseInt(year,10)) ? parseInt(year,10) : selectedYear;
+        window.__vinReportContext = {
+          vin,
+          vehicle: vkey,
+          year: yr,
+          make,
+          model,
+          trim,
+          mappedVehicle,
+          selectedVehicle,
+          selectedYear,
+        };
         let crossCheck = null;
         try {
           crossCheck = await apiFetch(`/api/recalls?vehicle=${encodeURIComponent(vkey)}&year=${yr}&includeSuppressed=1`);
@@ -2244,29 +2177,19 @@ async function vinLookup() {
 
         // Cross-check summary
         const inDb = recalls.length - missing.length;
-        const selectedVehicleLabel = document.getElementById('selModel').options[document.getElementById('selModel').selectedIndex]?.text || 'selected dashboard vehicle';
-        const dashboardMatches = !!mappedVehicle && mappedVehicle === selectedVehicle && String(yr) === String(selectedYear);
-        const dashboardMatchClass = dashboardMatches ? 'vin-match-banner vin-match-ok' : 'vin-match-banner vin-match-warn';
-        const dashboardMatchTitle = dashboardMatches ? 'VIN matches selected dashboard context' : 'VIN does not match selected dashboard context';
-        const dashboardMatchCopy = dashboardMatches
-          ? `${esc(make)} ${esc(model)} ${esc(String(yr))} is aligned with ${esc(selectedVehicleLabel)} ${esc(String(selectedYear))}.`
-          : `${esc(make)} ${esc(model)} ${esc(String(yr))} is being checked against ${esc(selectedVehicleLabel)} ${esc(String(selectedYear))}. Review before importing.`;
         html += `<div class="vin-section">
           <div class="vin-section-title">Database Cross-Check</div>
-          <div class="${dashboardMatchClass}">
-            <div class="vin-match-copy">
-              <div class="vin-match-title">${dashboardMatchTitle}</div>
-              <div>${dashboardMatchCopy}</div>
-            </div>
-            <div class="vin-match-badge">${dashboardMatches ? '✓ Context confirmed' : '⚠ Review context'}</div>
-          </div>
+          ${mappedVehicle && mappedVehicle !== selectedVehicle ? `<div class="vin-empty" style="margin-bottom:10px;color:var(--blue)">Matched against ${esc(document.getElementById('selModel').options[document.getElementById('selModel').selectedIndex]?.text || 'selected dashboard vehicle')} ${esc(String(yr))}.</div>` : ''}
           <div class="vin-crosscheck">
             <div class="vin-cc-stat"><span class="vin-cc-num">${recalls.length}</span><span class="vin-cc-label">NHTSA Recalls</span></div>
             <div class="vin-cc-stat"><span class="vin-cc-num" style="color:var(--green)">${inDb}</span><span class="vin-cc-label">In Our DB</span></div>
             <div class="vin-cc-stat"><span class="vin-cc-num" style="color:${missing.length?'var(--recall)':'var(--green)'}">${missing.length}</span><span class="vin-cc-label">Missing</span></div>
             ${missing.length ? `<button class="submit-btn" id="vinImportBtn" style="font-size:10px;padding:4px 12px">⊕ Import ${missing.length} Missing</button>` : '<div class="vin-cc-complete">✓ Database up to date</div>'}
           </div>
-          <div class="vin-empty" id="vinImportSummary" style="display:none;margin-top:8px;color:var(--green)"></div>
+          <div class="vin-report-actions">
+            <button class="vin-report-btn" onclick="openVinReport('view')">📄 Open VIN Report</button>
+            <button class="vin-report-btn" onclick="openVinReport('print')">🖨 Print / Save PDF</button>
+          </div>
         </div>`;
 
         html += `<div class="vin-section"><div class="vin-section-title">Outstanding Recalls (${outstanding.length})</div>`;
