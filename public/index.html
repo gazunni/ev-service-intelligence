@@ -1,3 +1,4 @@
+<!--index.html-->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,12 +8,12 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap');
 :root{
-  --bg:#050e08;--surface:#081a0c;--surface2:#0c2010;--border:#1a3a20;
-  --text:#b8e8c8;--muted:#4a8060;
-  --recall:#ef4444;--recall-bg:#1a0808;
-  --tsb:#f59e0b;--tsb-bg:#1a1208;
-  --comm:#22d3ee;--comm-bg:#041418;
-  --green:#22c55e;--blue:#38bdf8;
+  --bg:#0b1118;--surface:#111a24;--surface2:#162230;--border:#234055;
+  --text:#dbe8f6;--muted:#7f96ad;
+  --recall:#ef4444;--recall-bg:#221012;
+  --tsb:#f59e0b;--tsb-bg:#23180c;
+  --comm:#22d3ee;--comm-bg:#0b1b26;
+  --green:#32d296;--blue:#53c5ff;
   --mono:'JetBrains Mono',monospace;
   --sans:'Syne',sans-serif;
 }
@@ -23,7 +24,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
 .card-actions{display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
 .act-btn{font-size:10px;font-weight:600;font-family:var(--mono);padding:4px 10px;border-radius:3px;cursor:pointer;letter-spacing:.04em;transition:all .2s;border:1px solid var(--border);background:transparent}
 .act-copy{color:var(--green);border-color:var(--border)}
-.act-copy:hover{border-color:var(--green);background:#0a1f0a}
+.act-copy:hover{border-color:var(--blue);background:#122334}
 .act-copy.copied{color:#22c55e;border-color:#22c55e}
 .act-print{color:#38bdf8;border-color:var(--border)}
 .act-print:hover{border-color:#38bdf8;background:#020c14}
@@ -60,7 +61,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
 .admin-card-title{font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px}
 .admin-card-desc{font-size:10px;color:var(--muted);margin-bottom:10px;line-height:1.5}
 .admin-btn{font-size:10px;font-weight:600;font-family:var(--mono);padding:4px 12px;border-radius:3px;cursor:pointer;border:1px solid var(--green);background:transparent;color:var(--green);transition:all .2s}
-.admin-btn:hover{background:#0a1f0a}
+.admin-btn:hover{background:#122334}
 .admin-btn-warn{border-color:#b45309;color:#b45309}
 .admin-btn-warn:hover{background:#1a0e00}
 .admin-result{font-size:10px;margin-top:6px;min-height:14px}
@@ -119,17 +120,17 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
 /* ── EFF LINK ── */
 .eff-link{font-size:9px;font-weight:700;letter-spacing:.08em;color:#38bdf8;border:1px solid #0e3a4a;background:#020c14;padding:3px 9px;border-radius:3px;text-decoration:none;transition:all .2s;white-space:nowrap}
 .eff-link:hover{background:#0a2030;border-color:#38bdf8;box-shadow:0 0 8px #38bdf840}
-.footer-cta{background:linear-gradient(135deg,#020c14,#050e08);border-top:1px solid #0e3a4a;padding:18px 24px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-top:20px}
+.footer-cta{background:linear-gradient(135deg,#101a26,#0b1118);border-top:1px solid #234055;padding:18px 24px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:16px;margin-top:20px}
 .footer-disclaimers{display:flex;flex-direction:column;gap:8px;flex:1;min-width:200px}
 .disc-row{display:flex;flex-wrap:wrap;gap:8px 20px}
-.disc-item{font-size:9px;color:#4ade80;letter-spacing:.04em}
-.disc-copy{font-size:9px;color:#22c55e;letter-spacing:.06em;margin-top:2px}
+.disc-item{font-size:9px;color:#8fd0ff;letter-spacing:.04em}
+.disc-copy{font-size:9px;color:#53c5ff;letter-spacing:.06em;margin-top:2px}
 .footer-btn{font-size:11px;font-weight:700;color:#38bdf8;border:1px solid #0e3a4a;background:#020c14;padding:8px 18px;border-radius:4px;text-decoration:none;letter-spacing:.05em;transition:all .2s;white-space:nowrap;align-self:center}
 .footer-btn:hover{background:#0a2030;border-color:#38bdf8;box-shadow:0 0 12px #38bdf840}
 /* ── HEADER ── */
-.hdr{background:linear-gradient(135deg,#061a0a,#050e08);border-bottom:1px solid var(--border);padding:18px 24px 14px;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px)}
+.hdr{background:linear-gradient(135deg,#111c2a,#0b1118);border-bottom:1px solid var(--border);padding:18px 24px 14px;position:sticky;top:0;z-index:100;backdrop-filter:blur(8px)}
 .hdr-top{display:flex;align-items:center;gap:12px;margin-bottom:12px}
-.hdr-title{font-family:var(--sans);font-size:17px;font-weight:800;letter-spacing:-.02em;background:linear-gradient(90deg,#ef4444,#f59e0b,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.hdr-title{font-family:var(--sans);font-size:17px;font-weight:800;letter-spacing:-.02em;background:linear-gradient(90deg,#ff6b6b,#ffb84d,#53c5ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
 .hdr-sub{font-size:9px;color:var(--muted);letter-spacing:.1em;text-transform:uppercase}
 
 /* ── GAZUNNI BRAND LOADER ── */
@@ -137,12 +138,15 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
 .gz-icon{position:relative;width:48px;height:48px;flex-shrink:0;display:flex;align-items:center;justify-content:center}
 .gz-ring-outer{position:absolute;inset:0;border-radius:50%;border:3px solid #0e3a4a;transition:border-color .4s}
 .gz-ring-inner{position:absolute;inset:0;border-radius:50%;border:3px solid transparent;border-top-color:#38bdf8;transition:border-color .4s}
-.gz-letter{position:relative;font-family:var(--sans);font-size:22px;font-weight:800;color:#1a5a6a;transition:color .4s, text-shadow .4s;z-index:1;line-height:1}
+.gz-letter{position:relative;width:38px;height:38px;display:flex;align-items:center;justify-content:center;font-family:var(--sans);font-size:22px;font-weight:800;color:#1a5a6a;transition:color .4s, text-shadow .4s, opacity .4s;z-index:1;line-height:1}
+.gz-logo-img{width:38px;height:38px;border-radius:50%;display:block;object-fit:cover;filter:drop-shadow(0 0 8px rgba(83,197,255,.28));}
 .gz-icon.loading .gz-ring-inner{animation:gz-spin 1.2s linear infinite, gz-pulse-border 1.8s ease-in-out infinite}
 .gz-icon.loading .gz-letter{color:#38bdf8;text-shadow:0 0 8px #38bdf8}
 .gz-icon.done .gz-ring-outer{border-color:#38bdf8}
 .gz-icon.done .gz-ring-inner{border-color:#38bdf8;animation:none}
 .gz-icon.done .gz-letter{color:#38bdf8;text-shadow:0 0 10px #38bdf8}
+.gz-icon.done .gz-logo-img,.gz-icon.loading .gz-logo-img{filter:drop-shadow(0 0 10px rgba(83,197,255,.42));}
+.gz-icon.err .gz-logo-img{filter:drop-shadow(0 0 8px rgba(239,68,68,.35));}
 .gz-icon.err .gz-ring-outer{border-color:#7f1d1d}
 .gz-icon.err .gz-ring-inner{border-color:#ef4444;animation:none}
 .gz-icon.err .gz-letter{color:#ef4444;text-shadow:none}
@@ -155,29 +159,44 @@ body{background:var(--bg);color:var(--text);font-family:var(--mono);font-size:13
 .gz-status.live{color:#38bdf8}
 .gz-status.err{color:var(--recall)}
 .gz-status.ok{color:var(--green)}
+.hdr-brand-note{font-size:10px;color:#8fd0ff;letter-spacing:.08em;margin-top:4px;text-transform:uppercase}
 
 /* ── SELBAR ── */
-.selbar{display:flex;flex-direction:column;gap:12px;padding:14px 24px;background:var(--surface);border-bottom:1px solid var(--border)}
-.control-row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
-.control-group{display:flex;flex-direction:column;gap:10px;padding:12px 14px;border:1px solid rgba(56,189,248,.22);border-radius:10px;background:linear-gradient(180deg,rgba(8,26,20,.96),rgba(4,12,10,.98));box-shadow:inset 0 0 0 1px rgba(110,232,154,.05)}
-.control-group.actions-group{border-color:rgba(110,168,232,.18);background:linear-gradient(180deg,rgba(10,18,40,.65),rgba(5,9,20,.78))}
-.control-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.12em}
-.context-row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
-.context-arrow{align-self:center;color:#38bdf8;font-size:16px;line-height:1;opacity:.8;padding:0 2px 2px}
-.actions-row{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
-.sg{display:flex;flex-direction:column;gap:3px;min-width:150px}
+.selbar{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;padding:12px 24px;background:var(--surface);border-bottom:1px solid var(--border)}
+.sg{display:flex;flex-direction:column;gap:3px}
 .sg label{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
-.context-hint{font-size:10px;color:var(--text-muted);letter-spacing:.02em}
 select,input.vin{background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:12px;padding:6px 10px;border-radius:4px;cursor:pointer}
 select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%234a8060'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 8px center;padding-right:26px}
 select:focus,input.vin:focus{outline:none;border-color:var(--comm)}
 input.vin{width:190px;letter-spacing:.05em;text-transform:uppercase}
 input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
-.sweep-btn{background:linear-gradient(135deg,#0a3a1a,#062010);border:1px solid #1a5a2a;color:#6ee89a;font-family:var(--mono);font-size:11px;font-weight:600;padding:7px 16px;border-radius:4px;cursor:pointer;letter-spacing:.04em;transition:all .2s;white-space:nowrap;align-self:flex-end}
-.sweep-btn:hover{background:linear-gradient(135deg,#0f4d22,#082a14)}
+.sweep-btn{background:linear-gradient(135deg,#123049,#0f1f32);border:1px solid #2f5f7b;color:#9ed8ff;font-family:var(--mono);font-size:11px;font-weight:600;padding:7px 16px;border-radius:4px;cursor:pointer;letter-spacing:.04em;transition:all .2s;white-space:nowrap;align-self:flex-end;box-shadow:0 0 0 1px #53c5ff22 inset}
+.sweep-btn:hover{background:linear-gradient(135deg,#184868,#123049);border-color:#53c5ff;box-shadow:0 0 14px #53c5ff22}
 .sweep-btn:disabled{opacity:.4;cursor:not-allowed}
-.tool-btn{background:linear-gradient(135deg,#0a1a3a,#060e20);border:1px solid #1a2a5a;color:#6ea8e8;font-family:var(--mono);font-size:11px;font-weight:600;padding:7px 16px;border-radius:4px;cursor:pointer;letter-spacing:.04em;transition:all .2s;white-space:nowrap;align-self:flex-end}
-.tool-btn:hover{background:linear-gradient(135deg,#0f224d,#081428)}
+.tool-btn{background:linear-gradient(135deg,#18203c,#11172c);border:1px solid #374e82;color:#b8c9ff;font-family:var(--mono);font-size:11px;font-weight:600;padding:7px 16px;border-radius:4px;cursor:pointer;letter-spacing:.04em;transition:all .2s;white-space:nowrap;align-self:flex-end}
+.tool-btn:hover{background:linear-gradient(135deg,#27345e,#18203c);border-color:#8aa5ff}
+
+/* ── SELBAR LAYOUT GROUPS ── */
+.sel-section{display:flex;flex-direction:column;gap:6px}
+.sel-section-label{font-family:var(--mono);font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+.sel-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.sel-row-context{display:flex;gap:10px;align-items:flex-end;flex-wrap:nowrap}
+#selMake{min-width:150px}
+#selModel{min-width:260px}
+#selYear{min-width:96px}
+.sel-link-arrow{color:#38bdf8;font-size:16px;line-height:1;padding:0 2px 8px;align-self:flex-end;opacity:.9}
+.sel-context-note{font-size:10px;color:var(--muted);letter-spacing:.03em;margin-top:2px}
+.public-action-row{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap}
+.public-action-note{font-size:10px;color:var(--muted);letter-spacing:.03em;margin-top:2px}
+.admin-quick-row{display:flex;gap:8px;flex-wrap:wrap}
+.admin-quick-btn{font-size:10px;font-weight:600;font-family:var(--mono);padding:6px 12px;border-radius:4px;cursor:pointer;border:1px solid var(--border);background:linear-gradient(135deg,#18203c,#11172c);color:#b8c9ff;transition:all .2s}
+.admin-quick-btn:hover{background:linear-gradient(135deg,#27345e,#18203c);border-color:#8aa5ff}
+.admin-quick-btn.warn{border-color:var(--recall);color:#ff9a9a}
+.admin-quick-btn.warn:hover{border-color:#ff6b6b}
+@media (max-width: 900px){
+  .sel-row-context{flex-wrap:wrap}
+  .sel-link-arrow{padding-bottom:0}
+}
 
 /* ── STATS ── */
 .stats{display:flex;border-bottom:1px solid var(--border)}
@@ -196,7 +215,20 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 .tb-recall{background:var(--recall-bg);color:var(--recall);border:1px solid var(--recall)}
 .tb-tsb{background:var(--tsb-bg);color:var(--tsb);border:1px solid var(--tsb)}
 .tb-comm{background:var(--comm-bg);color:var(--comm);border:1px solid var(--comm)}
+
 .sec-title{font-family:var(--sans);font-size:13px;font-weight:700;flex:1}
+.comm-hdr-sources{display:flex;align-items:center;gap:10px;flex-wrap:nowrap;margin-left:auto;margin-right:8px;min-width:0;flex:0 1 auto}
+.comm-hdr-pill{display:inline-flex;align-items:center;justify-content:center;padding:0;font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;opacity:.95;white-space:nowrap;flex:0 1 auto}
+.comm-hdr-pill.forum{color:var(--comm)}
+.comm-hdr-pill.reddit{color:#f97316}
+.comm-hdr-pill.facebook{color:#3b82f6}
+.comm-hdr-pill.user{color:var(--muted)}
+.comm-note{font-size:10px;color:var(--muted);padding:6px 0 10px;line-height:1.35}
+@media (max-width: 1100px){
+  .comm-hdr-sources{gap:6px}
+  .comm-hdr-pill{font-size:8px;letter-spacing:.04em}
+}
+
 .sec-cnt{font-size:11px;color:var(--muted);margin-right:6px}
 .chv{color:var(--muted);font-size:11px;transition:transform .25s}
 .sec-body{display:none;padding:0 20px 16px}
@@ -251,7 +283,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 .p-submitted{background:#0f0f0f;color:#9ca3af;border:1px solid #374151}
 .p-tsb{background:#1a1208;color:#fcd34d;border:1px solid #92400e}
 .card-chv{color:var(--green);font-size:10px;font-weight:600;flex-shrink:0;margin-top:2px;background:transparent;border:1px solid var(--border);padding:2px 8px;border-radius:3px;cursor:pointer;font-family:var(--mono);letter-spacing:.04em;transition:all .2s;white-space:nowrap}
-.card-chv:hover{border-color:var(--green);background:#0a1f0a}
+.card-chv:hover{border-color:var(--blue);background:#122334}
 .card-body{display:none;padding:0 14px 12px 14px;border-top:1px solid var(--border)}
 .card-body.open{display:block}
 .cf{display:flex;gap:8px;margin-top:8px;font-size:11px}
@@ -290,7 +322,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 .rq-title{font-weight:700;font-size:12px;margin-bottom:4px}
 .rq-meta{font-size:10px;color:var(--muted);margin-bottom:8px}
 .rq-actions{display:flex;gap:6px}
-.approve-btn{background:#0a2010;border:1px solid var(--green);color:var(--green);font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:3px;cursor:pointer}
+.approve-btn{background:#10212c;border:1px solid var(--green);color:var(--green);font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:3px;cursor:pointer}
 .reject-btn{background:#1a0808;border:1px solid var(--recall);color:var(--recall);font-family:var(--mono);font-size:10px;padding:4px 10px;border-radius:3px;cursor:pointer}
 
 /* ── EMPTY / LOADING ── */
@@ -326,6 +358,29 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 }
 .dash-stat.warn .dash-num { color: var(--warn, #f59e0b); }
 .dash-stat.alert .dash-num { color: var(--recall, #ef4444); }
+
+.vin-report-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.vin-report-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 14px;border-radius:10px;
+  border:1px solid rgba(83,197,255,.42);
+  background:linear-gradient(135deg,rgba(17,26,36,.96),rgba(22,34,48,.96));
+  color:#e8f5ff;text-decoration:none;
+  font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.04em;
+  box-shadow:0 0 0 1px rgba(83,197,255,.10) inset,0 0 12px rgba(83,197,255,.08);
+  transition:all .2s ease;
+}
+.vin-report-btn:hover{
+  border-color:#53c5ff;
+  background:linear-gradient(135deg,rgba(25,46,69,.98),rgba(17,26,36,.98));
+  color:#ffffff;
+  box-shadow:0 0 0 1px rgba(83,197,255,.18) inset,0 0 18px rgba(83,197,255,.18);
+}
+.vin-report-btn:focus-visible{
+  outline:none;
+  box-shadow:0 0 0 2px rgba(83,197,255,.38),0 0 0 1px rgba(83,197,255,.22) inset;
+}
+
 </style>
 </head>
 <body>
@@ -334,16 +389,17 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 <div class="hdr">
   <div class="hdr-top">
     <div class="gazunni-loader">
-      <div class="gz-icon loading" id="gzIcon" data-holdable="1">
+      <div class="gz-icon loading" id="gzIcon" data-holdable="1" aria-label="Generify wolf logo">
         <div class="gz-ring-outer">
           <div class="gz-ring-inner" id="gzRing"></div>
         </div>
-        <div class="gz-letter" id="gzG">G</div>
+        <div class="gz-letter" id="gzG"><img class="gz-logo-img" src="/branding/generify-wolf.png" alt="Generify wolf logo"></div>
       </div>
     </div>
     <div style="flex:1">
       <div class="hdr-title">EV SERVICE INTELLIGENCE</div>
       <div class="hdr-sub">RECALLS · TSBS · COMMUNITY ISSUES</div>
+      <div class="hdr-brand-note">Powered by Generify™</div>
       <div class="gz-status live" id="gzStatus">Initializing…</div>
     </div>
   </div>
@@ -351,43 +407,37 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 
 <!-- SELBAR -->
 <div class="selbar">
-  <div class="control-row">
-    <div class="control-group context-group">
-      <div class="control-title">Lookup Context</div>
-      <div class="context-row">
-        <div class="sg">
-          <label>Vehicle</label>
-          <select id="selModel">
-            <option value="equinox_ev">Chevrolet Equinox EV</option>
-            <option value="blazer_ev">Chevrolet Blazer EV</option>
-            <option value="mach_e">Ford Mustang Mach-E</option>
-            <option value="honda_prologue">Honda Prologue</option>
-            <option value="tesla_model_3">Tesla Model 3</option>
-            <option value="tesla_model_y">Tesla Model Y</option>
-          </select>
-        </div>
-        <div class="sg">
-          <label>Year</label>
-          <select id="selYear"></select>
-        </div>
-        <div class="context-arrow" aria-hidden="true">→</div>
-        <button class="tool-btn" id="vinLookupBtn" style="background:#0a1a2e;border-color:#38bdf8;color:#38bdf8">🔍 VIN Lookup</button>
+  <div class="sel-section">
+    <div class="sel-section-label">Lookup Context</div>
+    <div class="sel-row sel-row-context">
+      <div class="sg">
+        <label>Make</label>
+        <select id="selMake">
+          <option value="chevrolet">Chevrolet</option>
+          <option value="ford">Ford</option>
+          <option value="honda">Honda</option>
+          <option value="tesla">Tesla</option>
+        </select>
       </div>
-      <div class="context-hint">VIN results are matched against the selected vehicle and year before import.</div>
+      <div class="sg">
+        <label>Model</label>
+        <select id="selModel"></select>
+      </div>
+      <div class="sg">
+        <label>Year</label>
+        <select id="selYear"></select>
+      </div>
+      <div class="sel-link-arrow" aria-hidden="true">→</div>
+      <button class="tool-btn" id="vinLookupBtn" style="background:#0a1a2e;border-color:#38bdf8;color:#38bdf8">🔍 VIN Lookup</button>
     </div>
+    <div class="sel-context-note">VIN results are matched against the selected make, model, and year before import.</div>
   </div>
-  <div class="control-row">
-    <div class="control-group actions-group">
-      <div class="control-title">Actions</div>
-      <div class="actions-row">
-        <button class="sweep-btn" id="sweepBtn">⚡ Run AI Sweep</button>
-        <button class="tool-btn" data-panel="researchPanel">🔬 Research Sweep</button>
-        <button class="tool-btn" data-panel="forumPanel">🧵 Forum Thread</button>
-        <button class="tool-btn" data-panel="submitPanel">＋ Submit Issue</button>
-        <button class="tool-btn" data-panel="tsbPanel">＋ Add TSB</button>
-        <button class="tool-btn" data-panel="recallPanel" style="border-color:var(--recall);color:var(--recall)">＋ Add Recall</button>
-      </div>
+  <div class="sel-section">
+    <div class="sel-section-label">Community</div>
+    <div class="public-action-row">
+      <button class="tool-btn" data-panel="submitPanel">＋ Add Community Issue</button>
     </div>
+    <div class="public-action-note">Official sweeps, forum extraction, TSB entry, and recall entry are available from Admin mode.</div>
   </div>
 </div>
 
@@ -742,6 +792,18 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
   </div>
   <p class="tool-note" style="margin-top:0">Admin tools — changes are immediate and irreversible.</p>
   <div class="admin-grid">
+    <div class="admin-card" style="grid-column:1 / -1">
+      <div class="admin-card-title">Quick Tools</div>
+      <div class="admin-card-desc">Operational tools moved off the public landing page. Use these to run sweeps or open the manual research and entry panels.</div>
+      <div class="admin-quick-row">
+        <button class="admin-quick-btn" id="adminSweepQuickBtn">⚡ Run AI Sweep</button>
+        <button class="admin-quick-btn" id="adminResearchQuickBtn">🔬 Research Sweep</button>
+        <button class="admin-quick-btn" id="adminForumQuickBtn">🧵 Forum Thread</button>
+        <button class="admin-quick-btn" id="adminTsbQuickBtn">＋ Add TSB</button>
+        <button class="admin-quick-btn warn" id="adminRecallQuickBtn">＋ Add Recall</button>
+      </div>
+      <div class="admin-result" id="adminQuickToolsResult"></div>
+    </div>
     <div class="admin-card">
       <div class="admin-card-title">Deduplicate Recalls &amp; TSBs</div>
       <div class="admin-card-desc">Remove duplicates across recalls and TSBs — matches by campaign number then title. Keeps the most complete record.</div>
@@ -883,17 +945,17 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
   <div class="sec-hdr" data-sec="comm">
     <span class="type-badge tb-comm">COMMUNITY</span>
     <span class="sec-title">Community-Reported Issues</span>
+    <div class="comm-hdr-sources" aria-label="Community sources">
+      <span class="comm-hdr-pill forum">Forum</span>
+      <span class="comm-hdr-pill reddit">Reddit</span>
+      <span class="comm-hdr-pill facebook">Facebook</span>
+      <span class="comm-hdr-pill user">User Submitted</span>
+    </div>
     <span class="sec-cnt" id="cnt-comm">0</span>
     <button class="chv" id="chv-comm">Show</button>
   </div>
   <div class="sec-body" id="body-comm">
-    <div class="empty" style="font-size:10px;color:var(--muted);padding:12px 0 4px">
-      <span style="color:var(--comm)">FORUM</span> &nbsp;
-      <span style="color:#f97316">REDDIT</span> &nbsp;
-      <span style="color:#3b82f6">FACEBOOK</span> &nbsp;
-      <span style="color:var(--muted)">USER SUBMITTED</span>
-    </div>
-    <div style="font-size:10px;color:var(--muted);padding:4px 0 12px">Issues reported by owners before an official bulletin exists. AI clusters similar reports to prevent duplication.</div>
+    <div class="comm-note">Issues reported by owners before an official bulletin exists. AI clusters similar reports to prevent duplication.</div>
     <div id="cards-comm"><div class="loading"><div class="spin"></div><span>Loading…</span></div></div>
   </div>
 </div>
@@ -903,35 +965,6 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function getVehicle(){ return document.getElementById('selModel').value; }
 function getYear(){ return document.getElementById('selYear').value; }
-
-const VEHICLE_LABELS = {
-  equinox_ev: 'Chevrolet Equinox EV',
-  blazer_ev: 'Chevrolet Blazer EV',
-  mach_e: 'Ford Mustang Mach-E',
-  honda_prologue: 'Honda Prologue',
-  tesla_model_3: 'Tesla Model 3',
-  tesla_model_y: 'Tesla Model Y',
-};
-
-function vehicleLabel(key) {
-  return VEHICLE_LABELS[key] || key || 'Unknown vehicle';
-}
-
-function canonicalKey(s) {
-  return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-}
-
-function detectVehicleKey(make, model) {
-  const m = canonicalKey(make);
-  const d = canonicalKey(model);
-  if (m === 'chevrolet' && d === 'equinoxev') return 'equinox_ev';
-  if (m === 'chevrolet' && d === 'blazerev') return 'blazer_ev';
-  if (m === 'ford' && (d === 'mustangmache' || d === 'mache')) return 'mach_e';
-  if (m === 'honda' && d === 'prologue') return 'honda_prologue';
-  if (m === 'tesla' && d === 'model3') return 'tesla_model_3';
-  if (m === 'tesla' && d === 'modely') return 'tesla_model_y';
-  return '';
-}
 
 // ── GAZUNNI STATUS ────────────────────────────
 function setGZ(state, msg) {
@@ -965,6 +998,7 @@ let totalSections = 3;
 // ── PERSISTENCE ───────────────────────────────
 function savePrefs() {
   try {
+    localStorage.setItem('gz_make',    document.getElementById('selMake').value);
     localStorage.setItem('gz_vehicle', document.getElementById('selModel').value);
     localStorage.setItem('gz_year',    document.getElementById('selYear').value);
   } catch(e) {}
@@ -973,7 +1007,12 @@ function restorePrefs() {
   try {
     const v = localStorage.getItem('gz_vehicle');
     const y = localStorage.getItem('gz_year');
-    if (v) { document.getElementById('selModel').value = v; updateYearOptions(); }
+    const m = localStorage.getItem('gz_make');
+    if (m && vehicleCatalog[m]) document.getElementById('selMake').value = m;
+    else if (v && modelToMake[v]) document.getElementById('selMake').value = modelToMake[v];
+    updateModelOptions(true);
+    if (v) { document.getElementById('selModel').value = v; }
+    updateYearOptions();
     if (y) { document.getElementById('selYear').value = y; }
   } catch(e) {}
 }
@@ -1110,7 +1149,7 @@ async function loadSection(type, vkey, year) {
       if (total > 0) {
         setGZ('done', `Loaded — ${rc} recalls · ${tc} TSBs · ${cc} community issues`);
       } else {
-        setGZ('done', 'Connected — no data found. Run an AI Sweep to fetch NHTSA data.');
+        setGZ('done', 'Connected — no data found for this vehicle/year.');
       }
     }
   } catch(e) {
@@ -1148,7 +1187,11 @@ function toggleCard(id) {
 // ── TOOL PANELS ───────────────────────────────
 function togglePanel(id) {
   const panel = document.getElementById(id);
+  if (!panel) return;
   const wasOpen = panel.classList.contains('open');
+  document.querySelectorAll('.tool-panel.open').forEach(p => {
+    if (p.id !== id) p.classList.remove('open');
+  });
   panel.classList.toggle('open');
   // Clear admin mode when closing admin panel
   if (id === 'adminPanel' && wasOpen) {
@@ -1163,6 +1206,12 @@ function togglePanel(id) {
   if (id === 'adminPanel' && !wasOpen) {
     loadAdminDashboard();
   }
+  if (!wasOpen) panel.scrollIntoView({ behavior:'smooth', block:'start' });
+}
+function openAdminTool(panelId) {
+  togglePanel(panelId);
+  const result = document.getElementById('adminQuickToolsResult');
+  if (result) result.textContent = 'Opened ' + panelId.replace('Panel','').replace(/([A-Z])/g,' $1').trim() + ' panel.';
 }
 
 // ── RENDER ────────────────────────────────────
@@ -1172,7 +1221,7 @@ function renderSection(cId, countId, items, type) {
   document.getElementById(countId).textContent = count;
   document.getElementById(snId).textContent = count;
   if (!count) {
-    const msgs = {recall:'No recalls found. Run AI Sweep to fetch NHTSA data.',tsb:'No TSBs found. Run AI Sweep to fetch NHTSA data.',comm:'No community issues yet.'};
+    const msgs = {recall:'No recalls found for this vehicle/year.',tsb:'No TSBs found for this vehicle/year.',comm:'No community issues yet.'};
     document.getElementById(cId).innerHTML = `<div class="empty"><div class="et">${msgs[type]||'No data.'}</div></div>`;
     return;
   }
@@ -1826,23 +1875,54 @@ async function adminAction(endpoint, resultId, btnId) {
   } finally { btn.disabled = false; }
 }
 
-// ── YEAR OPTIONS BY VEHICLE ──────────────────
-const vehicleYears = {
-  equinox_ev:     [2026, 2025, 2024],
-  blazer_ev:      [2026, 2025, 2024],
-  mach_e:         [2026, 2025, 2024, 2023, 2022, 2021],
-  honda_prologue: [2026, 2025, 2024],
-  tesla_model_3:  [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017],
-  tesla_model_y:  [2026, 2025, 2024, 2023, 2022, 2021, 2020],
+// ── MAKE / MODEL / YEAR OPTIONS ─────────────
+const vehicleCatalog = {
+  chevrolet: [
+    { key:'equinox_ev', label:'Chevrolet Equinox EV', years:[2026, 2025, 2024] },
+    { key:'blazer_ev',  label:'Chevrolet Blazer EV',  years:[2026, 2025, 2024] },
+  ],
+  ford: [
+    { key:'mach_e', label:'Ford Mustang Mach-E', years:[2026, 2025, 2024, 2023, 2022, 2021] },
+  ],
+  honda: [
+    { key:'honda_prologue', label:'Honda Prologue', years:[2026, 2025, 2024] },
+  ],
+  tesla: [
+    { key:'tesla_model_3', label:'Tesla Model 3', years:[2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017] },
+    { key:'tesla_model_y', label:'Tesla Model Y', years:[2026, 2025, 2024, 2023, 2022, 2021, 2020] },
+  ],
 };
+const modelToMake = Object.fromEntries(
+  Object.entries(vehicleCatalog).flatMap(([make, models]) => models.map(m => [m.key, make]))
+);
+
+function getSelectedMake() {
+  return document.getElementById('selMake').value;
+}
+
+function getVehicleMeta(vkey) {
+  for (const models of Object.values(vehicleCatalog)) {
+    const found = models.find(m => m.key === vkey);
+    if (found) return found;
+  }
+  return null;
+}
+
+function updateModelOptions(preserveModel = true) {
+  const make = getSelectedMake();
+  const sel = document.getElementById('selModel');
+  const current = preserveModel ? sel.value : '';
+  const models = vehicleCatalog[make] || [];
+  sel.innerHTML = models.map(m => `<option value="${m.key}"${m.key===current?' selected':''}>${m.label}</option>`).join('');
+  if (!models.some(m => m.key === current) && models[0]) sel.value = models[0].key;
+}
 
 function updateYearOptions() {
   const vkey = getVehicle();
   const sel = document.getElementById('selYear');
   const current = sel.value;
-  const years = vehicleYears[vkey] || [2026, 2025, 2024, 2023];
+  const years = getVehicleMeta(vkey)?.years || [2026, 2025, 2024, 2023];
   sel.innerHTML = years.map(y => `<option value="${y}"${String(y)===current?'selected':''}>${y}</option>`).join('');
-  // If current year not valid for this vehicle, default to first
   if (!years.includes(parseInt(current))) sel.value = years[0];
 }
 
@@ -1891,6 +1971,26 @@ const VIN_COUNTRY = {
   'Y':'Sweden/Finland','L':'China',
 };
 
+function mapDecodedVehicleKey(make, model){
+  const mk = String(make||'').toLowerCase().trim();
+  const md = String(model||'').toLowerCase().trim();
+  if (mk.includes('chevrolet') || mk.includes('chevy')) {
+    if (md.includes('equinox')) return 'equinox_ev';
+    if (md.includes('blazer')) return 'blazer_ev';
+  }
+  if (mk.includes('ford')) {
+    if (md.includes('mach') || md.includes('mustang')) return 'mach_e';
+  }
+  if (mk.includes('honda')) {
+    if (md.includes('prologue')) return 'honda_prologue';
+  }
+  if (mk.includes('tesla')) {
+    if (md.includes('model 3') || md === '3') return 'tesla_model_3';
+    if (md.includes('model y') || md === 'y') return 'tesla_model_y';
+  }
+  return '';
+}
+
 function resolvePlant(vin) {
   if (!vin || vin.length !== 17) return '—';
   const plantChar = vin[10].toUpperCase();
@@ -1910,27 +2010,40 @@ async function vinImportMissing() {
     const res = await apiFetch('/api/vin-import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        vehicle: data.vehicle,
-        year: data.year,
-        decodedVehicle: data.decodedVehicle,
-        decodedYear: data.decodedYear,
-        vin: data.vin,
-        recalls: data.recalls,
-      })
+      body: JSON.stringify({ vehicle: data.vehicle, year: data.year, recalls: data.recalls })
     });
-    if (btn) {
-      btn.textContent = `✓ Imported ${res.inserted}` + (res.skipped ? ` · Skipped ${res.skipped}` : '');
-      btn.style.borderColor='var(--green)';
-      btn.style.color='var(--green)';
-    }
+    if (btn) { btn.textContent = `✓ Imported ${res.count} recall${res.count!==1?'s':''}`; btn.style.borderColor='var(--green)'; btn.style.color='var(--green)'; }
     window.__vinMissing = null;
     loadAll();
-    setTimeout(() => vinLookup(), 400);
   } catch(e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Import failed — retry'; }
-    alert('VIN import failed: ' + e.message);
   }
+}
+
+
+
+function buildVinReportUrl(mode='view', ctxOverride=null) {
+  const ctx = ctxOverride || window.__vinReportContext || null;
+  if (!ctx || !ctx.vin || !ctx.vehicle || !ctx.year) return '';
+  const qs = new URLSearchParams({
+    vin: String(ctx.vin || '').trim().toUpperCase(),
+    vehicle: String(ctx.vehicle || '').trim(),
+    year: String(ctx.year),
+    mode
+  });
+  return `/report/vin?${qs.toString()}`;
+}
+
+function openVinReport(mode='view') {
+  const url = buildVinReportUrl(mode);
+  if (!url) {
+    alert('Run a VIN lookup first.');
+    return;
+  }
+  try {
+    closeVinModal();
+  } catch(e) { /* ignore */ }
+  window.location.assign(url);
 }
 
 // ── FORUM THREAD EXTRACTOR ("Generified" © 2026) ────────────────────────
@@ -2082,9 +2195,24 @@ async function vinLookup() {
     const series = get(34);  // Series
 
     // Auto-set vehicle dropdowns if recognisable
-    const decodedVehicleKey = detectVehicleKey(make, model);
-    if (decodedVehicleKey) {
-      document.getElementById('selModel').value = decodedVehicleKey;
+    const modelLower = (make + ' ' + model).toLowerCase();
+    if (modelLower.includes('equinox')) {
+      document.getElementById('selModel').value = 'equinox_ev';
+      updateYearOptions();
+      if (year) document.getElementById('selYear').value = year;
+      loadAll();
+    } else if (modelLower.includes('blazer')) {
+      document.getElementById('selModel').value = 'blazer_ev';
+      updateYearOptions();
+      if (year) document.getElementById('selYear').value = year;
+      loadAll();
+    } else if (modelLower.includes('mach') || modelLower.includes('mustang')) {
+      document.getElementById('selModel').value = 'mach_e';
+      updateYearOptions();
+      if (year) document.getElementById('selYear').value = year;
+      loadAll();
+    } else if (modelLower.includes('prologue')) {
+      document.getElementById('selModel').value = 'honda_prologue';
       updateYearOptions();
       if (year) document.getElementById('selYear').value = year;
       loadAll();
@@ -2122,17 +2250,26 @@ async function vinLookup() {
         const outstanding = recalls.filter(r => r.isOutstanding);
         const completed   = recalls.filter(r => !r.isOutstanding);
 
-        // Cross-check against our database using the VIN-decoded vehicle/year,
-        // not whatever happened to be selected before the lookup.
+        // Cross-check against our database using the VIN-decoded vehicle/year when possible
         const selectedVehicle = getVehicle();
-        const selectedYear = parseInt(getYear(), 10);
-        const dbVehicle = decodedVehicleKey || selectedVehicle;
-        const dbYear = parseInt(year || selectedYear, 10);
-        const vehicleMismatch = !!decodedVehicleKey && (selectedVehicle !== decodedVehicleKey || selectedYear !== dbYear);
-
+        const selectedYear = parseInt(getYear());
+        const mappedVehicle = mapDecodedVehicleKey(make, model);
+        const vkey = mappedVehicle || selectedVehicle;
+        const yr   = Number.isFinite(parseInt(year,10)) ? parseInt(year,10) : selectedYear;
+        window.__vinReportContext = {
+          vin,
+          vehicle: vkey,
+          year: yr,
+          make,
+          model,
+          trim,
+          mappedVehicle,
+          selectedVehicle,
+          selectedYear,
+        };
         let crossCheck = null;
         try {
-          crossCheck = await apiFetch(`/api/recalls?vehicle=${encodeURIComponent(dbVehicle)}&year=${dbYear}&includeSuppressed=1`);
+          crossCheck = await apiFetch(`/api/recalls?vehicle=${encodeURIComponent(vkey)}&year=${yr}&includeSuppressed=1`);
         } catch(e) { /* silent */ }
         // Build a set of all known campaign IDs — check both the record id AND
         // the raw_nhtsa campaign number to handle different ID formats
@@ -2143,44 +2280,36 @@ async function vinLookup() {
           if (camp) ourIds.add(camp.toUpperCase().replace(/[^A-Z0-9]/g,''));
         }
 
-        // Find missing recalls - not in our DB bucket for the decoded vehicle/year
+        // Find missing recalls - not in our DB
         const missing = recalls.filter(r => {
           const cid = (r.NHTSACampaignNumber||r.recallId||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
           return cid && !ourIds.has(cid);
         });
 
-        const canImport = !!decodedVehicleKey && Number.isInteger(dbYear) && !vehicleMismatch;
-        window.__vinMissing = {
-          recalls: missing,
-          vehicle: selectedVehicle,
-          year: selectedYear,
-          decodedVehicle: decodedVehicleKey,
-          decodedYear: dbYear,
-          vin,
-        };
+        // Store missing recalls on window for import button
+        window.__vinMissing = { recalls: missing, vehicle: vkey, year: yr, vin, make, model, mappedVehicle };
 
+        // Cross-check summary
         const inDb = recalls.length - missing.length;
-        const importControl = !missing.length
-          ? '<div class="vin-cc-complete">✓ Database up to date</div>'
-          : canImport
-            ? `<button class="submit-btn" id="vinImportBtn" style="font-size:10px;padding:4px 12px">⊕ Import ${missing.length} Missing</button>`
-            : `<div class="vin-empty" style="margin:0;font-size:10px;padding:8px 10px;min-width:240px">Import disabled until the selected vehicle/year matches the VIN decode.</div>`;
-
         html += `<div class="vin-section">
           <div class="vin-section-title">Database Cross-Check</div>
-          ${vehicleMismatch ? `<div class="vin-empty" style="margin-bottom:10px;border-color:#f59e0b;color:#fbbf24">VIN decoded as ${esc(vehicleLabel(decodedVehicleKey))} · ${esc(dbYear)} but the dashboard is set to ${esc(vehicleLabel(selectedVehicle))} · ${esc(selectedYear)}. Import is blocked to prevent cross-vehicle contamination.</div>` : ''}
-          ${!decodedVehicleKey ? `<div class="vin-empty" style="margin-bottom:10px;border-color:#f59e0b;color:#fbbf24">This VIN decoded to a vehicle that is not mapped in the dashboard yet, so import is disabled.</div>` : ''}
+          ${mappedVehicle && mappedVehicle !== selectedVehicle ? `<div class="vin-empty" style="margin-bottom:10px;color:var(--blue)">Matched against ${esc(document.getElementById('selModel').options[document.getElementById('selModel').selectedIndex]?.text || 'selected dashboard vehicle')} ${esc(String(yr))}.</div>` : ''}
           <div class="vin-crosscheck">
             <div class="vin-cc-stat"><span class="vin-cc-num">${recalls.length}</span><span class="vin-cc-label">NHTSA Recalls</span></div>
-            <div class="vin-cc-stat"><span class="vin-cc-num" style="color:var(--green)">${inDb}</span><span class="vin-cc-label">In ${esc(vehicleLabel(dbVehicle))} ${esc(dbYear)} DB</span></div>
+            <div class="vin-cc-stat"><span class="vin-cc-num" style="color:var(--green)">${inDb}</span><span class="vin-cc-label">In Our DB</span></div>
             <div class="vin-cc-stat"><span class="vin-cc-num" style="color:${missing.length?'var(--recall)':'var(--green)'}">${missing.length}</span><span class="vin-cc-label">Missing</span></div>
-            ${importControl}
+            ${missing.length ? `<button class="submit-btn" id="vinImportBtn" style="font-size:10px;padding:4px 12px">⊕ Import ${missing.length} Missing</button>` : '<div class="vin-cc-complete">✓ Database up to date</div>'}
+          </div>
+          <div class="vin-report-actions">
+            <a class="vin-report-btn" id="vinReportOpenLink" href="${buildVinReportUrl('view', window.__vinReportContext)}">📄 Open VIN Report</a>
+            <a class="vin-report-btn" id="vinReportPrintLink" href="${buildVinReportUrl('print', window.__vinReportContext)}">🖨 Print / Save PDF</a>
           </div>
         </div>`;
+
         html += `<div class="vin-section"><div class="vin-section-title">Outstanding Recalls (${outstanding.length})</div>`;
         if (outstanding.length) {
           html += outstanding.map(r => {
-            const cid = (r.NHTSACampaignNumber||r.recallId||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+            const cid = (r.NHTSACampaignNumber||r.recallId||'').toLowerCase();
             const inOurDb = ourIds.has(cid);
             return `<div class="vin-recall outstanding">
               <div style="display:flex;align-items:flex-start;gap:10px">
@@ -2205,7 +2334,7 @@ async function vinLookup() {
         html += `<div class="vin-section"><div class="vin-section-title">Completed Recalls (${completed.length})</div>`;
         if (completed.length) {
           html += completed.map(r => {
-            const cid = (r.NHTSACampaignNumber||r.recallId||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+            const cid = (r.NHTSACampaignNumber||r.recallId||'').toLowerCase();
             const inOurDb = ourIds.has(cid);
             return `<div class="vin-recall completed">
               <div style="display:flex;align-items:flex-start;gap:10px">
@@ -2326,7 +2455,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.key === 'Enter') vinLookup();
   });
 
-  // Set correct years for default vehicle on load
+  // Set correct make/model/year options on load
+  restorePrefs();
+  updateModelOptions(true);
   updateYearOptions();
 
   // G logo hold-to-admin
@@ -2341,9 +2472,9 @@ document.addEventListener('DOMContentLoaded', () => {
   gzEl.addEventListener('mouseleave', cancelGzHold);
   gzEl.addEventListener('touchend', cancelGzHold);
 
+  document.getElementById('selMake').addEventListener('change', () => { updateModelOptions(false); updateYearOptions(); savePrefs(); loadAll(); });
   document.getElementById('selModel').addEventListener('change', () => { updateYearOptions(); savePrefs(); loadAll(); });
   document.getElementById('selYear').addEventListener('change', () => { savePrefs(); loadAll(); });
-  document.getElementById('sweepBtn').addEventListener('click', runSweep);
 
   // Single unified click handler for all buttons
   document.addEventListener('click', e => {
@@ -2372,6 +2503,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (id === 'vinLookupBtn')     { e.stopPropagation(); openVinModal(); return; }
     if (id === 'vinCloseBtn')      { e.stopPropagation(); closeVinModal(); return; }
     if (id === 'vinSearchBtn')     { e.stopPropagation(); vinLookup(); return; }
+    if (id === 'adminSweepQuickBtn') { e.stopPropagation(); runSweep(); return; }
+    if (id === 'adminResearchQuickBtn') { e.stopPropagation(); openAdminTool('researchPanel'); return; }
+    if (id === 'adminForumQuickBtn') { e.stopPropagation(); openAdminTool('forumPanel'); return; }
+    if (id === 'adminTsbQuickBtn') { e.stopPropagation(); openAdminTool('tsbPanel'); return; }
+    if (id === 'adminRecallQuickBtn') { e.stopPropagation(); openAdminTool('recallPanel'); return; }
     if (id === 'adminNhtsaImportBtn') { e.stopPropagation(); adminNhtsaImport(); return; }
     if (id === 'adminAuditBtn') {
       e.stopPropagation();
@@ -2493,5 +2629,23 @@ window.addEventListener('load', async () => {
   </div>
   <a href="https://ev-efficiency-calculator.netlify.app" target="_blank" rel="noopener" class="footer-btn">⚡ How efficient is your EV? →</a>
 </div>
+
+<script>
+//index.html vin report action links polish
+document.addEventListener('click', function(ev){
+  const openLink = ev.target.closest('#vinReportOpenLink');
+  if (openLink) {
+    ev.preventDefault();
+    try { openVinReport('view'); } catch (_) { window.location.href = openLink.getAttribute('href'); }
+    return;
+  }
+  const printLink = ev.target.closest('#vinReportPrintLink');
+  if (printLink) {
+    ev.preventDefault();
+    try { openVinReport('print'); } catch (_) { window.location.href = printLink.getAttribute('href'); }
+  }
+});
+</script>
+
 </body>
 </html>
