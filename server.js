@@ -1,3 +1,4 @@
+//server.js
 import express from 'express';
 import helmet from 'helmet';
 import { fileURLToPath } from 'url';
@@ -8,6 +9,7 @@ import tsbsRouter      from './routes/tsbs.js';
 import vinRouter       from './routes/vin.js';
 import communityRouter from './routes/community.js';
 import adminRouter     from './routes/admin.js';
+import reportsRouter   from './routes/reports.js';
 import { checkAdminAny } from './routes/admin.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -67,6 +69,7 @@ app.use('/api/tsbs',      tsbsRouter);
 app.use('/api/vin',       vinRouter);
 app.use('/api/community', communityRouter);
 app.use('/api/admin',     adminRouter);
+app.use('/report',        reportsRouter);
 
 // ── LEGACY ROUTE ALIASES (keep old client URLs working) ───────────────────
 // Rewrite URL and re-dispatch so existing index.html needs no changes
