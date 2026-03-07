@@ -17,6 +17,7 @@ function modelVariants(nhtsa_model) {
   const variants = [nhtsa_model];
   if (nhtsa_model.includes('MUSTANG MACH-E')) variants.push('MUSTANG MACH E', 'MACH-E');
   if (nhtsa_model.includes('PROLOGUE'))        variants.push('Prologue');
+  if (nhtsa_model.includes('BOLT EV'))         variants.push('BOLT');
   return variants;
 }
 
