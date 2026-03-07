@@ -89,7 +89,3 @@ CREATE INDEX IF NOT EXISTS idx_recalls_vehicle_year    ON recalls(vehicle_key, y
 CREATE INDEX IF NOT EXISTS idx_tsbs_vehicle_year       ON tsbs(vehicle_key, year);
 CREATE INDEX IF NOT EXISTS idx_community_vehicle_year  ON community(vehicle_key, year, status);
 CREATE INDEX IF NOT EXISTS idx_review_queue_status     ON review_queue(status, vehicle_key, year);
-
-CREATE INDEX IF NOT EXISTS idx_recalls_status_vehicle_year   ON recalls(status, vehicle_key, year);
-CREATE INDEX IF NOT EXISTS idx_tsbs_status_vehicle_year      ON tsbs(status, vehicle_key, year);
-CREATE INDEX IF NOT EXISTS idx_community_status_vehicle_year ON community(status, vehicle_key, year);
