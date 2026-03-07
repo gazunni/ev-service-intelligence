@@ -428,7 +428,7 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
         <select id="selYear"></select>
       </div>
       <div class="sel-link-arrow" aria-hidden="true">→</div>
-      <button class="tool-btn" id="vinLookupBtn" style="background:#0a1a2e;border-color:#38bdf8;color:#38bdf8">🔍 VIN Lookup</button>
+      <button class="tool-btn" id="vinLookupBtn" style="background:#0a1a2e;border-color:#38bdf8;color:#38bdf8">🔎 🚗 Vehicle Lookup</button>
     </div>
     <div class="sel-context-note">VIN results are matched against the selected make, model, and year before import.</div>
   </div>
@@ -761,12 +761,12 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 <div class="vin-overlay" id="vinOverlay">
   <div class="vin-modal" id="vinModal">
     <div class="vin-modal-hdr">
-      <div class="vin-modal-title">🔍 VIN Lookup</div>
+      <div class="vin-modal-title">🔎 🚗 Vehicle Lookup</div>
       <button class="vin-close" id="vinCloseBtn">✕</button>
     </div>
     <div class="vin-input-row">
       <input class="vin-field" id="vinInput" placeholder="Enter 17-character VIN" maxlength="17" autocomplete="off" spellcheck="false">
-      <button class="submit-btn" id="vinSearchBtn">Decode</button>
+      <button class="submit-btn" id="vinSearchBtn">🔎 Get Vehicle Report</button>
     </div>
     <div id="vinResults" class="vin-results"></div>
   <div class="vin-scroll-hint" id="vinScrollHint" style="display:none">
@@ -1986,7 +1986,7 @@ const vehicleCatalog = {
   chevrolet: [
     { key:'equinox_ev', label:'Chevrolet Equinox EV', years:[2026, 2025, 2024] },
     { key:'blazer_ev',  label:'Chevrolet Blazer EV',  years:[2026, 2025, 2024] },
-    { key:'bolt_ev',    label:'Chevrolet Bolt EV',    years:[2022, 2021, 2020, 2019, 2018, 2017] },
+    { key:'bolt_ev',    label:'Chevrolet Bolt EV',    years:[2023, 2022, 2021, 2020, 2019, 2018, 2017] },
     { key:'bolt_euv',   label:'Chevrolet Bolt EUV',   years:[2023, 2022] },
   ],
   ford: [
@@ -2120,9 +2120,9 @@ async function vinImportMissing() {
     const res = await apiFetch('/api/vin-import', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ vehicle: data.vehicle, year: data.year, recalls: data.recalls })
+      body: JSON.stringify({ vehicle: data.vehicle, year: data.year, recalls: data.recalls, decodedVehicle: data.vehicle, decodedYear: data.year, vin: data.vin || '' })
     });
-    if (btn) { btn.textContent = `✓ Imported ${res.count} recall${res.count!==1?'s':''}`; btn.style.borderColor='var(--green)'; btn.style.color='var(--green)'; }
+    if (btn) { const imported = Number(res.inserted ?? res.count ?? 0); btn.textContent = `✓ Imported ${imported} recall${imported!==1?'s':''}`; btn.style.borderColor='var(--green)'; btn.style.color='var(--green)'; }
     window.__vinMissing = null;
     loadAll();
   } catch(e) {
@@ -2257,15 +2257,27 @@ async function forumSubmit() {
 }
 
 // ── VIN LOOKUP ───────────────────────────────
+function resetVinModalState() {
+  const input = document.getElementById('vinInput');
+  const results = document.getElementById('vinResults');
+  const btn = document.getElementById('vinSearchBtn');
+  const hint = document.getElementById('vinScrollHint');
+  if (results) results.innerHTML = '';
+  if (input) input.value = '';
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '🔎 Get Vehicle Report';
+  }
+  if (hint) hint.style.display = 'none';
+}
 function openVinModal() {
+  resetVinModalState();
   document.getElementById('vinOverlay').classList.add('open');
   document.getElementById('vinInput').focus();
 }
 function closeVinModal() {
   document.getElementById('vinOverlay').classList.remove('open');
-  document.getElementById('vinResults').innerHTML = '';
-  document.getElementById('vinInput').value = '';
-  document.getElementById('vinScrollHint').style.display = 'none';
+  resetVinModalState();
 }
 
 function updateScrollHint() {
@@ -2284,7 +2296,7 @@ async function vinLookup() {
 
   const btn = document.getElementById('vinSearchBtn');
   btn.disabled = true; btn.textContent = 'Looking up…';
-  results.innerHTML = '<div class="vin-loading"><div class="spin"></div><span>Decoding VIN…</span></div>';
+  results.innerHTML = '<div class="vin-loading"><div class="spin"></div><span>Checking vehicle information…</span></div>';
 
   try {
     // Step 1: Decode VIN via server proxy
@@ -2473,9 +2485,9 @@ async function vinLookup() {
     results.innerHTML = html;
     setTimeout(updateScrollHint, 50);
   } catch(e) {
-    results.innerHTML = `<div class="vin-empty">VIN decode failed: ${esc(e.message)}</div>`;
+    results.innerHTML = `<div class="vin-empty">Vehicle lookup failed: ${esc(e.message)}</div>`;
   } finally {
-    btn.disabled = false; btn.textContent = 'Decode';
+    btn.disabled = false; btn.textContent = '🔎 Get Vehicle Report';
   }
 }
 
@@ -2491,7 +2503,7 @@ async function adminNhtsaImport() {
   const combos = [
     {vehicle:'equinox_ev',     years:[2024,2025,2026]},
     {vehicle:'blazer_ev',      years:[2024,2025,2026]},
-    {vehicle:'bolt_ev',        years:[2017,2018,2019,2020,2021,2022]},
+    {vehicle:'bolt_ev',        years:[2017,2018,2019,2020,2021,2022,2023]},
     {vehicle:'bolt_euv',       years:[2022,2023]},
     {vehicle:'mach_e',         years:[2021,2022,2023,2024,2025,2026]},
     {vehicle:'honda_prologue', years:[2024,2025,2026]},
@@ -2556,6 +2568,7 @@ async function adminNhtsaImport() {
 
 // ── INIT ─────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  window.addEventListener('pageshow', () => { resetVinModalState(); closeVinModal(); });
   // Close VIN modal on overlay click
   document.getElementById('vinOverlay').addEventListener('click', e => {
     if (e.target === document.getElementById('vinOverlay')) closeVinModal();

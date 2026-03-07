@@ -934,7 +934,7 @@ async function adminAction(endpoint, resultId, btnId) {
 const vehicleYears = {
   equinox_ev:     [2026, 2025, 2024],
   blazer_ev:      [2026, 2025, 2024],
-  bolt_ev:        [2022, 2021, 2020, 2019, 2018, 2017],
+  bolt_ev:        [2023, 2022, 2021, 2020, 2019, 2018, 2017],
   bolt_euv:       [2023, 2022],
   mach_e:         [2026, 2025, 2024, 2023, 2022, 2021],
   honda_prologue: [2026, 2025, 2024],
@@ -1140,15 +1140,27 @@ async function forumSubmit() {
 }
 
 // ── VIN LOOKUP ───────────────────────────────
+function resetVinModalState() {
+  const input = document.getElementById('vinInput');
+  const results = document.getElementById('vinResults');
+  const btn = document.getElementById('vinSearchBtn');
+  const hint = document.getElementById('vinScrollHint');
+  if (results) results.innerHTML = '';
+  if (input) input.value = '';
+  if (btn) {
+    btn.disabled = false;
+    btn.textContent = '🔎 Get Vehicle Report';
+  }
+  if (hint) hint.style.display = 'none';
+}
 function openVinModal() {
+  resetVinModalState();
   document.getElementById('vinOverlay').classList.add('open');
   document.getElementById('vinInput').focus();
 }
 function closeVinModal() {
   document.getElementById('vinOverlay').classList.remove('open');
-  document.getElementById('vinResults').innerHTML = '';
-  document.getElementById('vinInput').value = '';
-  document.getElementById('vinScrollHint').style.display = 'none';
+  resetVinModalState();
 }
 
 function updateScrollHint() {
@@ -1167,7 +1179,7 @@ async function vinLookup() {
 
   const btn = document.getElementById('vinSearchBtn');
   btn.disabled = true; btn.textContent = 'Looking up…';
-  results.innerHTML = '<div class="vin-loading"><div class="spin"></div><span>Decoding VIN…</span></div>';
+  results.innerHTML = '<div class="vin-loading"><div class="spin"></div><span>Checking vehicle information…</span></div>';
 
   try {
     // Step 1: Decode VIN via server proxy
@@ -1340,9 +1352,9 @@ async function vinLookup() {
     results.innerHTML = html;
     setTimeout(updateScrollHint, 50);
   } catch(e) {
-    results.innerHTML = `<div class="vin-empty">VIN decode failed: ${esc(e.message)}</div>`;
+    results.innerHTML = `<div class="vin-empty">Vehicle lookup failed: ${esc(e.message)}</div>`;
   } finally {
-    btn.disabled = false; btn.textContent = 'Decode';
+    btn.disabled = false; btn.textContent = '🔎 Get Vehicle Report';
   }
 }
 
@@ -1358,7 +1370,7 @@ async function adminNhtsaImport() {
   const combos = [
     {vehicle:'equinox_ev',     years:[2024,2025,2026]},
     {vehicle:'blazer_ev',      years:[2024,2025,2026]},
-    {vehicle:'bolt_ev',        years:[2017,2018,2019,2020,2021,2022]},
+    {vehicle:'bolt_ev',        years:[2017,2018,2019,2020,2021,2022,2023]},
     {vehicle:'bolt_euv',       years:[2022,2023]},
     {vehicle:'mach_e',         years:[2021,2022,2023,2024,2025,2026]},
     {vehicle:'honda_prologue', years:[2024,2025,2026]},
@@ -1423,6 +1435,7 @@ async function adminNhtsaImport() {
 
 // ── INIT ─────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  window.addEventListener('pageshow', () => { resetVinModalState(); closeVinModal(); });
   // Close VIN modal on overlay click
   document.getElementById('vinOverlay').addEventListener('click', e => {
     if (e.target === document.getElementById('vinOverlay')) closeVinModal();
