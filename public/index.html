@@ -350,6 +350,29 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 }
 .dash-stat.warn .dash-num { color: var(--warn, #f59e0b); }
 .dash-stat.alert .dash-num { color: var(--recall, #ef4444); }
+
+.vin-report-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.vin-report-btn{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 14px;border-radius:10px;
+  border:1px solid rgba(83,197,255,.42);
+  background:linear-gradient(135deg,rgba(17,26,36,.96),rgba(22,34,48,.96));
+  color:#e8f5ff;text-decoration:none;
+  font-family:var(--mono);font-size:11px;font-weight:700;letter-spacing:.04em;
+  box-shadow:0 0 0 1px rgba(83,197,255,.10) inset,0 0 12px rgba(83,197,255,.08);
+  transition:all .2s ease;
+}
+.vin-report-btn:hover{
+  border-color:#53c5ff;
+  background:linear-gradient(135deg,rgba(25,46,69,.98),rgba(17,26,36,.98));
+  color:#ffffff;
+  box-shadow:0 0 0 1px rgba(83,197,255,.18) inset,0 0 18px rgba(83,197,255,.18);
+}
+.vin-report-btn:focus-visible{
+  outline:none;
+  box-shadow:0 0 0 2px rgba(83,197,255,.38),0 0 0 1px rgba(83,197,255,.22) inset;
+}
+
 </style>
 </head>
 <body>
@@ -2213,8 +2236,8 @@ async function vinLookup() {
             ${missing.length ? `<button class="submit-btn" id="vinImportBtn" style="font-size:10px;padding:4px 12px">⊕ Import ${missing.length} Missing</button>` : '<div class="vin-cc-complete">✓ Database up to date</div>'}
           </div>
           <div class="vin-report-actions">
-            <a class="vin-report-btn" href="${buildVinReportUrl('view', window.__vinReportContext)}" onclick="event.preventDefault();openVinReport('view')">📄 Open VIN Report</a>
-            <a class="vin-report-btn" href="${buildVinReportUrl('print', window.__vinReportContext)}" onclick="event.preventDefault();openVinReport('print')">🖨 Print / Save PDF</a>
+            <a class="vin-report-btn" id="vinReportOpenLink" href="${buildVinReportUrl('view', window.__vinReportContext)}">📄 Open VIN Report</a>
+            <a class="vin-report-btn" id="vinReportPrintLink" href="${buildVinReportUrl('print', window.__vinReportContext)}">🖨 Print / Save PDF</a>
           </div>
         </div>`;
 
@@ -2534,5 +2557,23 @@ window.addEventListener('load', async () => {
   </div>
   <a href="https://ev-efficiency-calculator.netlify.app" target="_blank" rel="noopener" class="footer-btn">⚡ How efficient is your EV? →</a>
 </div>
+
+<script>
+//index.html vin report action links polish
+document.addEventListener('click', function(ev){
+  const openLink = ev.target.closest('#vinReportOpenLink');
+  if (openLink) {
+    ev.preventDefault();
+    try { openVinReport('view'); } catch (_) { window.location.href = openLink.getAttribute('href'); }
+    return;
+  }
+  const printLink = ev.target.closest('#vinReportPrintLink');
+  if (printLink) {
+    ev.preventDefault();
+    try { openVinReport('print'); } catch (_) { window.location.href = printLink.getAttribute('href'); }
+  }
+});
+</script>
+
 </body>
 </html>
