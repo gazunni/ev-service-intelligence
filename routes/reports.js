@@ -178,7 +178,7 @@ router.get('/vin', async (req, res) => {
 <div class="report-wrap">
   <div class="page-tools">
     <button type="button" onclick="window.print()">Print / Save PDF</button>
-    <button type="button" class="secondary" onclick="window.close()">Close</button>
+    <button type="button" class="secondary" onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.href = '/'; }">Back</button>
   </div>
   <div class="report-sheet">
     <section class="hero">
