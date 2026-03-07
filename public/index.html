@@ -1189,11 +1189,31 @@ function togglePanel(id) {
   const panel = document.getElementById(id);
   if (!panel) return;
   const wasOpen = panel.classList.contains('open');
+  const inAdminFlow = !!window.__adminMode && id !== 'adminPanel';
+
+  // Closing a child admin tool returns to the admin dashboard instead of the public landing state
+  if (inAdminFlow && wasOpen) {
+    panel.classList.remove('open');
+    const adminPanel = document.getElementById('adminPanel');
+    if (adminPanel) {
+      adminPanel.classList.add('open');
+      adminPanel.scrollIntoView({ behavior:'smooth', block:'start' });
+      loadAdminDashboard();
+    }
+    const result = document.getElementById('adminQuickToolsResult');
+    if (result) {
+      result.style.color = 'var(--muted)';
+      result.textContent = 'Returned to Admin Dashboard.';
+    }
+    return;
+  }
+
   document.querySelectorAll('.tool-panel.open').forEach(p => {
     if (p.id !== id) p.classList.remove('open');
   });
   panel.classList.toggle('open');
-  // Clear admin mode when closing admin panel
+
+  // Clear admin mode only when the admin dashboard itself is explicitly closed
   if (id === 'adminPanel' && wasOpen) {
     window.__adminMode = false;
     const _vk = document.getElementById('selModel').value;
@@ -1202,16 +1222,24 @@ function togglePanel(id) {
     loadSection('tsbs', _vk, _yr);
     loadSection('community', _vk, _yr);
   }
-  // Auto-load dashboard when opening admin panel
+
   if (id === 'adminPanel' && !wasOpen) {
     loadAdminDashboard();
   }
   if (!wasOpen) panel.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 function openAdminTool(panelId) {
-  togglePanel(panelId);
+  if (!window.__adminMode) window.__adminMode = true;
+  const panel = document.getElementById(panelId);
+  const adminPanel = document.getElementById('adminPanel');
+  document.querySelectorAll('.tool-panel.open').forEach(p => p.classList.remove('open'));
+  if (panel) panel.classList.add('open');
   const result = document.getElementById('adminQuickToolsResult');
-  if (result) result.textContent = 'Opened ' + panelId.replace('Panel','').replace(/([A-Z])/g,' $1').trim() + ' panel.';
+  if (result) {
+    result.style.color = 'var(--muted)';
+    result.textContent = 'Opened ' + panelId.replace('Panel','').replace(/([A-Z])/g,' $1').trim() + ' panel.';
+  }
+  if (panel) panel.scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
 // ── RENDER ────────────────────────────────────
@@ -1287,19 +1315,47 @@ function buildCard(rec, type, idx) {
 // ── AI SWEEP ──────────────────────────────────
 async function runSweep() {
   const vkey = getVehicle(), year = getYear();
-  const btn = document.getElementById('sweepBtn');
-  btn.disabled = true;
-  btn.textContent = '⚡ Sweeping…';
+  const btn = document.getElementById('adminSweepQuickBtn') || document.getElementById('sweepBtn');
+  const result = document.getElementById('adminQuickToolsResult');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⚡ Sweeping…';
+  }
+  if (result) {
+    result.style.color = 'var(--muted)';
+    result.textContent = 'Running NHTSA sweep for the selected vehicle/year…';
+  }
   setGZ('loading', 'Running AI sweep against NHTSA…');
   try {
-    const res = await apiFetch('/api/sweep', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({vehicle:vkey, year:parseInt(year)}) });
-    setGZ('done', `Sweep complete — ${res.recalls||0} recalls, ${res.tsbs||0} TSBs found`);
-    loadAll();
+    const res = await apiFetch('/api/sweep', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({vehicle:vkey, year:parseInt(year)})
+    });
+    const recalls = parseInt(res.recalls || 0, 10) || 0;
+    const tsbs = parseInt(res.tsbs || 0, 10) || 0;
+    const msg = `Sweep complete — ${recalls} recalls, ${tsbs} TSBs found`;
+    setGZ('done', msg);
+    if (result) {
+      result.style.color = recalls + tsbs > 0 ? 'var(--green)' : 'var(--muted)';
+      result.textContent = msg;
+    }
+    await loadAll();
+    if (window.__adminMode) {
+      loadAdminDashboard();
+    }
   } catch(e) {
-    setGZ('err', 'Sweep error: ' + e.message);
+    const msg = 'Sweep error: ' + e.message;
+    setGZ('err', msg);
+    if (result) {
+      result.style.color = 'var(--recall)';
+      result.textContent = msg;
+    }
   } finally {
-    btn.disabled = false;
-    btn.textContent = '⚡ Run AI Sweep';
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '⚡ Run AI Sweep';
+    }
   }
 }
 
