@@ -1005,10 +1005,10 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 </div>
 
 <script>
-// HELPERS
+// ── HELPERS ──────────────────────────────────
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// VIN VALIDATION HELPERS
+// ── VIN VALIDATION HELPERS ───────────────────────────────────────────────
 function validateVINFormat(vin){
   const clean = String(vin || '').trim().toUpperCase();
   if (!clean) throw new Error('Please enter a VIN');
@@ -2513,43 +2513,65 @@ async function vinLookup() {
       const recallData = await apiFetch(`/api/vin-recalls?vin=${vin}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&year=${encodeURIComponent(year)}`);
       const recalls = recallData.results || [];
 
+      // Cross-check against our database using the VIN-decoded vehicle/year
+      const selectedVehicle = getVehicle();
+      const selectedYear = parseInt(getYear());
+      const mappedVehicle = mapDecodedVehicleKey(make, model, vin);
+      const vkey = mappedVehicle || selectedVehicle;
+      const yr   = Number.isFinite(parseInt(year,10)) ? parseInt(year,10) : selectedYear;
+      window.__vinReportContext = {
+        vin,
+        vehicle: vkey,
+        year: yr,
+        make,
+        model,
+        trim,
+        mappedVehicle,
+        selectedVehicle,
+        selectedYear,
+      };
+      let crossCheck = null;
+      try {
+        crossCheck = await apiFetch(`/api/recalls?vehicle=${encodeURIComponent(vkey)}&year=${yr}&includeSuppressed=1`);
+      } catch(e) { /* silent */ }
+
+      // Build a set of all known campaign IDs — check both the record id AND
+      // the raw_nhtsa campaign number to handle different ID formats
+      const ourIds = new Set();
+      for (const r of (crossCheck||[])) {
+        if (r.id) ourIds.add(r.id.toUpperCase().replace(/[^A-Z0-9]/g,''));
+        const camp = r.raw_nhtsa?.NHTSACampaignNumber || r.raw_nhtsa?.campaign_id;
+        if (camp) ourIds.add(camp.toUpperCase().replace(/[^A-Z0-9]/g,''));
+      }
+
       if (!recalls.length) {
-        html += `<div class="vin-section"><div class="vin-section-title">Recall Status</div><div class="vin-empty" style="color:var(--green)">✓ No recalls have been issued for this vehicle.</div></div>`;
+        if (crossCheck && crossCheck.length) {
+          html += `<div class="vin-section"><div class="vin-section-title">Recall Status</div>
+            <div class="vin-empty" style="color:var(--amber);margin-bottom:10px">
+              No VIN-specific open recalls were returned, but ${crossCheck.length} platform recall${crossCheck.length===1?'':'s'} exist in the database for ${esc(vehicleLabel(vkey))} ${esc(String(yr))}.
+            </div>`;
+          const severityClass = sev => sev === 'CRITICAL' ? 'vin-chip danger' : sev === 'HIGH' ? 'vin-chip warning' : 'vin-chip';
+          html += crossCheck.map(r => `
+            <div class="vin-recall">
+              <div class="vin-recall-hdr">
+                <div class="vin-recall-title">${esc(r.title || r.component || 'Recall')}</div>
+                <div class="${severityClass(r.severity)}">${esc(r.severity || 'MODERATE')}</div>
+              </div>
+              <div class="vin-recall-meta">${esc(r.component || 'Official Safety Recall')}</div>
+              <div class="vin-recall-body">
+                <div><strong>Risk:</strong> ${esc(r.risk || 'See official NHTSA notice')}</div>
+                <div><strong>Remedy:</strong> ${esc(r.remedy || 'See official NHTSA notice')}</div>
+              </div>
+            </div>
+          `).join('') + `</div>`;
+          window.__vinMissing = null;
+        } else {
+          html += `<div class="vin-section"><div class="vin-section-title">Recall Status</div><div class="vin-empty" style="color:var(--green)">✓ No recalls have been issued for this vehicle.</div></div>`;
+        }
       } else {
         // Use server-tagged isOutstanding flag (cross-referenced against VIN-specific unrepaired list)
         const outstanding = recalls.filter(r => r.isOutstanding);
         const completed   = recalls.filter(r => !r.isOutstanding);
-
-        // Cross-check against our database using the VIN-decoded vehicle/year when possible
-        const selectedVehicle = getVehicle();
-        const selectedYear = parseInt(getYear());
-        const mappedVehicle = mapDecodedVehicleKey(make, model, vin);
-        const vkey = mappedVehicle || selectedVehicle;
-        const yr   = Number.isFinite(parseInt(year,10)) ? parseInt(year,10) : selectedYear;
-        window.__vinReportContext = {
-          vin,
-          vehicle: vkey,
-          year: yr,
-          make,
-          model,
-          trim,
-          mappedVehicle,
-          selectedVehicle,
-          selectedYear,
-        };
-        let crossCheck = null;
-        try {
-          crossCheck = await apiFetch(`/api/recalls?vehicle=${encodeURIComponent(vkey)}&year=${yr}&includeSuppressed=1`);
-        } catch(e) { /* silent */ }
-        // Build a set of all known campaign IDs — check both the record id AND
-        // the raw_nhtsa campaign number to handle different ID formats
-        const ourIds = new Set();
-        for (const r of (crossCheck||[])) {
-          if (r.id) ourIds.add(r.id.toUpperCase().replace(/[^A-Z0-9]/g,''));
-          const camp = r.raw_nhtsa?.NHTSACampaignNumber || r.raw_nhtsa?.campaign_id;
-          if (camp) ourIds.add(camp.toUpperCase().replace(/[^A-Z0-9]/g,''));
-        }
-
         // Find missing recalls - not in our DB
         const missing = recalls.filter(r => {
           const cid = (r.NHTSACampaignNumber||r.recallId||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
