@@ -224,6 +224,52 @@ router.post('/migrate', async (req, res) => {
 });
 
 // ── SEED VINS: ADD / LIST / DELETE / RUN ─────────────────────────────────
+
+router.post('/seed-vins/validate', async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+
+  const selectedVehicleKey = normalizeVehicleKey(req.body?.vehicle_key || req.body?.vehicle || '');
+  const selectedYear = parseInt(req.body?.year, 10);
+  const vin = String(req.body?.vin || '').trim().toUpperCase();
+
+  if (!selectedVehicleKey) return res.status(400).json({ error: 'Valid vehicle_key required' });
+  if (!Number.isInteger(selectedYear)) return res.status(400).json({ error: 'Valid year required' });
+  if (vin.length !== 17) return res.status(400).json({ error: 'Valid 17-character VIN required' });
+
+  try {
+    const decoded = await decodeVIN(vin);
+    const fields = decoded.Results || decoded.results || [];
+    const make = decodeField(fields, 26);
+    const model = decodeField(fields, 28);
+    const decodedYear = parseInt(decodeField(fields, 29), 10);
+    const trim = decodeField(fields, 38) || '';
+    const decodedVehicleKey = detectVehicleKey(make, model, vin);
+
+    if (!decodedVehicleKey || !Number.isInteger(decodedYear)) {
+      return res.status(400).json({ error: 'VIN decoded, but vehicle identity could not be determined' });
+    }
+
+    const matches = decodedVehicleKey === selectedVehicleKey && decodedYear === selectedYear;
+
+    return res.json({
+      ok: true,
+      matches,
+      vin,
+      selectedVehicle: selectedVehicleKey,
+      selectedYear,
+      decodedVehicle: decodedVehicleKey,
+      decodedYear,
+      make,
+      model,
+      trim,
+      validationToken: `${vin}|${decodedVehicleKey}|${decodedYear}`
+    });
+  } catch (e) {
+    console.error('seed-vins validate error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 router.post('/seed-vins/add', async (req, res) => {
   if (!checkAdmin(req, res)) return;
 
@@ -232,10 +278,16 @@ router.post('/seed-vins/add', async (req, res) => {
   const vin = String(req.body?.vin || '').trim().toUpperCase();
   const trimHint = String(req.body?.trim_hint || '').trim();
   const note = String(req.body?.note || '').trim();
+  const validatedVehicleKey = normalizeVehicleKey(req.body?.validatedVehicleKey || '');
+  const validatedYear = parseInt(req.body?.validatedYear, 10);
+  const validationToken = String(req.body?.validationToken || '').trim();
 
   if (!vehicleKey) return res.status(400).json({ error: 'Valid vehicle_key required' });
   if (!Number.isInteger(year)) return res.status(400).json({ error: 'Valid year required' });
   if (vin.length !== 17) return res.status(400).json({ error: 'Valid 17-character VIN required' });
+  if (!validatedVehicleKey || !Number.isInteger(validatedYear) || !validationToken) {
+    return res.status(400).json({ error: 'Validate VIN first before saving' });
+  }
 
   try {
     const decoded = await decodeVIN(vin);
@@ -247,6 +299,15 @@ router.post('/seed-vins/add', async (req, res) => {
 
     if (!decodedVehicleKey || !Number.isInteger(decodedYear)) {
       return res.status(400).json({ error: 'VIN decoded, but vehicle identity could not be determined' });
+    }
+
+    const expectedToken = `${vin}|${decodedVehicleKey}|${decodedYear}`;
+    if (validationToken !== expectedToken) {
+      return res.status(409).json({ error: 'Validation token mismatch — validate VIN again before saving' });
+    }
+
+    if (decodedVehicleKey !== validatedVehicleKey || decodedYear !== validatedYear) {
+      return res.status(409).json({ error: `Validated VIN no longer matches decoded identity (${decodedVehicleKey} ${decodedYear})` });
     }
 
     if (decodedVehicleKey !== vehicleKey || decodedYear !== year) {
@@ -632,9 +693,7 @@ router.get('/recall-audit', async (req, res) => {
 router.post('/stats', async (req, res) => {
   if (!checkAdmin(req, res)) return;
   try {
-    const vinSeenExists = await query(`SELECT to_regclass('public.vin_seen') AS reg`);
-
-    const [recalls, tsbs, community, queue, suppressed, lastSweep, byVehicle] = await Promise.all([
+    const [recalls, tsbs, community, queue, suppressed, lastSweep, byVehicle, vinSeen, missingSeedYears] = await Promise.all([
       query(`SELECT COUNT(*) FROM recalls WHERE COALESCE(status,'active') != 'suppressed'`),
       query(`SELECT COUNT(*) FROM tsbs WHERE COALESCE(status,'active') != 'suppressed'`),
       query(`SELECT COUNT(*) FROM community WHERE status='active'`),
@@ -644,23 +703,20 @@ router.post('/stats', async (req, res) => {
       query(`SELECT vehicle_key,
                COUNT(*) FILTER (WHERE COALESCE(r.status,'active')!='suppressed') as recalls
              FROM recalls r GROUP BY vehicle_key ORDER BY vehicle_key`),
+      query(`SELECT CASE WHEN to_regclass('public.vin_seen') IS NULL THEN 0 ELSE (SELECT COUNT(*) FROM vin_seen) END AS count`),
+      query(`
+        SELECT CASE WHEN to_regclass('public.vin_seen') IS NULL THEN 0 ELSE (
+          SELECT COUNT(*) FROM (
+            SELECT DISTINCT v.vehicle_key, v.year
+            FROM vin_seen v
+            LEFT JOIN seed_vins s ON s.vehicle_key = v.vehicle_key AND s.year = v.year
+            WHERE s.id IS NULL
+          ) q
+        ) END AS count
+      `),
     ]);
 
-    let vinSeen = [{ count: 0 }];
-    let missingSeedYears = [{ count: 0 }];
-
-    if (vinSeenExists[0]?.reg) {
-      vinSeen = await query(`SELECT COUNT(*) FROM vin_seen`);
-      missingSeedYears = await query(`
-        SELECT COUNT(*) FROM (
-          SELECT DISTINCT v.vehicle_key, v.year
-          FROM vin_seen v
-          LEFT JOIN seed_vins s ON s.vehicle_key = v.vehicle_key AND s.year = v.year
-          WHERE s.id IS NULL
-        ) q
-      `);
-    }
-
+    // Legacy message format for existing UI
     const message = [
       `recalls: ${recalls[0].count}`,
       `tsbs: ${tsbs[0].count}`,
@@ -684,10 +740,7 @@ router.post('/stats', async (req, res) => {
         missingSeedYears: parseInt(missingSeedYears[0].count),
       }
     });
-  } catch (e) {
-    console.error('stats error:', e.message);
-    res.status(500).json({ error: e.message });
-  }
+  } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
 // ── CLEAR SWEEP LOG ───────────────────────────────────────────────────────
