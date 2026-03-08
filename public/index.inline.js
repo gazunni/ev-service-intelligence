@@ -1007,7 +1007,7 @@ async function loadSeedVins() {
       (s.note ? ' · ' + esc(s.note) : '') + '</div>' +
       '<div style="display:flex;gap:10px;align-items:center">' +
       '<span style="color:var(--muted)">' + (s.last_seeded_at ? ('Last seeded: ' + new Date(s.last_seeded_at).toLocaleString()) : 'Last seeded: never') + '</span>' +
-      '<button onclick="deleteSeedVin(\'' + esc(s.vin) + '\')" style="background:none;border:1px solid var(--border);color:#ff7b7b;padding:2px 8px;border-radius:4px;cursor:pointer">Delete</button>' +
+      '<button data-seed-delete="' + esc(s.vin) + '" style="background:none;border:1px solid var(--border);color:#ff7b7b;padding:2px 8px;border-radius:4px;cursor:pointer">Delete</button>' +
       '</div>' +
       '</div>'
     ).join('');
@@ -1657,6 +1657,8 @@ document.addEventListener('click', e => {
     if (id === 'adminSeedAddBtn') { e.stopPropagation(); addSeedVin(); return; }
     if (id === 'adminSeedListBtn') { e.stopPropagation(); loadSeedVins(); return; }
     if (id === 'adminSeedRunBtn') { e.stopPropagation(); runSeedVins(); return; }
+    const seedDeleteBtn = t.closest('[data-seed-delete]');
+    if (seedDeleteBtn) { e.stopPropagation(); deleteSeedVin(seedDeleteBtn.dataset.seedDelete); return; }
     if (id === 'adminMigrateBtn'){ e.stopPropagation(); adminAction('migrate', 'adminMigrateResult', 'adminMigrateBtn'); return; }
     if (id === 'adminClearSweepBtn'){ e.stopPropagation(); adminAction('clear-sweep', 'adminClearSweepResult', 'adminClearSweepBtn'); return; }
     if (id === 'adminClearQueueBtn'){ e.stopPropagation(); adminAction('clear-queue', 'adminClearQueueResult', 'adminClearQueueBtn'); return; }
