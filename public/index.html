@@ -841,13 +841,11 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
         <input id="seedNote" placeholder="Note (optional)" style="padding:8px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-        <button class="admin-btn" id="adminSeedValidateBtn">🔎 Validate VIN</button>
-        <button class="admin-btn" id="adminSeedAddBtn" disabled style="opacity:.55;cursor:not-allowed">＋ Save Validated Seed VIN</button>
+        <button class="admin-btn" id="adminSeedAddBtn">＋ Save Seed VIN</button>
         <button class="admin-btn" id="adminSeedListBtn">☰ Refresh Seed List</button>
         <button class="admin-btn" id="adminSeedRunBtn">⚡ Run Recall Seeder</button>
       </div>
       <div class="admin-result" id="adminSeedResult"></div>
-      <div id="adminSeedPreview" style="margin-top:8px;font-size:11px;color:var(--text-muted);line-height:1.6"></div>
       <div id="adminSeedList" style="margin-top:10px;font-size:11px;color:var(--text-muted);line-height:1.6"></div>
     </div>
 
@@ -2427,24 +2425,29 @@ async function vinLookup() {
 
         // Cross-check against our database using the VIN-decoded vehicle/year when possible
         const selectedVehicle = getVehicle();
-        const selectedYear = parseInt(getYear());
+        const selectedYear = parseInt(getYear(), 10);
         const mappedVehicle = mapDecodedVehicleKey(make, model, vin);
-        const vkey = mappedVehicle || selectedVehicle;
-        const yr   = Number.isFinite(parseInt(year,10)) ? parseInt(year,10) : selectedYear;
-        window.__vinReportContext = {
+        const decodedYear = Number.isFinite(parseInt(year,10)) ? parseInt(year,10) : selectedYear;
+        const dbVehicle = mappedVehicle || selectedVehicle;
+        const dbYear = decodedYear;
+        const vehicleMismatch = !!mappedVehicle && (selectedVehicle !== mappedVehicle || selectedYear !== dbYear);
+        const canProceed = !!mappedVehicle && !vehicleMismatch;
+
+        window.__vinReportContext = canProceed ? {
           vin,
-          vehicle: vkey,
-          year: yr,
+          vehicle: mappedVehicle,
+          year: dbYear,
           make,
           model,
           trim,
           mappedVehicle,
           selectedVehicle,
           selectedYear,
-        };
+        } : null;
+
         let crossCheck = null;
         try {
-          crossCheck = await apiFetch(`/api/recalls?vehicle=${encodeURIComponent(vkey)}&year=${yr}&includeSuppressed=1`);
+          crossCheck = await apiFetch(`/api/recalls?vehicle=${encodeURIComponent(dbVehicle)}&year=${dbYear}&includeSuppressed=1`);
         } catch(e) { /* silent */ }
         // Build a set of all known campaign IDs — check both the record id AND
         // the raw_nhtsa campaign number to handle different ID formats
@@ -2455,30 +2458,50 @@ async function vinLookup() {
           if (camp) ourIds.add(camp.toUpperCase().replace(/[^A-Z0-9]/g,''));
         }
 
-        // Find missing recalls - not in our DB
+        // Find missing recalls - not in our DB for the decoded vehicle/year
         const missing = recalls.filter(r => {
           const cid = (r.NHTSACampaignNumber||r.recallId||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
           return cid && !ourIds.has(cid);
         });
 
-        // Store missing recalls on window for import button
-        window.__vinMissing = { recalls: missing, vehicle: vkey, year: yr, vin, make, model, mappedVehicle, decodedVehicle: mappedVehicle || vkey, decodedYear: yr };
+        // Store missing recalls only when the selected dashboard context matches the VIN decode
+        window.__vinMissing = canProceed ? {
+          recalls: missing,
+          vehicle: mappedVehicle,
+          year: dbYear,
+          vin,
+          make,
+          model,
+          mappedVehicle,
+          decodedVehicle: mappedVehicle,
+          decodedYear: dbYear
+        } : null;
 
-        // Cross-check summary
         const inDb = recalls.length - missing.length;
+        const importControl = !missing.length
+          ? '<div class="vin-cc-complete">✓ Database up to date</div>'
+          : canProceed
+            ? `<button class="submit-btn" id="vinImportBtn" style="font-size:10px;padding:4px 12px">⊕ Import ${missing.length} Missing</button>`
+            : `<div class="vin-empty" style="margin:0;font-size:10px;padding:8px 10px;min-width:240px">Import disabled until the selected vehicle/year matches the VIN decode.</div>`;
+
+        const reportControl = canProceed
+          ? `<div class="vin-report-actions">
+               <a class="vin-report-btn" id="vinReportOpenLink" href="${buildVinReportUrl('view', window.__vinReportContext)}">📄 Open VIN Report</a>
+               <a class="vin-report-btn" id="vinReportPrintLink" href="${buildVinReportUrl('print', window.__vinReportContext)}">🖨 Print / Save PDF</a>
+             </div>`
+          : `<div class="vin-empty" style="margin-top:10px;font-size:10px;padding:8px 10px">Report generation disabled until the selected vehicle/year matches the VIN decode.</div>`;
+
         html += `<div class="vin-section">
           <div class="vin-section-title">Database Cross-Check</div>
-          ${mappedVehicle && mappedVehicle !== selectedVehicle ? `<div class="vin-empty" style="margin-bottom:10px;color:var(--blue)">Matched against ${esc(document.getElementById('selModel').options[document.getElementById('selModel').selectedIndex]?.text || 'selected dashboard vehicle')} ${esc(String(yr))}.</div>` : ''}
+          ${vehicleMismatch ? `<div class="vin-empty" style="margin-bottom:10px;border-color:#f59e0b;color:#fbbf24">VIN decoded as ${esc(vehicleLabel(mappedVehicle))} · ${esc(String(dbYear))} but the dashboard is set to ${esc(vehicleLabel(selectedVehicle))} · ${esc(String(selectedYear))}. Import and report generation are blocked to prevent cross-vehicle contamination.</div>` : ''}
+          ${!mappedVehicle ? `<div class="vin-empty" style="margin-bottom:10px;border-color:#f59e0b;color:#fbbf24">This VIN decoded to a vehicle that is not mapped in the dashboard yet, so import and report generation are disabled.</div>` : ''}
           <div class="vin-crosscheck">
             <div class="vin-cc-stat"><span class="vin-cc-num">${recalls.length}</span><span class="vin-cc-label">NHTSA Recalls</span></div>
-            <div class="vin-cc-stat"><span class="vin-cc-num" style="color:var(--green)">${inDb}</span><span class="vin-cc-label">In Our DB</span></div>
+            <div class="vin-cc-stat"><span class="vin-cc-num" style="color:var(--green)">${inDb}</span><span class="vin-cc-label">In ${esc(vehicleLabel(dbVehicle))} ${esc(String(dbYear))} DB</span></div>
             <div class="vin-cc-stat"><span class="vin-cc-num" style="color:${missing.length?'var(--recall)':'var(--green)'}">${missing.length}</span><span class="vin-cc-label">Missing</span></div>
-            ${missing.length ? `<button class="submit-btn" id="vinImportBtn" style="font-size:10px;padding:4px 12px">⊕ Import ${missing.length} Missing</button>` : '<div class="vin-cc-complete">✓ Database up to date</div>'}
+            ${importControl}
           </div>
-          <div class="vin-report-actions">
-            <a class="vin-report-btn" id="vinReportOpenLink" href="${buildVinReportUrl('view', window.__vinReportContext)}">📄 Open VIN Report</a>
-            <a class="vin-report-btn" id="vinReportPrintLink" href="${buildVinReportUrl('print', window.__vinReportContext)}">🖨 Print / Save PDF</a>
-          </div>
+          ${reportControl}
         </div>`;
 
         html += `<div class="vin-section"><div class="vin-section-title">Outstanding Recalls (${outstanding.length})</div>`;
@@ -2545,8 +2568,6 @@ async function vinLookup() {
 }
 
 
-
-let __seedValidation = null;
 
 const SEED_YEARS = {
   equinox_ev: [2026, 2025, 2024],
@@ -2690,66 +2711,6 @@ async function loadSeedVins() {
   }
 }
 
-function resetSeedValidationState() {
-  __seedValidation = null;
-  const preview = document.getElementById('adminSeedPreview');
-  const saveBtn = document.getElementById('adminSeedAddBtn');
-  if (preview) preview.innerHTML = '';
-  if (saveBtn) {
-    saveBtn.disabled = true;
-    saveBtn.style.opacity = '.55';
-    saveBtn.style.cursor = 'not-allowed';
-  }
-}
-
-async function validateSeedVin() {
-  const result = document.getElementById('adminSeedResult');
-  const preview = document.getElementById('adminSeedPreview');
-  const btn = document.getElementById('adminSeedValidateBtn');
-  const vehicle_key = document.getElementById('seedVehicleKey').value;
-  const year = document.getElementById('seedYear').value;
-  const vin = document.getElementById('seedVin').value.trim().toUpperCase();
-
-  resetSeedValidationState();
-  btn.disabled = true;
-  result.style.color = 'var(--muted)';
-  result.textContent = 'Validating VIN…';
-
-  try {
-    const data = await apiFetch('/api/admin/seed-vins/validate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: window.__adminKey || '', vehicle_key, year, vin })
-    });
-
-    preview.innerHTML =
-      '<div style="border-top:1px solid var(--border);padding-top:8px">' +
-      '<div><strong>Decoded:</strong> ' + esc(data.make || 'Unknown') + ' ' + esc(data.model || 'Unknown') + ' ' + esc(String(data.decodedYear || '')) + (data.trim ? ' · ' + esc(data.trim) : '') + '</div>' +
-      '<div><strong>Detected vehicle key:</strong> ' + esc(data.decodedVehicle || 'unknown') + '</div>' +
-      '<div><strong>Selected slot:</strong> ' + esc(data.selectedVehicle) + ' ' + esc(String(data.selectedYear)) + '</div>' +
-      '</div>';
-
-    if (!data.matches) {
-      result.style.color = 'var(--recall)';
-      result.textContent = 'VIN mismatch — save disabled';
-      return;
-    }
-
-    __seedValidation = data;
-    const saveBtn = document.getElementById('adminSeedAddBtn');
-    saveBtn.disabled = false;
-    saveBtn.style.opacity = '1';
-    saveBtn.style.cursor = 'pointer';
-    result.style.color = 'var(--green)';
-    result.textContent = '✓ VIN validated — ready to save';
-  } catch (e) {
-    result.style.color = 'var(--recall)';
-    result.textContent = 'Error: ' + e.message;
-  } finally {
-    btn.disabled = false;
-  }
-}
-
 async function addSeedVin() {
   const result = document.getElementById('adminSeedResult');
   const btn = document.getElementById('adminSeedAddBtn');
@@ -2758,34 +2719,20 @@ async function addSeedVin() {
   const vin = document.getElementById('seedVin').value.trim().toUpperCase();
   const trim_hint = document.getElementById('seedTrimHint').value.trim();
   const note = document.getElementById('seedNote').value.trim();
-
-  if (!__seedValidation || __seedValidation.vin !== vin || String(__seedValidation.selectedYear) !== String(year) || __seedValidation.selectedVehicle !== vehicle_key) {
-    result.style.color = 'var(--recall)';
-    result.textContent = 'Validate VIN first before saving';
-    return;
-  }
-
   btn.disabled = true;
   result.style.color = 'var(--muted)';
-  result.textContent = 'Saving validated seed VIN…';
+  result.textContent = 'Saving seed VIN…';
   try {
     const data = await apiFetch('/api/admin/seed-vins/add', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        key: window.__adminKey || '',
-        vehicle_key, year, vin, trim_hint, note,
-        validatedVehicleKey: __seedValidation.decodedVehicle,
-        validatedYear: __seedValidation.decodedYear,
-        validationToken: __seedValidation.validationToken
-      })
+      body: JSON.stringify({ key: window.__adminKey || '', vehicle_key, year, vin, trim_hint, note })
     });
     result.style.color = 'var(--green)';
     result.textContent = data.message || '✓ Seed VIN saved';
     document.getElementById('seedVin').value = '';
     document.getElementById('seedTrimHint').value = '';
     document.getElementById('seedNote').value = '';
-    resetSeedValidationState();
     await loadSeedVins();
   } catch(e) {
     result.style.color = 'var(--recall)';
@@ -2934,8 +2881,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Single unified click handler for all buttons
   document.addEventListener('change', e => {
-    if (e.target && e.target.id === 'seedVehicleKey') { updateSeedYearOptions(); resetSeedValidationState(); return; }
-    if (e.target && (e.target.id === 'seedYear' || e.target.id === 'seedVin' || e.target.id === 'seedTrimHint' || e.target.id === 'seedNote')) { resetSeedValidationState(); return; }
+    if (e.target && e.target.id === 'seedVehicleKey') { updateSeedYearOptions(); return; }
 });
 
 document.addEventListener('click', e => {
@@ -2994,7 +2940,6 @@ document.addEventListener('click', e => {
     if (id === 'adminDedupeBtn')      { e.stopPropagation(); adminAction('dedupe', 'adminDedupeResult', 'adminDedupeBtn'); return; }
     if (id === 'adminCommDedupeBtn')   { e.stopPropagation(); communityDedupe(); return; }
     if (id === 'adminStatsBtn')    { e.stopPropagation(); loadAdminDashboard(); return; }
-    if (id === 'adminSeedValidateBtn') { e.stopPropagation(); validateSeedVin(); return; }
     if (id === 'adminSeedAddBtn') { e.stopPropagation(); addSeedVin(); return; }
     if (id === 'adminSeedListBtn') { e.stopPropagation(); loadSeedVins(); return; }
     if (id === 'adminSeedRunBtn') { e.stopPropagation(); runSeedVins(); return; }
