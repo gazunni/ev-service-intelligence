@@ -37,3 +37,27 @@ export function validateVINContext(decoded,ctx){
  }
  return {valid:true};
 }
+
+
+// --- VIN Context Enforcement ---
+export function enforceVINContext(decoded, ctx){
+  const result={
+    state:"matched",
+    message:null
+  };
+
+  if(!decoded || !decoded.year){
+    result.state="invalid";
+    result.message="VIN year could not be decoded";
+    return result;
+  }
+
+  const selectedYear=parseInt(ctx.year);
+  if(selectedYear && decoded.year!==selectedYear){
+    result.state="mismatch";
+    result.message=`VIN mismatch: decoded year ${decoded.year} but dashboard year ${selectedYear}`;
+    return result;
+  }
+
+  return result;
+}
