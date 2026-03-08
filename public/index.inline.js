@@ -1419,7 +1419,7 @@ async function vinLookup() {
       </div>`;
 
     const selectedVehicleLabel = vehicleLabel(selectedVehicle);
-    const decodedVehicleLabel = decodedVehicleKey ? vehicleLabel(decodedVehicleKey) : 'Unknown vehicle';
+    const decodedVehicleLabel = decodedVehicleKey ? vehicleLabel(decodedVehicleKey) : `${make || 'Unknown'} ${model || ''}`.trim();
     const hasContextMismatch = !!decodedVehicleKey && Number.isInteger(decodedYear) &&
       (selectedVehicle !== decodedVehicleKey || selectedYear !== decodedYear);
 
@@ -1429,7 +1429,7 @@ async function vinLookup() {
       results.innerHTML = html + `<div class="vin-section">
         <div class="vin-section-title">VIN Context Check</div>
         <div class="vin-empty" style="border-color:#f59e0b;color:#fbbf24">
-          VIN decoded successfully, but this vehicle is not mapped to a supported dashboard model yet.
+          VIN decoded as ${esc(make)} ${esc(model)} ${esc(String(year || ''))}, but this vehicle is not mapped to a supported dashboard model yet.
           Detail view, import, and report generation are blocked.
         </div>
       </div>`;
