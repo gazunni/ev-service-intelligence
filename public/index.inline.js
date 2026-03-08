@@ -273,6 +273,7 @@ function togglePanel(id) {
     loadAdminDashboard();
     updateSeedYearOptions();
     loadSeedVins();
+    loadVinCoverage(false);
   }
 }
 
@@ -983,6 +984,70 @@ async function deleteSeedVin(vin) {
 }
 
 
+
+async function loadVinCoverage(showRecent = false) {
+  const result = document.getElementById('adminVinCoverageResult');
+  const list = document.getElementById('adminVinCoverageList');
+  if (!list) return;
+  list.innerHTML = showRecent ? 'Loading recent VIN sightings…' : 'Loading VIN coverage…';
+  result.style.color = 'var(--muted)';
+  result.textContent = 'Loading…';
+
+  try {
+    if (showRecent) {
+      const data = await apiFetch('/api/admin/vin-seen/list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: window.__adminKey || '' })
+      });
+      const sightings = data.sightings || [];
+      result.style.color = 'var(--green)';
+      result.textContent = `✓ Loaded ${sightings.length} recent masked VIN sighting${sightings.length !== 1 ? 's' : ''}`;
+      if (!sightings.length) {
+        list.innerHTML = '<span style="color:var(--text-muted)">No VIN sightings logged yet.</span>';
+        return;
+      }
+      list.innerHTML = sightings.map(s =>
+        '<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--border)">' +
+        '<div><strong>' + esc(vehicleLabel(s.vehicle_key)) + ' ' + s.year + '</strong> · ' + esc(s.masked_vin) +
+        (s.trim ? ' · ' + esc(s.trim) : '') +
+        ' · seen ' + esc(String(s.seen_count)) + ' time' + (Number(s.seen_count) !== 1 ? 's' : '') + '</div>' +
+        '<div style="color:var(--muted)">' + new Date(s.last_seen_at).toLocaleString() + '</div>' +
+        '</div>'
+      ).join('');
+      return;
+    }
+
+    const data = await apiFetch('/api/admin/vin-seen/coverage', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: window.__adminKey || '' })
+    });
+
+    const missing = data.missingSeedCoverage || [];
+    const totals = data.totals || {};
+    result.style.color = 'var(--green)';
+    result.textContent = `✓ ${totals.total_sightings || 0} masked VIN sightings logged · ${totals.distinct_vehicle_years || 0} distinct vehicle/years · ${missing.length} missing seed coverage`;
+
+    if (!missing.length) {
+      list.innerHTML = '<span style="color:var(--text-muted)">All seen vehicle/year combinations already have seed coverage.</span>';
+      return;
+    }
+
+    list.innerHTML = missing.map(m =>
+      '<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--border)">' +
+      '<div><strong>' + esc(vehicleLabel(m.vehicle_key)) + ' ' + m.year + '</strong> · sample ' + esc(m.sample_masked_vin || 'n/a') + '</div>' +
+      '<div style="color:var(--muted)">' + esc(String(m.sightings)) + ' sighting' + (Number(m.sightings) !== 1 ? 's' : '') + '</div>' +
+      '</div>'
+    ).join('');
+  } catch (e) {
+    result.style.color = 'var(--recall)';
+    result.textContent = 'Error: ' + e.message;
+    list.innerHTML = '';
+  }
+}
+
+
 async function loadSeedVins() {
   const result = document.getElementById('adminSeedResult');
   const list = document.getElementById('adminSeedList');
@@ -1657,6 +1722,8 @@ document.addEventListener('click', e => {
     if (id === 'adminSeedAddBtn') { e.stopPropagation(); addSeedVin(); return; }
     if (id === 'adminSeedListBtn') { e.stopPropagation(); loadSeedVins(); return; }
     if (id === 'adminSeedRunBtn') { e.stopPropagation(); runSeedVins(); return; }
+    if (id === 'adminVinCoverageBtn') { e.stopPropagation(); loadVinCoverage(false); return; }
+    if (id === 'adminVinSeenBtn') { e.stopPropagation(); loadVinCoverage(true); return; }
     const seedDeleteBtn = t.closest('[data-seed-delete]');
     if (seedDeleteBtn) { e.stopPropagation(); deleteSeedVin(seedDeleteBtn.dataset.seedDelete); return; }
     if (id === 'adminMigrateBtn'){ e.stopPropagation(); adminAction('migrate', 'adminMigrateResult', 'adminMigrateBtn'); return; }
