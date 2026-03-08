@@ -51,6 +51,11 @@ function mapDecodedVehicleKey(make, model, vin='') {
   if (mk.includes('chevrolet') || mk.includes('chevy')) {
     if (md.includes('equinox')) return 'equinox_ev';
     if (md.includes('blazer')) return 'blazer_ev';
+    if (md.includes('bolt euv')) return 'bolt_euv';
+    if (md.includes('bolt')) {
+      if (v.startsWith('1G1FZ6EV') || v.startsWith('1G1FY6EV')) return 'bolt_ev_gen2';
+      return 'bolt_ev';
+    }
   }
   if (mk.includes('ford')) {
     if (md.includes('mach') || md.includes('mustang')) return 'mach_e';
@@ -69,6 +74,9 @@ function reportTheme(vehicle) {
   const themes = {
     equinox_ev: { hero: 'linear-gradient(135deg,#0f172a 0%,#1d4ed8 55%,#38bdf8 100%)', accent: '#2563eb', badge: 'Chevrolet Equinox EV' },
     blazer_ev: { hero: 'linear-gradient(135deg,#111827 0%,#1d4ed8 45%,#60a5fa 100%)', accent: '#2563eb', badge: 'Chevrolet Blazer EV' },
+    bolt_ev: { hero: 'linear-gradient(135deg,#111827 0%,#1d4ed8 45%,#60a5fa 100%)', accent: '#2563eb', badge: 'Chevrolet Bolt EV' },
+    bolt_euv: { hero: 'linear-gradient(135deg,#111827 0%,#1d4ed8 45%,#60a5fa 100%)', accent: '#2563eb', badge: 'Chevrolet Bolt EUV' },
+    bolt_ev_gen2: { hero: 'linear-gradient(135deg,#111827 0%,#1d4ed8 45%,#60a5fa 100%)', accent: '#2563eb', badge: 'Chevrolet Bolt EV (2027+)' },
     mach_e: { hero: 'linear-gradient(135deg,#111827 0%,#0f766e 45%,#38bdf8 100%)', accent: '#0f766e', badge: 'Ford Mustang Mach-E' },
     honda_prologue: { hero: 'linear-gradient(135deg,#111827 0%,#334155 50%,#38bdf8 100%)', accent: '#334155', badge: 'Honda Prologue' },
     tesla_model_3: { hero: 'linear-gradient(135deg,#111827 0%,#7c2d12 50%,#f97316 100%)', accent: '#c2410c', badge: 'Tesla Model 3' },
