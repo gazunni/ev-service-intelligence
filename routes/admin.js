@@ -1,5 +1,7 @@
+//admin.js
 import { Router } from 'express';
 import { query } from '../services/database.js';
+import { decodeVIN, fetchVINRecalls, VEHICLES } from '../services/nhtsa.js';
 
 const router = Router();
 if (!process.env.ADMIN_KEY) throw new Error('ADMIN_KEY environment variable is not set — set it in Railway before deploying');
@@ -16,6 +18,66 @@ export function checkAdminAny(req, res) {
   const key = req.body?.key || req.query?.key || req.headers['x-admin-key'] || '';
   if (key !== ADMIN_KEY) { res.status(403).json({ error: 'Forbidden' }); return false; }
   return true;
+}
+
+
+function decodeField(fields, id) {
+  return (fields.find(f => f.VariableId === id) || {}).Value || '';
+}
+
+function normalizeVehicleKey(raw = '') {
+  const key = String(raw || '').trim();
+  return Object.prototype.hasOwnProperty.call(VEHICLES, key) ? key : '';
+}
+
+function detectVehicleKey(make = '', model = '', vin = '') {
+  const mk = String(make || '').toLowerCase().trim();
+  const md = String(model || '').toLowerCase().trim();
+  const v  = String(vin || '').toUpperCase().trim();
+  if (mk.includes('chevrolet') || mk.includes('chevy')) {
+    if (md.includes('equinox')) return 'equinox_ev';
+    if (md.includes('blazer')) return 'blazer_ev';
+    if (md.includes('bolt euv')) return 'bolt_euv';
+    if (md.includes('bolt')) {
+      if (v.startsWith('1G1FZ6EV') || v.startsWith('1G1FY6EV')) return 'bolt_ev_gen2';
+      return 'bolt_ev';
+    }
+  }
+  if (mk.includes('ford')) {
+    if (md.includes('mach') || md.includes('mustang')) return 'mach_e';
+  }
+  if (mk.includes('honda')) {
+    if (md.includes('prologue')) return 'honda_prologue';
+  }
+  if (mk.includes('tesla')) {
+    if (md.includes('model 3') || md == '3') return 'tesla_model_3';
+    if (md.includes('model y') || md == 'y') return 'tesla_model_y';
+  }
+  return '';
+}
+
+function extractCampaignId(r = {}) {
+  const candidates = [
+    r.NHTSACampaignNumber,
+    r.nhtsaCampaignNumber,
+    r.campaignNumber,
+    r.campaign_id,
+    r.campaignId,
+    r.recallId,
+    r.id,
+    r.raw_nhtsa?.NHTSACampaignNumber,
+    r.raw_nhtsa?.campaign_id,
+    r.raw_nhtsa?.recallId,
+  ];
+  for (const candidate of candidates) {
+    const clean = String(candidate || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    if (clean) return clean;
+  }
+  return '';
+}
+
+function seedIdFor(vehicleKey, year) {
+  return `${vehicleKey}_${year}`;
 }
 
 // ── NHTSA TEST (no auth — remove after debugging) ───────────────────────
@@ -101,13 +163,25 @@ router.post('/migrate', async (req, res) => {
       `CREATE INDEX IF NOT EXISTS idx_review_queue_status    ON review_queue(status, vehicle_key, year)`,
       `ALTER TABLE recalls  ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active'`,
       `ALTER TABLE tsbs     ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active'`,
+      `CREATE TABLE IF NOT EXISTS seed_vins (
+        id              TEXT PRIMARY KEY,
+        vehicle_key     TEXT NOT NULL,
+        year            INT  NOT NULL,
+        vin             TEXT NOT NULL UNIQUE,
+        trim_hint       TEXT,
+        note            TEXT,
+        source          TEXT DEFAULT 'manual',
+        is_active       BOOLEAN DEFAULT TRUE,
+        last_seeded_at  TIMESTAMPTZ,
+        created_at      TIMESTAMPTZ DEFAULT NOW(),
+        updated_at      TIMESTAMPTZ DEFAULT NOW(),
+        UNIQUE(vehicle_key, year)
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_seed_vins_active       ON seed_vins(is_active, vehicle_key, year)`,
     ];
 
-    for (const sql of migrations) {
-      await query(sql);
-    }
+    for (const sql of migrations) await query(sql);
 
-    // Remove exact duplicate recall rows before changing PK
     await query(`
       DELETE FROM recalls r1
       USING recalls r2
@@ -117,7 +191,6 @@ router.post('/migrate', async (req, res) => {
         AND r1.id = r2.id
     `);
 
-    // Update recalls PK so same campaign can exist across vehicle + year
     await query(`ALTER TABLE recalls DROP CONSTRAINT IF EXISTS recalls_pkey`);
     await query(`
       ALTER TABLE recalls
@@ -126,10 +199,134 @@ router.post('/migrate', async (req, res) => {
 
     res.json({
       ok: true,
-      message: `✓ DB migration complete — indexes ensured, status columns ensured, recalls PK updated to (vehicle_key, year, id)`
+      message: `✓ DB migration complete — indexes ensured, status columns ensured, recalls PK updated to (vehicle_key, year, id), seed_vins ready`
     });
   } catch (e) {
     console.error('migrate error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+// ── SEED VINS: ADD / LIST / RUN ──────────────────────────────────────────
+router.post('/seed-vins/add', async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+  const vehicleKey = normalizeVehicleKey(req.body?.vehicle_key || req.body?.vehicle || '');
+  const year = parseInt(req.body?.year, 10);
+  const vin = String(req.body?.vin || '').trim().toUpperCase();
+  const trimHint = String(req.body?.trim_hint || '').trim();
+  const note = String(req.body?.note || '').trim();
+  if (!vehicleKey) return res.status(400).json({ error: 'Valid vehicle_key required' });
+  if (!Number.isInteger(year)) return res.status(400).json({ error: 'Valid year required' });
+  if (vin.length !== 17) return res.status(400).json({ error: 'Valid 17-character VIN required' });
+
+  try {
+    const id = seedIdFor(vehicleKey, year);
+    const rows = await query(
+      `INSERT INTO seed_vins (id, vehicle_key, year, vin, trim_hint, note, updated_at)
+       VALUES ($1,$2,$3,$4,$5,$6,NOW())
+       ON CONFLICT (id) DO UPDATE SET
+         vin = EXCLUDED.vin,
+         trim_hint = EXCLUDED.trim_hint,
+         note = EXCLUDED.note,
+         is_active = TRUE,
+         updated_at = NOW()
+       RETURNING *`,
+      [id, vehicleKey, year, vin, trimHint || null, note || null]
+    );
+    res.json({ ok: true, message: `✓ Seed VIN saved for ${vehicleKey} ${year}`, seed: rows[0] || null });
+  } catch (e) {
+    console.error('seed-vins add error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/seed-vins/list', async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+  try {
+    const seeds = await query(`SELECT * FROM seed_vins ORDER BY vehicle_key, year`);
+    res.json({ ok: true, seeds });
+  } catch (e) {
+    console.error('seed-vins list error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/seed-vins/run', async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+  const onlyId = String(req.body?.id || '').trim();
+  try {
+    const seeds = onlyId
+      ? await query(`SELECT * FROM seed_vins WHERE id=$1 AND is_active=TRUE ORDER BY vehicle_key, year`, [onlyId])
+      : await query(`SELECT * FROM seed_vins WHERE is_active=TRUE ORDER BY vehicle_key, year`);
+
+    if (!seeds.length) {
+      return res.json({ ok: true, message: '✓ No active seed VINs to run', totals: { seeds: 0, inserted: 0, skipped: 0 }, lines: [] });
+    }
+
+    let totalInserted = 0;
+    let totalSkipped = 0;
+    const lines = [];
+
+    for (const seed of seeds) {
+      try {
+        const decoded = await decodeVIN(seed.vin);
+        const fields = decoded.Results || decoded.results || [];
+        const make = decodeField(fields, 26);
+        const model = decodeField(fields, 28);
+        const decodedYear = parseInt(decodeField(fields, 29), 10) || seed.year;
+        const mappedVehicle = detectVehicleKey(make, model, seed.vin);
+
+        if (decodedYear !== seed.year || mappedVehicle !== seed.vehicle_key) {
+          lines.push(`⚠ ${seed.vehicle_key} ${seed.year}: VIN mismatch — decoded ${mappedVehicle || 'unknown'} ${decodedYear}`);
+          continue;
+        }
+
+        const recallData = await fetchVINRecalls(seed.vin, make, model, String(decodedYear));
+        const recalls = recallData.results || [];
+        let inserted = 0;
+        let skipped = 0;
+
+        for (const r of recalls) {
+          const campaignId = extractCampaignId(r);
+          if (!campaignId) { skipped++; continue; }
+
+          const rows = await query(
+            `INSERT INTO recalls (id, vehicle_key, year, title, risk, remedy, source_pills, raw_nhtsa)
+             VALUES ($1,$2,$3,$4,$5,$6,ARRAY['NHTSA Official','Seed VIN'], $7)
+             ON CONFLICT (vehicle_key, year, id) DO NOTHING
+             RETURNING id`,
+            [
+              campaignId,
+              seed.vehicle_key,
+              seed.year,
+              r.Component || r.component || r.title || 'Unknown Component',
+              r.Summary || r.summary || r.Consequence || r.consequence || r.risk || '',
+              r.Remedy || r.remedy || '',
+              JSON.stringify({ ...r, __seed_vin: { vin: seed.vin, seedId: seed.id } }),
+            ]
+          );
+
+          if (rows.length > 0) inserted++;
+          else skipped++;
+        }
+
+        await query(`UPDATE seed_vins SET last_seeded_at=NOW(), updated_at=NOW() WHERE id=$1`, [seed.id]);
+        totalInserted += inserted;
+        totalSkipped += skipped;
+        lines.push(`✓ ${seed.vehicle_key} ${seed.year}: ${inserted} inserted · ${skipped} skipped`);
+      } catch (e) {
+        lines.push(`⚠ ${seed.vehicle_key} ${seed.year}: ${e.message}`);
+      }
+    }
+
+    res.json({
+      ok: true,
+      message: `✓ Seed run complete — ${seeds.length} VIN${seeds.length!==1?'s':''} processed · ${totalInserted} inserted · ${totalSkipped} skipped`,
+      totals: { seeds: seeds.length, inserted: totalInserted, skipped: totalSkipped },
+      lines
+    });
+  } catch (e) {
+    console.error('seed-vins run error:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
