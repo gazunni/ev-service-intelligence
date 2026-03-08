@@ -959,7 +959,7 @@ async function loadSeedVins() {
       '<div><strong>' + (labels[s.vehicle_key]||s.vehicle_key) + ' ' + s.year + '</strong> · ' + esc(s.vin) +
       (s.trim_hint ? ' · ' + esc(s.trim_hint) : '') +
       (s.note ? ' · ' + esc(s.note) : '') + '</div>' +
-      '<div style="color:var(--muted)">' + (s.last_seeded_at ? new Date(s.last_seeded_at).toLocaleString() : 'Never seeded') + '</div>' +
+      '<div style="color:var(--muted)">' + (s.last_seeded_at ? ('Last seeded: ' + new Date(s.last_seeded_at).toLocaleString()) : 'Last seeded: never') + '</div>' +
       '</div>'
     ).join('');
     if (result && !result.textContent) result.textContent = '✓ Seed VINs loaded';
