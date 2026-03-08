@@ -273,7 +273,6 @@ function togglePanel(id) {
     loadAdminDashboard();
     updateSeedYearOptions();
     loadSeedVins();
-    loadVinCoverage(false);
   }
 }
 
