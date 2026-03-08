@@ -327,7 +327,8 @@ router.post('/seed-vins/run', async (req, res) => {
     }
 
     let totalInserted = 0;
-    let totalSkipped = 0;
+    let totalExisting = 0;
+    let totalInvalid = 0;
     const lines = [];
 
     for (const seed of seeds) {
@@ -347,11 +348,12 @@ router.post('/seed-vins/run', async (req, res) => {
         const recallData = await fetchVINRecalls(seed.vin, make, model, String(decodedYear));
         const recalls = recallData.results || [];
         let inserted = 0;
-        let skipped = 0;
+        let alreadyExists = 0;
+        let invalid = 0;
 
         for (const r of recalls) {
           const campaignId = extractCampaignId(r);
-          if (!campaignId) { skipped++; continue; }
+          if (!campaignId) { invalid++; continue; }
 
           const rows = await query(
             `INSERT INTO recalls (id, vehicle_key, year, title, risk, remedy, source_pills, raw_nhtsa)
@@ -370,13 +372,14 @@ router.post('/seed-vins/run', async (req, res) => {
           );
 
           if (rows.length > 0) inserted++;
-          else skipped++;
+          else alreadyExists++;
         }
 
         await query(`UPDATE seed_vins SET last_seeded_at=NOW(), updated_at=NOW() WHERE id=$1`, [seed.id]);
         totalInserted += inserted;
-        totalSkipped += skipped;
-        lines.push(`✓ ${seed.vehicle_key} ${seed.year}: ${inserted} inserted · ${skipped} skipped`);
+        totalExisting += alreadyExists;
+        totalInvalid += invalid;
+        lines.push(`✓ ${seed.vehicle_key} ${seed.year}: ${inserted} inserted · ${alreadyExists} already in DB · ${invalid} invalid`);
       } catch (e) {
         lines.push(`⚠ ${seed.vehicle_key} ${seed.year}: ${e.message}`);
       }
@@ -384,8 +387,8 @@ router.post('/seed-vins/run', async (req, res) => {
 
     res.json({
       ok: true,
-      message: `✓ Seed run complete — ${seeds.length} VIN${seeds.length!==1?'s':''} processed · ${totalInserted} inserted · ${totalSkipped} skipped`,
-      totals: { seeds: seeds.length, inserted: totalInserted, skipped: totalSkipped },
+      message: `✓ Seed run complete — ${seeds.length} VIN${seeds.length!==1?'s':''} processed · ${totalInserted} inserted · ${totalExisting} already in DB · ${totalInvalid} invalid`,
+      totals: { seeds: seeds.length, inserted: totalInserted, alreadyExists: totalExisting, invalid: totalInvalid },
       lines
     });
   } catch (e) {
