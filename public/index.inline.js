@@ -271,6 +271,7 @@ function togglePanel(id) {
   // Auto-load dashboard when opening admin panel
   if (id === 'adminPanel' && !wasOpen) {
     loadAdminDashboard();
+    updateSeedYearOptions();
     loadSeedVins();
   }
 }
@@ -937,6 +938,51 @@ async function adminAction(endpoint, resultId, btnId) {
 }
 
 
+
+const SEED_YEARS = {
+  equinox_ev: [2026, 2025, 2024],
+  blazer_ev: [2026, 2025, 2024],
+  bolt_ev: [2023, 2022, 2021, 2020, 2019, 2018, 2017],
+  bolt_euv: [2023, 2022],
+  bolt_ev_gen2: [2027],
+  mach_e: [2026, 2025, 2024, 2023, 2022, 2021],
+  honda_prologue: [2026, 2025, 2024],
+  tesla_model_3: [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017],
+  tesla_model_y: [2026, 2025, 2024, 2023, 2022, 2021, 2020],
+};
+
+function updateSeedYearOptions() {
+  const vehicleSel = document.getElementById('seedVehicleKey');
+  const yearSel = document.getElementById('seedYear');
+  if (!vehicleSel || !yearSel) return;
+  const current = yearSel.value;
+  const years = SEED_YEARS[vehicleSel.value] || [];
+  yearSel.innerHTML = years.map(y => `<option value="${y}"${String(y) === String(current) ? ' selected' : ''}>${y}</option>`).join('');
+  if (!years.includes(parseInt(current, 10)) && years.length) yearSel.value = years[0];
+}
+
+async function deleteSeedVin(vin) {
+  const result = document.getElementById('adminSeedResult');
+  if (!confirm(`Delete seed VIN ${vin}?`)) return;
+  result.style.color = 'var(--muted)';
+  result.textContent = 'Deleting seed VIN…';
+  try {
+    const data = await apiFetch('/api/admin/seed-vins/delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: window.__adminKey || '', vin })
+    });
+    result.style.color = 'var(--green)';
+    result.textContent = data.message || '✓ Seed VIN deleted';
+    updateSeedYearOptions();
+    await loadSeedVins();
+  } catch (e) {
+    result.style.color = 'var(--recall)';
+    result.textContent = 'Error: ' + e.message;
+  }
+}
+
+
 async function loadSeedVins() {
   const result = document.getElementById('adminSeedResult');
   const list = document.getElementById('adminSeedList');
@@ -959,7 +1005,10 @@ async function loadSeedVins() {
       '<div><strong>' + (labels[s.vehicle_key]||s.vehicle_key) + ' ' + s.year + '</strong> · ' + esc(s.vin) +
       (s.trim_hint ? ' · ' + esc(s.trim_hint) : '') +
       (s.note ? ' · ' + esc(s.note) : '') + '</div>' +
-      '<div style="color:var(--muted)">' + (s.last_seeded_at ? ('Last seeded: ' + new Date(s.last_seeded_at).toLocaleString()) : 'Last seeded: never') + '</div>' +
+      '<div style="display:flex;gap:10px;align-items:center">' +
+      '<span style="color:var(--muted)">' + (s.last_seeded_at ? ('Last seeded: ' + new Date(s.last_seeded_at).toLocaleString()) : 'Last seeded: never') + '</span>' +
+      '<button onclick="deleteSeedVin(\'' + esc(s.vin) + '\')" style="background:none;border:1px solid var(--border);color:#ff7b7b;padding:2px 8px;border-radius:4px;cursor:pointer">Delete</button>' +
+      '</div>' +
       '</div>'
     ).join('');
     if (result && !result.textContent) result.textContent = '✓ Seed VINs loaded';
@@ -972,7 +1021,7 @@ async function addSeedVin() {
   const result = document.getElementById('adminSeedResult');
   const btn = document.getElementById('adminSeedAddBtn');
   const vehicle_key = document.getElementById('seedVehicleKey').value;
-  const year = document.getElementById('seedYear').value.trim();
+  const year = document.getElementById('seedYear').value;
   const vin = document.getElementById('seedVin').value.trim().toUpperCase();
   const trim_hint = document.getElementById('seedTrimHint').value.trim();
   const note = document.getElementById('seedNote').value.trim();
@@ -1550,7 +1599,11 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('sweepBtn').addEventListener('click', runSweep);
 
   // Single unified click handler for all buttons
-  document.addEventListener('click', e => {
+  document.addEventListener('change', e => {
+    if (e.target && e.target.id === 'seedVehicleKey') { updateSeedYearOptions(); return; }
+});
+
+document.addEventListener('click', e => {
     const t = e.target;
     const id = t.id;
 
