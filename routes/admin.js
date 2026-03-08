@@ -632,7 +632,9 @@ router.get('/recall-audit', async (req, res) => {
 router.post('/stats', async (req, res) => {
   if (!checkAdmin(req, res)) return;
   try {
-    const [recalls, tsbs, community, queue, suppressed, lastSweep, byVehicle, vinSeen, missingSeedYears] = await Promise.all([
+    const vinSeenExists = await query(`SELECT to_regclass('public.vin_seen') AS reg`);
+
+    const [recalls, tsbs, community, queue, suppressed, lastSweep, byVehicle] = await Promise.all([
       query(`SELECT COUNT(*) FROM recalls WHERE COALESCE(status,'active') != 'suppressed'`),
       query(`SELECT COUNT(*) FROM tsbs WHERE COALESCE(status,'active') != 'suppressed'`),
       query(`SELECT COUNT(*) FROM community WHERE status='active'`),
@@ -642,20 +644,23 @@ router.post('/stats', async (req, res) => {
       query(`SELECT vehicle_key,
                COUNT(*) FILTER (WHERE COALESCE(r.status,'active')!='suppressed') as recalls
              FROM recalls r GROUP BY vehicle_key ORDER BY vehicle_key`),
-      query(`SELECT CASE WHEN to_regclass('public.vin_seen') IS NULL THEN 0 ELSE (SELECT COUNT(*) FROM vin_seen) END AS count`),
-      query(`
-        SELECT CASE WHEN to_regclass('public.vin_seen') IS NULL THEN 0 ELSE (
-          SELECT COUNT(*) FROM (
-            SELECT DISTINCT v.vehicle_key, v.year
-            FROM vin_seen v
-            LEFT JOIN seed_vins s ON s.vehicle_key = v.vehicle_key AND s.year = v.year
-            WHERE s.id IS NULL
-          ) q
-        ) END AS count
-      `),
     ]);
 
-    // Legacy message format for existing UI
+    let vinSeen = [{ count: 0 }];
+    let missingSeedYears = [{ count: 0 }];
+
+    if (vinSeenExists[0]?.reg) {
+      vinSeen = await query(`SELECT COUNT(*) FROM vin_seen`);
+      missingSeedYears = await query(`
+        SELECT COUNT(*) FROM (
+          SELECT DISTINCT v.vehicle_key, v.year
+          FROM vin_seen v
+          LEFT JOIN seed_vins s ON s.vehicle_key = v.vehicle_key AND s.year = v.year
+          WHERE s.id IS NULL
+        ) q
+      `);
+    }
+
     const message = [
       `recalls: ${recalls[0].count}`,
       `tsbs: ${tsbs[0].count}`,
@@ -679,7 +684,10 @@ router.post('/stats', async (req, res) => {
         missingSeedYears: parseInt(missingSeedYears[0].count),
       }
     });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+  } catch (e) {
+    console.error('stats error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
 });
 
 // ── CLEAR SWEEP LOG ───────────────────────────────────────────────────────
