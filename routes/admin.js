@@ -178,6 +178,22 @@ router.post('/migrate', async (req, res) => {
         UNIQUE(vehicle_key, year)
       )`,
       `CREATE INDEX IF NOT EXISTS idx_seed_vins_active       ON seed_vins(is_active, vehicle_key, year)`,
+      `CREATE TABLE IF NOT EXISTS vin_seen (
+        vin_hash         TEXT PRIMARY KEY,
+        masked_vin       TEXT NOT NULL,
+        vehicle_key      TEXT NOT NULL,
+        year             INT  NOT NULL,
+        make             TEXT,
+        model            TEXT,
+        trim             TEXT,
+        first_seen_at    TIMESTAMPTZ DEFAULT NOW(),
+        last_seen_at     TIMESTAMPTZ DEFAULT NOW(),
+        seen_count       INT DEFAULT 1,
+        promoted_to_seed BOOLEAN DEFAULT FALSE,
+        source           TEXT DEFAULT 'vin_lookup'
+      )`,
+      `CREATE INDEX IF NOT EXISTS idx_vin_seen_vehicle_year ON vin_seen(vehicle_key, year)`,
+      `CREATE INDEX IF NOT EXISTS idx_vin_seen_last_seen    ON vin_seen(last_seen_at DESC)`,
     ];
 
     for (const sql of migrations) await query(sql);
@@ -199,7 +215,7 @@ router.post('/migrate', async (req, res) => {
 
     res.json({
       ok: true,
-      message: `✓ DB migration complete — indexes ensured, status columns ensured, recalls PK updated to (vehicle_key, year, id), seed_vins ready`
+      message: `✓ DB migration complete — indexes ensured, status columns ensured, recalls PK updated to (vehicle_key, year, id), seed_vins ready, vin_seen ready`
     });
   } catch (e) {
     console.error('migrate error:', e.message);
@@ -397,6 +413,61 @@ router.post('/seed-vins/run', async (req, res) => {
   }
 });
 
+
+// ── VIN SIGHTINGS: LIST / COVERAGE ───────────────────────────────────────
+router.post('/vin-seen/list', async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+  try {
+    const rows = await query(`
+      SELECT masked_vin, vehicle_key, year, make, model, trim, first_seen_at, last_seen_at, seen_count, promoted_to_seed, source
+      FROM vin_seen
+      ORDER BY last_seen_at DESC
+      LIMIT 100
+    `);
+    res.json({ ok: true, sightings: rows });
+  } catch (e) {
+    console.error('vin-seen list error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/vin-seen/coverage', async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+  try {
+    const missingSeedCoverage = await query(`
+      SELECT
+        v.vehicle_key,
+        v.year,
+        COUNT(*) AS sightings,
+        MAX(v.last_seen_at) AS last_seen_at,
+        MAX(v.masked_vin) AS sample_masked_vin
+      FROM vin_seen v
+      LEFT JOIN seed_vins s
+        ON s.vehicle_key = v.vehicle_key
+       AND s.year = v.year
+      WHERE s.id IS NULL
+      GROUP BY v.vehicle_key, v.year
+      ORDER BY v.vehicle_key, v.year
+    `);
+
+    const totals = await query(`
+      SELECT
+        COUNT(*)::int AS total_sightings,
+        COUNT(DISTINCT vehicle_key || '-' || year)::int AS distinct_vehicle_years
+      FROM vin_seen
+    `);
+
+    res.json({
+      ok: true,
+      totals: totals[0] || { total_sightings: 0, distinct_vehicle_years: 0 },
+      missingSeedCoverage
+    });
+  } catch (e) {
+    console.error('vin-seen coverage error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ── DELETE RECALL (soft — sets status=suppressed) ────────────────────────
 router.delete('/recalls/:id', async (req, res) => {
   if (!checkAdminAny(req, res)) return;
@@ -549,7 +620,7 @@ router.get('/recall-audit', async (req, res) => {
 router.post('/stats', async (req, res) => {
   if (!checkAdmin(req, res)) return;
   try {
-    const [recalls, tsbs, community, queue, suppressed, lastSweep, byVehicle] = await Promise.all([
+    const [recalls, tsbs, community, queue, suppressed, lastSweep, byVehicle, vinSeen, missingSeedYears] = await Promise.all([
       query(`SELECT COUNT(*) FROM recalls WHERE COALESCE(status,'active') != 'suppressed'`),
       query(`SELECT COUNT(*) FROM tsbs WHERE COALESCE(status,'active') != 'suppressed'`),
       query(`SELECT COUNT(*) FROM community WHERE status='active'`),
@@ -559,6 +630,15 @@ router.post('/stats', async (req, res) => {
       query(`SELECT vehicle_key,
                COUNT(*) FILTER (WHERE COALESCE(r.status,'active')!='suppressed') as recalls
              FROM recalls r GROUP BY vehicle_key ORDER BY vehicle_key`),
+      query(`SELECT COUNT(*) FROM vin_seen`),
+      query(`
+        SELECT COUNT(*) FROM (
+          SELECT DISTINCT v.vehicle_key, v.year
+          FROM vin_seen v
+          LEFT JOIN seed_vins s ON s.vehicle_key = v.vehicle_key AND s.year = v.year
+          WHERE s.id IS NULL
+        ) q
+      `),
     ]);
 
     // Legacy message format for existing UI
@@ -567,6 +647,7 @@ router.post('/stats', async (req, res) => {
       `tsbs: ${tsbs[0].count}`,
       `community: ${community[0].count}`,
       `review_queue: ${queue[0].count}`,
+      `vin_seen: ${vinSeen[0].count}`,
     ].join(' · ');
 
     res.json({
@@ -580,6 +661,8 @@ router.post('/stats', async (req, res) => {
         lastSwept:    lastSweep[0]?.last_swept || null,
         lastSweptVehicle: lastSweep[0]?.vehicle_key || null,
         byVehicle:    byVehicle.map(r => ({ vehicle: r.vehicle_key, recalls: parseInt(r.recalls) })),
+        vinSeen:      parseInt(vinSeen[0].count),
+        missingSeedYears: parseInt(missingSeedYears[0].count),
       }
     });
   } catch (e) { res.status(500).json({ error: e.message }); }
