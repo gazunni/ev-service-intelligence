@@ -2151,6 +2151,26 @@ function mapDecodedVehicleKey(make, model, vin=''){
   return '';
 }
 
+function detectVehicleKey(make, model, vin=''){
+  return mapDecodedVehicleKey(make, model, vin);
+}
+
+function vehicleLabel(key){
+  const labels = {
+    equinox_ev: 'Chevrolet Equinox EV',
+    blazer_ev: 'Chevrolet Blazer EV',
+    bolt_ev: 'Chevrolet Bolt EV',
+    bolt_euv: 'Chevrolet Bolt EUV',
+    bolt_ev_gen2: 'Chevrolet Bolt EV 2027+',
+    mach_e: 'Ford Mustang Mach-E',
+    honda_prologue: 'Honda Prologue',
+    tesla_model_3: 'Tesla Model 3',
+    tesla_model_y: 'Tesla Model Y'
+  };
+  return labels[key] || key || 'Unknown vehicle';
+}
+
+
 function resolvePlant(vin) {
   if (!vin || vin.length !== 17) return '—';
   const plantChar = vin[10].toUpperCase();
