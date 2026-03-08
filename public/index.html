@@ -1986,8 +1986,9 @@ const vehicleCatalog = {
   chevrolet: [
     { key:'equinox_ev', label:'Chevrolet Equinox EV', years:[2026, 2025, 2024] },
     { key:'blazer_ev',  label:'Chevrolet Blazer EV',  years:[2026, 2025, 2024] },
-    { key:'bolt_ev',    label:'Chevrolet Bolt EV',    years:[2023, 2022, 2021, 2020, 2019, 2018, 2017] },
-    { key:'bolt_euv',   label:'Chevrolet Bolt EUV',   years:[2023, 2022] },
+    { key:'bolt_ev',      label:'Chevrolet Bolt EV',            years:[2023, 2022, 2021, 2020, 2019, 2018, 2017] },
+    { key:'bolt_euv',     label:'Chevrolet Bolt EUV',           years:[2023, 2022] },
+    { key:'bolt_ev_gen2', label:'Chevrolet Bolt EV (2027+)',    years:[2027] },
   ],
   ford: [
     { key:'mach_e', label:'Ford Mustang Mach-E', years:[2026, 2025, 2024, 2023, 2022, 2021] },
@@ -2079,14 +2080,18 @@ const VIN_COUNTRY = {
   'Y':'Sweden/Finland','L':'China',
 };
 
-function mapDecodedVehicleKey(make, model){
+function mapDecodedVehicleKey(make, model, vin=''){
   const mk = String(make||'').toLowerCase().trim();
   const md = String(model||'').toLowerCase().trim();
+  const v = String(vin||'').toUpperCase().trim();
   if (mk.includes('chevrolet') || mk.includes('chevy')) {
     if (md.includes('equinox')) return 'equinox_ev';
     if (md.includes('blazer')) return 'blazer_ev';
     if (md.includes('bolt euv')) return 'bolt_euv';
-    if (md.includes('bolt')) return 'bolt_ev';
+    if (md.includes('bolt')) {
+      if (v.startsWith('1G1FZ6EV') || v.startsWith('1G1FY6EV')) return 'bolt_ev_gen2';
+      return 'bolt_ev';
+    }
   }
   if (mk.includes('ford')) {
     if (md.includes('mach') || md.includes('mustang')) return 'mach_e';
@@ -2376,7 +2381,7 @@ async function vinLookup() {
         // Cross-check against our database using the VIN-decoded vehicle/year when possible
         const selectedVehicle = getVehicle();
         const selectedYear = parseInt(getYear());
-        const mappedVehicle = mapDecodedVehicleKey(make, model);
+        const mappedVehicle = mapDecodedVehicleKey(make, model, vin);
         const vkey = mappedVehicle || selectedVehicle;
         const yr   = Number.isFinite(parseInt(year,10)) ? parseInt(year,10) : selectedYear;
         window.__vinReportContext = {
@@ -2506,6 +2511,7 @@ async function adminNhtsaImport() {
     {vehicle:'blazer_ev',      years:[2024,2025,2026]},
     {vehicle:'bolt_ev',        years:[2017,2018,2019,2020,2021,2022,2023]},
     {vehicle:'bolt_euv',       years:[2022,2023]},
+    {vehicle:'bolt_ev_gen2',   years:[2027]},
     {vehicle:'mach_e',         years:[2021,2022,2023,2024,2025,2026]},
     {vehicle:'honda_prologue', years:[2024,2025,2026]},
   ];

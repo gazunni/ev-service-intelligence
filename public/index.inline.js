@@ -9,6 +9,7 @@ const VEHICLE_LABELS = {
   blazer_ev: 'Chevrolet Blazer EV',
   bolt_ev: 'Chevrolet Bolt EV',
   bolt_euv: 'Chevrolet Bolt EUV',
+  bolt_ev_gen2: 'Chevrolet Bolt EV (2027+)',
   mach_e: 'Ford Mustang Mach-E',
   honda_prologue: 'Honda Prologue',
   tesla_model_3: 'Tesla Model 3',
@@ -936,6 +937,7 @@ const vehicleYears = {
   blazer_ev:      [2026, 2025, 2024],
   bolt_ev:        [2023, 2022, 2021, 2020, 2019, 2018, 2017],
   bolt_euv:       [2023, 2022],
+  bolt_ev_gen2:   [2027],
   mach_e:         [2026, 2025, 2024, 2023, 2022, 2021],
   honda_prologue: [2026, 2025, 2024],
   tesla_model_3:  [2026, 2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017],
@@ -1360,6 +1362,7 @@ async function adminNhtsaImport() {
     {vehicle:'blazer_ev',      years:[2024,2025,2026]},
     {vehicle:'bolt_ev',        years:[2017,2018,2019,2020,2021,2022,2023]},
     {vehicle:'bolt_euv',       years:[2022,2023]},
+    {vehicle:'bolt_ev_gen2',   years:[2027]},
     {vehicle:'mach_e',         years:[2021,2022,2023,2024,2025,2026]},
     {vehicle:'honda_prologue', years:[2024,2025,2026]},
   ];
