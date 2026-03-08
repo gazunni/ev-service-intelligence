@@ -127,6 +127,39 @@ function renderListCard(title, summary, sub = '') {
   return `<article class="list-card"><h4>${esc(title)}</h4><div class="list-summary">${summarizeText(summary, 260)}</div>${sub ? `<div class="list-meta">${sub}</div>` : ''}</article>`;
 }
 
+function dedupeDbRecalls(rows = []) {
+  const seen = new Set();
+  const out = [];
+  for (const r of rows || []) {
+    const campaign = String(r.raw_nhtsa?.NHTSACampaignNumber || r.raw_nhtsa?.campaign_id || r.id || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    const title = String(r.title || r.component || '').trim().toLowerCase();
+    const key = campaign || `${title}|${String(r.component || '').trim().toLowerCase()}`;
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(r);
+  }
+  return out;
+}
+
+function renderPlatformRecallCard(r) {
+  const campaign = r.raw_nhtsa?.NHTSACampaignNumber || r.raw_nhtsa?.campaign_id || r.id || '—';
+  const title = r.title || r.component || 'Official Safety Recall';
+  const risk = r.risk || r.summary || 'See official NHTSA notice for consequence details.';
+  const remedy = r.remedy || 'See official NHTSA notice for remedy details.';
+  const severity = String(r.severity || 'MODERATE').toUpperCase();
+  return `<article class="recall-card platform">
+    <div class="recall-head">
+      <div>
+        <h4>${esc(title)}</h4>
+        <div class="meta">Campaign ${esc(campaign)} · Platform recall stored in EV Service Intelligence</div>
+      </div>
+      <div class="pill platform">${esc(severity)}</div>
+    </div>
+    <div class="recall-copy"><strong>Risk:</strong> ${summarizeText(risk, 360)}</div>
+    <div class="recall-copy"><strong>Remedy:</strong> ${summarizeText(remedy, 320)}</div>
+  </article>`;
+}
+
 function vehicleImageBlock(vehicleKey, year) {
   const name = VEHICLES[vehicleKey]?.model || 'Vehicle';
   const src = vehicleImagePath(vehicleKey, year);
@@ -175,12 +208,15 @@ router.get('/vin', async (req, res) => {
     const recalls = vinRecallData.results || [];
     const openRecalls = recalls.filter(r => r.isOutstanding);
     const completedRecalls = recalls.filter(r => !r.isOutstanding);
-    const totalRecalls = recalls.length || dbRecalls.length;
+    const platformRecalls = dedupeDbRecalls(dbRecalls);
+    const totalRecalls = recalls.length || platformRecalls.length;
     const theme = reportTheme(mappedVehicle);
     const matchConfirmed = mappedVehicle && requestedVehicle && mappedVehicle === requestedVehicle && String(reportYear) === String(requestedYear);
-    const summarySentence = totalRecalls
-      ? `This ${safeText(reportYear)} ${safeText(make)} ${safeText(model)} VIN has ${totalRecalls} recall${totalRecalls === 1 ? '' : 's'} on record. ${openRecalls.length} remain open and ${completedRecalls.length} are marked completed. ${dbTsbs.length} technical service bulletin${dbTsbs.length === 1 ? '' : 's'} and ${dbCommunity.length} community insight item${dbCommunity.length === 1 ? '' : 's'} are currently linked in EV Service Intelligence.`
-      : `No recalls are currently returned for this VIN. ${dbTsbs.length} technical service bulletin${dbTsbs.length === 1 ? '' : 's'} and ${dbCommunity.length} community insight item${dbCommunity.length === 1 ? '' : 's'} are currently linked in EV Service Intelligence.`;
+    const summarySentence = recalls.length
+      ? `This ${safeText(reportYear)} ${safeText(make)} ${safeText(model)} VIN has ${totalRecalls} VIN-linked recall${totalRecalls === 1 ? '' : 's'} on record. ${openRecalls.length} remain open and ${completedRecalls.length} are marked completed. ${dbTsbs.length} technical service bulletin${dbTsbs.length === 1 ? '' : 's'} and ${dbCommunity.length} community insight item${dbCommunity.length === 1 ? '' : 's'} are currently linked in EV Service Intelligence.`
+      : platformRecalls.length
+        ? `No VIN-specific recalls are currently returned for this VIN. However, ${platformRecalls.length} platform recall${platformRecalls.length === 1 ? '' : 's'} are stored for this ${safeText(reportYear)} ${safeText(make)} ${safeText(model)} in EV Service Intelligence. ${dbTsbs.length} technical service bulletin${dbTsbs.length === 1 ? '' : 's'} and ${dbCommunity.length} community insight item${dbCommunity.length === 1 ? '' : 's'} are currently linked in EV Service Intelligence.`
+        : `No recalls are currently returned for this VIN. ${dbTsbs.length} technical service bulletin${dbTsbs.length === 1 ? '' : 's'} and ${dbCommunity.length} community insight item${dbCommunity.length === 1 ? '' : 's'} are currently linked in EV Service Intelligence.`;
 
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -192,7 +228,7 @@ router.get('/vin', async (req, res) => {
 :root{--ink:#0f172a;--muted:#475569;--line:#cbd5e1;--bg:#f8fafc;--card:#ffffff;--accent:${theme.accent};--good:#166534;--warn:#b45309;--bad:#b91c1c}
 *{box-sizing:border-box} body{margin:0;background:#e2e8f0;color:var(--ink);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif} .report-wrap{max-width:980px;margin:24px auto;padding:24px}.report-sheet{background:var(--bg);border:1px solid #cbd5e1;border-radius:24px;overflow:hidden;box-shadow:0 18px 45px rgba(15,23,42,.12)}
 .hero{background:${theme.hero};color:white;padding:24px 28px 30px;position:relative}.hero-top{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}.brand-lockup{display:flex;gap:14px;align-items:center}.report-logo{width:86px;height:86px;border-radius:50%;position:relative;background:#020617;display:grid;place-items:center;box-shadow:0 0 0 2px rgba(191,219,254,.22),0 0 28px rgba(56,189,248,.28);overflow:hidden}.report-logo-img{width:100%;height:100%;display:block;object-fit:cover;border-radius:50%}.brand-title{font-size:14px;letter-spacing:.18em;text-transform:uppercase;opacity:.92;font-weight:700}.brand-sub{font-size:30px;line-height:1.05;font-weight:800;margin-top:6px}.brand-power{margin-top:6px;color:#dbeafe;font-size:13px}.hero-meta{text-align:right;font-size:13px;color:#dbeafe}.hero-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;align-items:stretch;margin-top:20px}.vehicle-art{min-height:220px;border-radius:22px;background:linear-gradient(135deg, rgba(255,255,255,.08), rgba(15,23,42,.22));border:1px solid rgba(255,255,255,.18);display:flex;flex-direction:column;justify-content:flex-end;padding:18px;position:relative;overflow:hidden}.vehicle-art:before{content:'';position:absolute;inset:18px;border-radius:18px;border:1px solid rgba(191,219,254,.22);z-index:2}.vehicle-art:after{content:'';position:absolute;width:220px;height:220px;border-radius:50%;right:-40px;top:-60px;background:radial-gradient(circle, rgba(255,255,255,.18), rgba(255,255,255,0));z-index:1}.vehicle-art-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.vehicle-art-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,15,26,.06),rgba(7,15,26,.16) 24%,rgba(7,15,26,.52) 58%,rgba(7,15,26,.78) 100%);z-index:1}.vehicle-art-glow{position:absolute;inset:auto -10% -18% auto;width:62%;height:70%;background:radial-gradient(circle, rgba(83,197,255,.32), rgba(83,197,255,0) 64%);filter:blur(16px);z-index:1;pointer-events:none}.vehicle-art-watermark{position:absolute;left:24px;top:22px;width:120px;height:120px;opacity:.12;z-index:1;filter:drop-shadow(0 0 10px rgba(83,197,255,.18));pointer-events:none}.vehicle-art-badge{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#e8f5ff;position:relative;z-index:3;text-shadow:0 1px 2px rgba(0,0,0,.45)}.vehicle-art-name{font-size:26px;font-weight:800;position:relative;z-index:3;margin-top:10px;text-shadow:0 2px 12px rgba(0,0,0,.6)}.identity-card{background:rgba(248,250,252,.98);color:var(--ink);border-radius:22px;padding:20px;border:1px solid rgba(255,255,255,.4)}.identity-card h3{margin:0 0 10px;font-size:24px}.identity-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 16px}.identity-item{border-top:1px solid #dbeafe;padding-top:8px}.identity-label{font-size:11px;color:#64748b;text-transform:uppercase;letter-spacing:.12em}.identity-val{font-size:14px;font-weight:700;margin-top:2px}.context-note{margin-top:12px;padding:12px 14px;border-radius:12px;background:${matchConfirmed ? 'rgba(22,101,52,.10)' : 'rgba(180,83,9,.10)'};color:${matchConfirmed ? '#166534' : '#9a3412'};font-size:12px;font-weight:600;line-height:1.45;border:1px solid ${matchConfirmed ? 'rgba(34,197,94,.24)' : 'rgba(251,146,60,.28)'};box-shadow:inset 0 1px 0 rgba(255,255,255,.42)}
-.content{padding:24px 28px 32px}.summary-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0 0 18px}.stat-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 12px}.stat-card.open{border-color:#fecaca;background:#fff1f2}.stat-card.complete{border-color:#bbf7d0;background:#f0fdf4}.stat-card.community{border-color:#bfdbfe;background:#eff6ff}.stat-value{font-size:28px;font-weight:800}.stat-label{font-size:11px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-top:4px}.section{margin-top:20px}.section h2{margin:0 0 10px;font-size:18px;letter-spacing:.02em}.section-intro{color:var(--muted);line-height:1.55;margin-bottom:12px}.recall-grid,.list-grid{display:grid;gap:12px}.recall-card,.list-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}.recall-card.open{border-left:6px solid #dc2626}.recall-card.completed{border-left:6px solid #16a34a}.recall-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.recall-head h4,.list-card h4{margin:0;font-size:16px}.meta,.list-meta{font-size:12px;color:var(--muted);margin-top:4px}.pill{padding:7px 10px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.pill.open{background:#fee2e2;color:#991b1b}.pill.completed{background:#dcfce7;color:#166534}.recall-copy,.list-summary{margin-top:10px;line-height:1.58;color:#1e293b}.empty{background:var(--card);border:1px dashed #94a3b8;border-radius:18px;padding:18px;color:#475569}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.action-btn{border:none;border-radius:999px;padding:12px 16px;font-size:13px;font-weight:800;cursor:pointer}.action-primary{background:var(--accent);color:white}.action-secondary{background:white;color:var(--ink);border:1px solid var(--line)}.footer{margin-top:24px;padding-top:18px;border-top:1px solid var(--line);color:#475569;font-size:12px;line-height:1.55}.footer strong{color:#0f172a}.badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.source-badge{background:#e0f2fe;color:#0c4a6e;border:1px solid #bae6fd;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:700}.page-tools{display:flex;justify-content:flex-end;gap:10px;padding:16px 28px 0}.page-tools button{border:none;background:#0f172a;color:white;border-radius:999px;padding:10px 14px;cursor:pointer;font-weight:700}.page-tools button.secondary{background:#e2e8f0;color:#0f172a}@media (max-width:900px){.report-wrap{padding:10px}.hero-grid,.summary-grid,.identity-grid{grid-template-columns:1fr}.hero-top{flex-direction:column;align-items:flex-start}.hero-meta{text-align:left}.summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media print{body{background:white}.report-wrap{max-width:none;margin:0;padding:0}.report-sheet{border:none;border-radius:0;box-shadow:none}.page-tools{display:none}.hero{print-color-adjust:exact;-webkit-print-color-adjust:exact}.report-logo,.vehicle-art,.stat-card,.recall-card,.list-card{print-color-adjust:exact;-webkit-print-color-adjust:exact}.section,.recall-card,.list-card,.stat-card{break-inside:avoid}.footer{font-size:10px}}
+.content{padding:24px 28px 32px}.summary-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin:0 0 18px}.stat-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:14px 12px}.stat-card.open{border-color:#fecaca;background:#fff1f2}.stat-card.complete{border-color:#bbf7d0;background:#f0fdf4}.stat-card.community{border-color:#bfdbfe;background:#eff6ff}.stat-value{font-size:28px;font-weight:800}.stat-label{font-size:11px;letter-spacing:.12em;color:var(--muted);text-transform:uppercase;margin-top:4px}.section{margin-top:20px}.section h2{margin:0 0 10px;font-size:18px;letter-spacing:.02em}.section-intro{color:var(--muted);line-height:1.55;margin-bottom:12px}.recall-grid,.list-grid{display:grid;gap:12px}.recall-card,.list-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}.recall-card.open{border-left:6px solid #dc2626}.recall-card.completed{border-left:6px solid #16a34a}.recall-head{display:flex;justify-content:space-between;gap:16px;align-items:flex-start}.recall-head h4,.list-card h4{margin:0;font-size:16px}.meta,.list-meta{font-size:12px;color:var(--muted);margin-top:4px}.pill{padding:7px 10px;border-radius:999px;font-size:11px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.pill.open{background:#fee2e2;color:#991b1b}.pill.completed{background:#dcfce7;color:#166534}.pill.platform{background:#fff7ed;color:#9a3412}.recall-card.platform{border-left:6px solid #fb923c}.recall-copy,.list-summary{margin-top:10px;line-height:1.58;color:#1e293b}.empty{background:var(--card);border:1px dashed #94a3b8;border-radius:18px;padding:18px;color:#475569}.empty.compact{padding:12px 14px;font-size:14px;line-height:1.45}.actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}.action-btn{border:none;border-radius:999px;padding:12px 16px;font-size:13px;font-weight:800;cursor:pointer}.action-primary{background:var(--accent);color:white}.action-secondary{background:white;color:var(--ink);border:1px solid var(--line)}.footer{margin-top:24px;padding-top:18px;border-top:1px solid var(--line);color:#475569;font-size:12px;line-height:1.55}.footer strong{color:#0f172a}.badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.source-badge{background:#e0f2fe;color:#0c4a6e;border:1px solid #bae6fd;padding:6px 10px;border-radius:999px;font-size:11px;font-weight:700}.page-tools{display:flex;justify-content:flex-end;gap:10px;padding:16px 28px 0}.page-tools button{border:none;background:#0f172a;color:white;border-radius:999px;padding:10px 14px;cursor:pointer;font-weight:700}.page-tools button.secondary{background:#e2e8f0;color:#0f172a}@media (max-width:900px){.report-wrap{padding:10px}.hero-grid,.summary-grid,.identity-grid{grid-template-columns:1fr}.hero-top{flex-direction:column;align-items:flex-start}.hero-meta{text-align:left}.summary-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media print{body{background:white}.report-wrap{max-width:none;margin:0;padding:0}.report-sheet{border:none;border-radius:0;box-shadow:none}.page-tools{display:none}.hero{print-color-adjust:exact;-webkit-print-color-adjust:exact}.report-logo,.vehicle-art,.stat-card,.recall-card,.list-card{print-color-adjust:exact;-webkit-print-color-adjust:exact}.section,.recall-card,.list-card,.stat-card{break-inside:avoid}.footer{font-size:10px}}
 </style>
 </head>
 <body>
@@ -253,15 +289,20 @@ router.get('/vin', async (req, res) => {
       </section>
       <section class="section">
         <h2>Open Recalls</h2>
-        ${openRecalls.length ? `<div class="recall-grid">${openRecalls.map(r => renderRecallCard(r, 'Open', 'open')).join('')}</div>` : '<div class="empty">No open recalls are currently returned for this VIN.</div>'}
+        ${openRecalls.length ? `<div class="recall-grid">${openRecalls.map(r => renderRecallCard(r, 'Open', 'open')).join('')}</div>` : '<div class="empty compact">No open recalls are currently returned for this VIN.</div>'}
       </section>
       <section class="section">
         <h2>Completed Recalls</h2>
-        ${completedRecalls.length ? `<div class="recall-grid">${completedRecalls.map(r => renderRecallCard(r, 'Completed', 'completed')).join('')}</div>` : '<div class="empty">No completed recall remedies are currently shown for this VIN.</div>'}
+        ${completedRecalls.length ? `<div class="recall-grid">${completedRecalls.map(r => renderRecallCard(r, 'Completed', 'completed')).join('')}</div>` : '<div class="empty compact">No completed recall remedies are currently shown for this VIN.</div>'}
       </section>
+      ${platformRecalls.length ? `<section class="section">
+        <h2>Platform Recalls in EV Service Intelligence</h2>
+        <div class="section-intro">These recalls are stored for the decoded vehicle platform and year. They may not apply to this exact VIN unless confirmed by a dealer or manufacturer VIN lookup.</div>
+        <div class="recall-grid">${platformRecalls.map(r => renderPlatformRecallCard(r)).join('')}</div>
+      </section>` : ''}
       <section class="section">
         <h2>Technical Service Bulletins</h2>
-        ${dbTsbs.length ? `<div class="list-grid">${dbTsbs.map(t => renderListCard(t.title || t.component || 'Technical Service Bulletin', t.summary || t.remedy || 'No summary currently stored.', `${esc(t.component || 'General')} · ${esc(t.severity || 'MODERATE')}`)).join('')}</div>` : '<div class="empty">No technical service bulletins are currently stored for this vehicle and year in EV Service Intelligence.</div>'}
+        ${dbTsbs.length ? `<div class="list-grid">${dbTsbs.map(t => renderListCard(t.title || t.component || 'Technical Service Bulletin', t.summary || t.remedy || 'No summary currently stored.', `${esc(t.component || 'General')} · ${esc(t.severity || 'MODERATE')}`)).join('')}</div>` : '<div class="empty compact">No technical service bulletins are currently stored for this vehicle and year in EV Service Intelligence.</div>'}
       </section>
       ${dbCommunity.length ? `<section class="section">
         <h2>Generify™ Community Intelligence</h2>
