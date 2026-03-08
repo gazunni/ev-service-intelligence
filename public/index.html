@@ -1008,7 +1008,50 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 // ── HELPERS ──────────────────────────────────
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-// ── VIN VALIDATION HELPERS ───────────────────────────────────────────────
+// ── 
+// ── WMI + CACHE + VIN SIGHTING ENGINE ─────────────────────────────
+const WMI_MAP = {
+  "5YJ":"Tesla",
+  "7SA":"Tesla",
+  "LRW":"Tesla",
+  "1G1":"Chevrolet",
+  "3GN":"Chevrolet",
+  "KL8":"Chevrolet",
+  "1HG":"Honda",
+  "JHM":"Honda",
+  "7FZ":"Honda"
+};
+
+window.__vinCache = window.__vinCache || {};
+
+function detectWMI(vin){
+  const wmi = vin.substring(0,3);
+  return WMI_MAP[wmi] || null;
+}
+
+function cacheVINIdentity(vin,data){
+  window.__vinCache[vin] = data;
+}
+
+function getCachedVIN(vin){
+  return window.__vinCache[vin] || null;
+}
+
+async function recordVinSighting(vin,vehicle){
+  try{
+    await fetch('/api/vin-sighting',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        vin_masked: vin.substring(0,11)+"******",
+        vehicle_key: vehicle || null
+      })
+    });
+  }catch(e){
+    console.debug("VIN sighting logging skipped",e);
+  }
+}
+VIN VALIDATION HELPERS ───────────────────────────────────────────────
 function validateVINFormat(vin){
   const clean = String(vin || '').trim().toUpperCase();
   if (!clean) throw new Error('Please enter a VIN');
@@ -1052,7 +1095,18 @@ async function validatedVinLookup(){
     const normalizedVin = validateVINFormat(vinInput.value);
     validateVINChecksum(normalizedVin);
     vinInput.value = normalizedVin;
-    return vinLookup();
+    
+const cached = getCachedVIN(normalizedVin);
+if(cached){
+  console.debug("VIN cache hit",cached);
+}
+const wmiMake = detectWMI(normalizedVin);
+if(wmiMake){
+  console.debug("WMI detected manufacturer:",wmiMake);
+}
+recordVinSighting(normalizedVin, wmiMake || null);
+return vinLookup();
+
   } catch (e) {
     showVinLookupValidationError(e.message || 'VIN validation failed');
     return;
