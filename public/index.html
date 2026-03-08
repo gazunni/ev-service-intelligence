@@ -2392,6 +2392,38 @@ async function vinLookup() {
     const selectedVehicle = getVehicle();
     const selectedYear = parseInt(getYear(), 10);
 
+    const selectedVehicleLabel = vehicleLabel(selectedVehicle);
+    const decodedVehicleLabel = decodedVehicleKey ? vehicleLabel(decodedVehicleKey) : `${make || 'Unknown'} ${model || ''}`.trim();
+    const hasContextMismatch = !!decodedVehicleKey && Number.isInteger(decodedYear) &&
+      (selectedVehicle !== decodedVehicleKey || selectedYear !== decodedYear);
+
+    if (!decodedVehicleKey || !Number.isInteger(decodedYear)) {
+      window.__vinMissing = null;
+      window.__vinReportContext = null;
+      results.innerHTML = `<div class="vin-section">
+        <div class="vin-section-title">VIN Context Check</div>
+        <div class="vin-empty" style="border-color:#f59e0b;color:#fbbf24">
+          VIN decoded as ${esc(make)} ${esc(model)} ${esc(String(year || ''))}, but this vehicle is not mapped to a supported dashboard model yet.
+          Detail view, import, and report generation are blocked.
+        </div>
+      </div>`;
+      return;
+    }
+
+    if (hasContextMismatch) {
+      window.__vinMissing = null;
+      window.__vinReportContext = null;
+      results.innerHTML = `<div class="vin-section">
+        <div class="vin-section-title">VIN Context Check</div>
+        <div class="vin-empty" style="border-color:#f59e0b;color:#fbbf24">
+          VIN mismatch: decoded as ${esc(decodedVehicleLabel)} ${esc(String(decodedYear))},
+          but the dashboard is set to ${esc(selectedVehicleLabel)} ${esc(String(selectedYear))}.
+          Update the selected make/model/year and try again.
+        </div>
+      </div>`;
+      return;
+    }
+
     let html = `
       <div class="vin-section">
         <div class="vin-section-title">Vehicle Identity</div>
@@ -2409,38 +2441,6 @@ async function vinLookup() {
           <div class="vin-field-row"><div class="vin-field-label">Assembly Plant</div><div class="vin-field-val">${esc(resolvePlant(vin))}</div></div>
         </div>
       </div>`;
-
-    const selectedVehicleLabel = vehicleLabel(selectedVehicle);
-    const decodedVehicleLabel = decodedVehicleKey ? vehicleLabel(decodedVehicleKey) : `${make || 'Unknown'} ${model || ''}`.trim();
-    const hasContextMismatch = !!decodedVehicleKey && Number.isInteger(decodedYear) &&
-      (selectedVehicle !== decodedVehicleKey || selectedYear !== decodedYear);
-
-    if (!decodedVehicleKey || !Number.isInteger(decodedYear)) {
-      window.__vinMissing = null;
-      window.__vinReportContext = null;
-      results.innerHTML = html + `<div class="vin-section">
-        <div class="vin-section-title">VIN Context Check</div>
-        <div class="vin-empty" style="border-color:#f59e0b;color:#fbbf24">
-          VIN decoded as ${esc(make)} ${esc(model)} ${esc(String(year || ''))}, but this vehicle is not mapped to a supported dashboard model yet.
-          Detail view, import, and report generation are blocked.
-        </div>
-      </div>`;
-      return;
-    }
-
-    if (hasContextMismatch) {
-      window.__vinMissing = null;
-      window.__vinReportContext = null;
-      results.innerHTML = html + `<div class="vin-section">
-        <div class="vin-section-title">VIN Context Check</div>
-        <div class="vin-empty" style="border-color:#f59e0b;color:#fbbf24">
-          VIN mismatch: decoded as ${esc(decodedVehicleLabel)} ${esc(String(decodedYear))},
-          but the dashboard is set to ${esc(selectedVehicleLabel)} ${esc(String(selectedYear))}.
-          Update the selected make/model/year and try again.
-        </div>
-      </div>`;
-      return;
-    }
 
     window.__vinReportContext = {
       vin,
