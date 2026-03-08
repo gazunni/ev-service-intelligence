@@ -841,11 +841,13 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
         <input id="seedNote" placeholder="Note (optional)" style="padding:8px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
       </div>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-        <button class="admin-btn" id="adminSeedAddBtn">＋ Save Seed VIN</button>
+        <button class="admin-btn" id="adminSeedValidateBtn">🔎 Validate VIN</button>
+        <button class="admin-btn" id="adminSeedAddBtn" disabled style="opacity:.55;cursor:not-allowed">＋ Save Validated Seed VIN</button>
         <button class="admin-btn" id="adminSeedListBtn">☰ Refresh Seed List</button>
         <button class="admin-btn" id="adminSeedRunBtn">⚡ Run Recall Seeder</button>
       </div>
       <div class="admin-result" id="adminSeedResult"></div>
+      <div id="adminSeedPreview" style="margin-top:8px;font-size:11px;color:var(--text-muted);line-height:1.6"></div>
       <div id="adminSeedList" style="margin-top:10px;font-size:11px;color:var(--text-muted);line-height:1.6"></div>
     </div>
 
@@ -2544,6 +2546,8 @@ async function vinLookup() {
 
 
 
+let __seedValidation = null;
+
 const SEED_YEARS = {
   equinox_ev: [2026, 2025, 2024],
   blazer_ev: [2026, 2025, 2024],
@@ -2686,6 +2690,66 @@ async function loadSeedVins() {
   }
 }
 
+function resetSeedValidationState() {
+  __seedValidation = null;
+  const preview = document.getElementById('adminSeedPreview');
+  const saveBtn = document.getElementById('adminSeedAddBtn');
+  if (preview) preview.innerHTML = '';
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.style.opacity = '.55';
+    saveBtn.style.cursor = 'not-allowed';
+  }
+}
+
+async function validateSeedVin() {
+  const result = document.getElementById('adminSeedResult');
+  const preview = document.getElementById('adminSeedPreview');
+  const btn = document.getElementById('adminSeedValidateBtn');
+  const vehicle_key = document.getElementById('seedVehicleKey').value;
+  const year = document.getElementById('seedYear').value;
+  const vin = document.getElementById('seedVin').value.trim().toUpperCase();
+
+  resetSeedValidationState();
+  btn.disabled = true;
+  result.style.color = 'var(--muted)';
+  result.textContent = 'Validating VIN…';
+
+  try {
+    const data = await apiFetch('/api/admin/seed-vins/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: window.__adminKey || '', vehicle_key, year, vin })
+    });
+
+    preview.innerHTML =
+      '<div style="border-top:1px solid var(--border);padding-top:8px">' +
+      '<div><strong>Decoded:</strong> ' + esc(data.make || 'Unknown') + ' ' + esc(data.model || 'Unknown') + ' ' + esc(String(data.decodedYear || '')) + (data.trim ? ' · ' + esc(data.trim) : '') + '</div>' +
+      '<div><strong>Detected vehicle key:</strong> ' + esc(data.decodedVehicle || 'unknown') + '</div>' +
+      '<div><strong>Selected slot:</strong> ' + esc(data.selectedVehicle) + ' ' + esc(String(data.selectedYear)) + '</div>' +
+      '</div>';
+
+    if (!data.matches) {
+      result.style.color = 'var(--recall)';
+      result.textContent = 'VIN mismatch — save disabled';
+      return;
+    }
+
+    __seedValidation = data;
+    const saveBtn = document.getElementById('adminSeedAddBtn');
+    saveBtn.disabled = false;
+    saveBtn.style.opacity = '1';
+    saveBtn.style.cursor = 'pointer';
+    result.style.color = 'var(--green)';
+    result.textContent = '✓ VIN validated — ready to save';
+  } catch (e) {
+    result.style.color = 'var(--recall)';
+    result.textContent = 'Error: ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 async function addSeedVin() {
   const result = document.getElementById('adminSeedResult');
   const btn = document.getElementById('adminSeedAddBtn');
@@ -2694,20 +2758,34 @@ async function addSeedVin() {
   const vin = document.getElementById('seedVin').value.trim().toUpperCase();
   const trim_hint = document.getElementById('seedTrimHint').value.trim();
   const note = document.getElementById('seedNote').value.trim();
+
+  if (!__seedValidation || __seedValidation.vin !== vin || String(__seedValidation.selectedYear) !== String(year) || __seedValidation.selectedVehicle !== vehicle_key) {
+    result.style.color = 'var(--recall)';
+    result.textContent = 'Validate VIN first before saving';
+    return;
+  }
+
   btn.disabled = true;
   result.style.color = 'var(--muted)';
-  result.textContent = 'Saving seed VIN…';
+  result.textContent = 'Saving validated seed VIN…';
   try {
     const data = await apiFetch('/api/admin/seed-vins/add', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ key: window.__adminKey || '', vehicle_key, year, vin, trim_hint, note })
+      body: JSON.stringify({
+        key: window.__adminKey || '',
+        vehicle_key, year, vin, trim_hint, note,
+        validatedVehicleKey: __seedValidation.decodedVehicle,
+        validatedYear: __seedValidation.decodedYear,
+        validationToken: __seedValidation.validationToken
+      })
     });
     result.style.color = 'var(--green)';
     result.textContent = data.message || '✓ Seed VIN saved';
     document.getElementById('seedVin').value = '';
     document.getElementById('seedTrimHint').value = '';
     document.getElementById('seedNote').value = '';
+    resetSeedValidationState();
     await loadSeedVins();
   } catch(e) {
     result.style.color = 'var(--recall)';
@@ -2856,7 +2934,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Single unified click handler for all buttons
   document.addEventListener('change', e => {
-    if (e.target && e.target.id === 'seedVehicleKey') { updateSeedYearOptions(); return; }
+    if (e.target && e.target.id === 'seedVehicleKey') { updateSeedYearOptions(); resetSeedValidationState(); return; }
+    if (e.target && (e.target.id === 'seedYear' || e.target.id === 'seedVin' || e.target.id === 'seedTrimHint' || e.target.id === 'seedNote')) { resetSeedValidationState(); return; }
 });
 
 document.addEventListener('click', e => {
@@ -2915,6 +2994,7 @@ document.addEventListener('click', e => {
     if (id === 'adminDedupeBtn')      { e.stopPropagation(); adminAction('dedupe', 'adminDedupeResult', 'adminDedupeBtn'); return; }
     if (id === 'adminCommDedupeBtn')   { e.stopPropagation(); communityDedupe(); return; }
     if (id === 'adminStatsBtn')    { e.stopPropagation(); loadAdminDashboard(); return; }
+    if (id === 'adminSeedValidateBtn') { e.stopPropagation(); validateSeedVin(); return; }
     if (id === 'adminSeedAddBtn') { e.stopPropagation(); addSeedVin(); return; }
     if (id === 'adminSeedListBtn') { e.stopPropagation(); loadSeedVins(); return; }
     if (id === 'adminSeedRunBtn') { e.stopPropagation(); runSeedVins(); return; }
