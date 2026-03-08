@@ -1395,14 +1395,10 @@ async function vinLookup() {
     const doors  = get(14);  // Number of Doors
     const series = get(34);  // Series
 
-    // Auto-set vehicle dropdowns if recognisable
     const decodedVehicleKey = detectVehicleKey(make, model, vin);
-    if (decodedVehicleKey) {
-      document.getElementById('selModel').value = decodedVehicleKey;
-      updateYearOptions();
-      if (year) document.getElementById('selYear').value = year;
-      loadAll();
-    }
+    const decodedYear = Number.isFinite(parseInt(year, 10)) ? parseInt(year, 10) : null;
+    const selectedVehicle = getVehicle();
+    const selectedYear = parseInt(getYear(), 10);
 
     let html = `
       <div class="vin-section">
@@ -1422,6 +1418,50 @@ async function vinLookup() {
         </div>
       </div>`;
 
+    const selectedVehicleLabel = vehicleLabel(selectedVehicle);
+    const decodedVehicleLabel = decodedVehicleKey ? vehicleLabel(decodedVehicleKey) : 'Unknown vehicle';
+    const hasContextMismatch = !!decodedVehicleKey && Number.isInteger(decodedYear) &&
+      (selectedVehicle !== decodedVehicleKey || selectedYear !== decodedYear);
+
+    if (!decodedVehicleKey || !Number.isInteger(decodedYear)) {
+      window.__vinMissing = null;
+      window.__vinReportContext = null;
+      results.innerHTML = html + `<div class="vin-section">
+        <div class="vin-section-title">VIN Context Check</div>
+        <div class="vin-empty" style="border-color:#f59e0b;color:#fbbf24">
+          VIN decoded successfully, but this vehicle is not mapped to a supported dashboard model yet.
+          Detail view, import, and report generation are blocked.
+        </div>
+      </div>`;
+      return;
+    }
+
+    if (hasContextMismatch) {
+      window.__vinMissing = null;
+      window.__vinReportContext = null;
+      results.innerHTML = html + `<div class="vin-section">
+        <div class="vin-section-title">VIN Context Check</div>
+        <div class="vin-empty" style="border-color:#f59e0b;color:#fbbf24">
+          VIN mismatch: decoded as ${esc(decodedVehicleLabel)} ${esc(String(decodedYear))},
+          but the dashboard is set to ${esc(selectedVehicleLabel)} ${esc(String(selectedYear))}.
+          Update the selected make/model/year and try again.
+        </div>
+      </div>`;
+      return;
+    }
+
+    window.__vinReportContext = {
+      vin,
+      vehicle: decodedVehicleKey,
+      year: decodedYear,
+      make,
+      model,
+      trim,
+      mappedVehicle: decodedVehicleKey,
+      selectedVehicle,
+      selectedYear,
+    };
+
     // Step 2: VIN-specific recalls from NHTSA
     results.innerHTML = html + '<div class="vin-loading"><div class="spin"></div><span>Checking recalls for this VIN…</span></div>';
 
@@ -1436,13 +1476,10 @@ async function vinLookup() {
         const outstanding = recalls.filter(r => r.isOutstanding);
         const completed   = recalls.filter(r => !r.isOutstanding);
 
-        // Cross-check against our database using the VIN-decoded vehicle/year,
-        // not whatever happened to be selected before the lookup.
-        const selectedVehicle = getVehicle();
-        const selectedYear = parseInt(getYear(), 10);
-        const dbVehicle = decodedVehicleKey || selectedVehicle;
-        const dbYear = parseInt(year || selectedYear, 10);
-        const vehicleMismatch = !!decodedVehicleKey && (selectedVehicle !== decodedVehicleKey || selectedYear !== dbYear);
+        // Cross-check against our database using the VIN-decoded vehicle/year.
+        const dbVehicle = decodedVehicleKey;
+        const dbYear = decodedYear;
+        const vehicleMismatch = false;
 
         let crossCheck = null;
         try {
@@ -1463,15 +1500,15 @@ async function vinLookup() {
           return cid && !ourIds.has(cid);
         });
 
-        const canImport = !!decodedVehicleKey && Number.isInteger(dbYear) && !vehicleMismatch;
-        window.__vinMissing = canImport ? {
+        const canImport = true;
+        window.__vinMissing = {
           recalls: missing,
           vehicle: decodedVehicleKey,
           year: dbYear,
           decodedVehicle: decodedVehicleKey,
           decodedYear: dbYear,
           vin,
-        } : null;
+        };
 
         const inDb = recalls.length - missing.length;
         const importControl = !missing.length

@@ -2367,29 +2367,10 @@ async function vinLookup() {
     const doors  = get(14);  // Number of Doors
     const series = get(34);  // Series
 
-    // Auto-set vehicle dropdowns if recognisable
-    const modelLower = (make + ' ' + model).toLowerCase();
-    if (modelLower.includes('equinox')) {
-      document.getElementById('selModel').value = 'equinox_ev';
-      updateYearOptions();
-      if (year) document.getElementById('selYear').value = year;
-      loadAll();
-    } else if (modelLower.includes('blazer')) {
-      document.getElementById('selModel').value = 'blazer_ev';
-      updateYearOptions();
-      if (year) document.getElementById('selYear').value = year;
-      loadAll();
-    } else if (modelLower.includes('mach') || modelLower.includes('mustang')) {
-      document.getElementById('selModel').value = 'mach_e';
-      updateYearOptions();
-      if (year) document.getElementById('selYear').value = year;
-      loadAll();
-    } else if (modelLower.includes('prologue')) {
-      document.getElementById('selModel').value = 'honda_prologue';
-      updateYearOptions();
-      if (year) document.getElementById('selYear').value = year;
-      loadAll();
-    }
+    const decodedVehicleKey = detectVehicleKey(make, model, vin);
+    const decodedYear = Number.isFinite(parseInt(year, 10)) ? parseInt(year, 10) : null;
+    const selectedVehicle = getVehicle();
+    const selectedYear = parseInt(getYear(), 10);
 
     let html = `
       <div class="vin-section">
@@ -2409,6 +2390,50 @@ async function vinLookup() {
         </div>
       </div>`;
 
+    const selectedVehicleLabel = vehicleLabel(selectedVehicle);
+    const decodedVehicleLabel = decodedVehicleKey ? vehicleLabel(decodedVehicleKey) : 'Unknown vehicle';
+    const hasContextMismatch = !!decodedVehicleKey && Number.isInteger(decodedYear) &&
+      (selectedVehicle !== decodedVehicleKey || selectedYear !== decodedYear);
+
+    if (!decodedVehicleKey || !Number.isInteger(decodedYear)) {
+      window.__vinMissing = null;
+      window.__vinReportContext = null;
+      results.innerHTML = html + `<div class="vin-section">
+        <div class="vin-section-title">VIN Context Check</div>
+        <div class="vin-empty" style="border-color:#f59e0b;color:#fbbf24">
+          VIN decoded successfully, but this vehicle is not mapped to a supported dashboard model yet.
+          Detail view, import, and report generation are blocked.
+        </div>
+      </div>`;
+      return;
+    }
+
+    if (hasContextMismatch) {
+      window.__vinMissing = null;
+      window.__vinReportContext = null;
+      results.innerHTML = html + `<div class="vin-section">
+        <div class="vin-section-title">VIN Context Check</div>
+        <div class="vin-empty" style="border-color:#f59e0b;color:#fbbf24">
+          VIN mismatch: decoded as ${esc(decodedVehicleLabel)} ${esc(String(decodedYear))},
+          but the dashboard is set to ${esc(selectedVehicleLabel)} ${esc(String(selectedYear))}.
+          Update the selected make/model/year and try again.
+        </div>
+      </div>`;
+      return;
+    }
+
+    window.__vinReportContext = {
+      vin,
+      vehicle: decodedVehicleKey,
+      year: decodedYear,
+      make,
+      model,
+      trim,
+      mappedVehicle: decodedVehicleKey,
+      selectedVehicle,
+      selectedYear,
+    };
+
     // Step 2: VIN-specific recalls from NHTSA
     results.innerHTML = html + '<div class="vin-loading"><div class="spin"></div><span>Checking recalls for this VIN…</span></div>';
 
@@ -2424,30 +2449,12 @@ async function vinLookup() {
         const completed   = recalls.filter(r => !r.isOutstanding);
 
         // Cross-check against our database using the VIN-decoded vehicle/year when possible
-        const selectedVehicle = getVehicle();
-        const selectedYear = parseInt(getYear(), 10);
-        const mappedVehicle = mapDecodedVehicleKey(make, model, vin);
-        const decodedYear = Number.isFinite(parseInt(year,10)) ? parseInt(year,10) : selectedYear;
-        const dbVehicle = mappedVehicle || selectedVehicle;
-        const dbYear = decodedYear;
-        const vehicleMismatch = !!mappedVehicle && (selectedVehicle !== mappedVehicle || selectedYear !== dbYear);
-        const canProceed = !!mappedVehicle && !vehicleMismatch;
-
-        window.__vinReportContext = canProceed ? {
-          vin,
-          vehicle: mappedVehicle,
-          year: dbYear,
-          make,
-          model,
-          trim,
-          mappedVehicle,
-          selectedVehicle,
-          selectedYear,
-        } : null;
-
+        const mappedVehicle = decodedVehicleKey;
+        const vkey = decodedVehicleKey;
+        const yr   = decodedYear;
         let crossCheck = null;
         try {
-          crossCheck = await apiFetch(`/api/recalls?vehicle=${encodeURIComponent(dbVehicle)}&year=${dbYear}&includeSuppressed=1`);
+          crossCheck = await apiFetch(`/api/recalls?vehicle=${encodeURIComponent(vkey)}&year=${yr}&includeSuppressed=1`);
         } catch(e) { /* silent */ }
         // Build a set of all known campaign IDs — check both the record id AND
         // the raw_nhtsa campaign number to handle different ID formats
@@ -2458,50 +2465,29 @@ async function vinLookup() {
           if (camp) ourIds.add(camp.toUpperCase().replace(/[^A-Z0-9]/g,''));
         }
 
-        // Find missing recalls - not in our DB for the decoded vehicle/year
+        // Find missing recalls - not in our DB
         const missing = recalls.filter(r => {
           const cid = (r.NHTSACampaignNumber||r.recallId||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
           return cid && !ourIds.has(cid);
         });
 
-        // Store missing recalls only when the selected dashboard context matches the VIN decode
-        window.__vinMissing = canProceed ? {
-          recalls: missing,
-          vehicle: mappedVehicle,
-          year: dbYear,
-          vin,
-          make,
-          model,
-          mappedVehicle,
-          decodedVehicle: mappedVehicle,
-          decodedYear: dbYear
-        } : null;
+        // Store missing recalls on window for import button
+        window.__vinMissing = { recalls: missing, vehicle: vkey, year: yr, vin, make, model, mappedVehicle, decodedVehicle: vkey, decodedYear: yr };
 
+        // Cross-check summary
         const inDb = recalls.length - missing.length;
-        const importControl = !missing.length
-          ? '<div class="vin-cc-complete">✓ Database up to date</div>'
-          : canProceed
-            ? `<button class="submit-btn" id="vinImportBtn" style="font-size:10px;padding:4px 12px">⊕ Import ${missing.length} Missing</button>`
-            : `<div class="vin-empty" style="margin:0;font-size:10px;padding:8px 10px;min-width:240px">Import disabled until the selected vehicle/year matches the VIN decode.</div>`;
-
-        const reportControl = canProceed
-          ? `<div class="vin-report-actions">
-               <a class="vin-report-btn" id="vinReportOpenLink" href="${buildVinReportUrl('view', window.__vinReportContext)}">📄 Open VIN Report</a>
-               <a class="vin-report-btn" id="vinReportPrintLink" href="${buildVinReportUrl('print', window.__vinReportContext)}">🖨 Print / Save PDF</a>
-             </div>`
-          : `<div class="vin-empty" style="margin-top:10px;font-size:10px;padding:8px 10px">Report generation disabled until the selected vehicle/year matches the VIN decode.</div>`;
-
         html += `<div class="vin-section">
           <div class="vin-section-title">Database Cross-Check</div>
-          ${vehicleMismatch ? `<div class="vin-empty" style="margin-bottom:10px;border-color:#f59e0b;color:#fbbf24">VIN decoded as ${esc(vehicleLabel(mappedVehicle))} · ${esc(String(dbYear))} but the dashboard is set to ${esc(vehicleLabel(selectedVehicle))} · ${esc(String(selectedYear))}. Import and report generation are blocked to prevent cross-vehicle contamination.</div>` : ''}
-          ${!mappedVehicle ? `<div class="vin-empty" style="margin-bottom:10px;border-color:#f59e0b;color:#fbbf24">This VIN decoded to a vehicle that is not mapped in the dashboard yet, so import and report generation are disabled.</div>` : ''}
           <div class="vin-crosscheck">
             <div class="vin-cc-stat"><span class="vin-cc-num">${recalls.length}</span><span class="vin-cc-label">NHTSA Recalls</span></div>
-            <div class="vin-cc-stat"><span class="vin-cc-num" style="color:var(--green)">${inDb}</span><span class="vin-cc-label">In ${esc(vehicleLabel(dbVehicle))} ${esc(String(dbYear))} DB</span></div>
+            <div class="vin-cc-stat"><span class="vin-cc-num" style="color:var(--green)">${inDb}</span><span class="vin-cc-label">In Our DB</span></div>
             <div class="vin-cc-stat"><span class="vin-cc-num" style="color:${missing.length?'var(--recall)':'var(--green)'}">${missing.length}</span><span class="vin-cc-label">Missing</span></div>
-            ${importControl}
+            ${missing.length ? `<button class="submit-btn" id="vinImportBtn" style="font-size:10px;padding:4px 12px">⊕ Import ${missing.length} Missing</button>` : '<div class="vin-cc-complete">✓ Database up to date</div>'}
           </div>
-          ${reportControl}
+          <div class="vin-report-actions">
+            <a class="vin-report-btn" id="vinReportOpenLink" href="${buildVinReportUrl('view', window.__vinReportContext)}">📄 Open VIN Report</a>
+            <a class="vin-report-btn" id="vinReportPrintLink" href="${buildVinReportUrl('print', window.__vinReportContext)}">🖨 Print / Save PDF</a>
+          </div>
         </div>`;
 
         html += `<div class="vin-section"><div class="vin-section-title">Outstanding Recalls (${outstanding.length})</div>`;
