@@ -2513,7 +2513,7 @@ async function vinLookup() {
       const recallData = await apiFetch(`/api/vin-recalls?vin=${vin}&make=${encodeURIComponent(make)}&model=${encodeURIComponent(model)}&year=${encodeURIComponent(year)}`);
       const recalls = recallData.results || [];
 
-      // Cross-check against our database using the VIN-decoded vehicle/year
+      // Cross-check against our database using the VIN-decoded vehicle/year when possible
       const selectedVehicle = getVehicle();
       const selectedYear = parseInt(getYear());
       const mappedVehicle = mapDecodedVehicleKey(make, model, vin);
@@ -2546,32 +2546,42 @@ async function vinLookup() {
 
       if (!recalls.length) {
         if (crossCheck && crossCheck.length) {
-          html += `<div class="vin-section"><div class="vin-section-title">Recall Status</div>
+          window.__vinMissing = null;
+          html += `<div class="vin-section">
+            <div class="vin-section-title">Recall Status</div>
             <div class="vin-empty" style="color:var(--amber);margin-bottom:10px">
               No VIN-specific open recalls were returned, but ${crossCheck.length} platform recall${crossCheck.length===1?'':'s'} exist in the database for ${esc(vehicleLabel(vkey))} ${esc(String(yr))}.
-            </div>`;
-          const severityClass = sev => sev === 'CRITICAL' ? 'vin-chip danger' : sev === 'HIGH' ? 'vin-chip warning' : 'vin-chip';
-          html += crossCheck.map(r => `
-            <div class="vin-recall">
-              <div class="vin-recall-hdr">
-                <div class="vin-recall-title">${esc(r.title || r.component || 'Recall')}</div>
-                <div class="${severityClass(r.severity)}">${esc(r.severity || 'MODERATE')}</div>
-              </div>
-              <div class="vin-recall-meta">${esc(r.component || 'Official Safety Recall')}</div>
-              <div class="vin-recall-body">
-                <div><strong>Risk:</strong> ${esc(r.risk || 'See official NHTSA notice')}</div>
-                <div><strong>Remedy:</strong> ${esc(r.remedy || 'See official NHTSA notice')}</div>
-              </div>
             </div>
-          `).join('') + `</div>`;
-          window.__vinMissing = null;
+            <div class="vin-report-actions">
+              <a class="vin-report-btn" id="vinReportOpenLink" href="${buildVinReportUrl('view', window.__vinReportContext)}">📄 Open VIN Report</a>
+              <a class="vin-report-btn" id="vinReportPrintLink" href="${buildVinReportUrl('print', window.__vinReportContext)}">🖨 Print / Save PDF</a>
+            </div>
+            ${crossCheck.map(r => `
+              <div class="vin-recall">
+                <div class="vin-recall-hdr">
+                  <div class="vin-recall-title">${esc(r.title || r.component || 'Recall')}</div>
+                  <div class="${r.severity === 'CRITICAL' ? 'vin-chip danger' : r.severity === 'HIGH' ? 'vin-chip warning' : 'vin-chip'}">${esc(r.severity || 'MODERATE')}</div>
+                </div>
+                <div class="vin-recall-meta">${esc(r.component || 'Official Safety Recall')}</div>
+                <div class="vin-recall-meta" style="margin-top:2px"><strong>Risk:</strong> ${esc(r.risk || 'See official NHTSA notice')}</div>
+                <div class="vin-recall-meta" style="margin-top:2px"><strong>Remedy:</strong> ${esc(r.remedy || 'See official NHTSA notice')}</div>
+              </div>
+            `).join('')}
+          </div>`;
         } else {
-          html += `<div class="vin-section"><div class="vin-section-title">Recall Status</div><div class="vin-empty" style="color:var(--green)">✓ No recalls have been issued for this vehicle.</div></div>`;
+          window.__vinMissing = null;
+          html += `<div class="vin-section"><div class="vin-section-title">Recall Status</div><div class="vin-empty" style="color:var(--green)">✓ No recalls have been issued for this vehicle.</div>
+            <div class="vin-report-actions">
+              <a class="vin-report-btn" id="vinReportOpenLink" href="${buildVinReportUrl('view', window.__vinReportContext)}">📄 Open VIN Report</a>
+              <a class="vin-report-btn" id="vinReportPrintLink" href="${buildVinReportUrl('print', window.__vinReportContext)}">🖨 Print / Save PDF</a>
+            </div>
+          </div>`;
         }
       } else {
         // Use server-tagged isOutstanding flag (cross-referenced against VIN-specific unrepaired list)
         const outstanding = recalls.filter(r => r.isOutstanding);
         const completed   = recalls.filter(r => !r.isOutstanding);
+
         // Find missing recalls - not in our DB
         const missing = recalls.filter(r => {
           const cid = (r.NHTSACampaignNumber||r.recallId||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
