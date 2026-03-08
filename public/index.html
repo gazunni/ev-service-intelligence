@@ -1007,6 +1007,58 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
 <script>
 // ── HELPERS ──────────────────────────────────
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ── VIN VALIDATION HELPERS ───────────────────────────────────────────────
+function validateVINFormat(vin){
+  const clean = String(vin || '').trim().toUpperCase();
+  if (!clean) throw new Error('Please enter a VIN');
+  if (clean.length !== 17) throw new Error('VIN must contain exactly 17 characters');
+  if (/[^A-HJ-NPR-Z0-9]/.test(clean)) throw new Error('VIN contains invalid characters');
+  return clean;
+}
+
+function validateVINChecksum(vin){
+  const transliteration = {
+    A:1,B:2,C:3,D:4,E:5,F:6,G:7,H:8,
+    J:1,K:2,L:3,M:4,N:5,P:7,R:9,
+    S:2,T:3,U:4,V:5,W:6,X:7,Y:8,Z:9
+  };
+  const weights = [8,7,6,5,4,3,2,10,0,9,8,7,6,5,4,3,2];
+  let sum = 0;
+  for (let i=0;i<17;i++){
+    const ch = vin[i];
+    const val = /[0-9]/.test(ch) ? parseInt(ch,10) : transliteration[ch];
+    if (typeof val !== 'number' || Number.isNaN(val)) throw new Error('VIN contains invalid characters');
+    sum += val * weights[i];
+  }
+  const remainder = sum % 11;
+  const expected = remainder === 10 ? 'X' : String(remainder);
+  if (vin[8] !== expected) throw new Error('VIN checksum validation failed');
+  return true;
+}
+
+function showVinLookupValidationError(message){
+  const results = document.getElementById('vinResults');
+  if (!results) return;
+  results.innerHTML = `<div class="vin-section">
+    <div class="vin-section-title">VIN Validation</div>
+    <div class="vin-empty" style="border-color:#f59e0b;color:#fbbf24">${esc(message)}</div>
+  </div>`;
+}
+
+async function validatedVinLookup(){
+  try {
+    const vinInput = document.getElementById('vinInput');
+    const normalizedVin = validateVINFormat(vinInput.value);
+    validateVINChecksum(normalizedVin);
+    vinInput.value = normalizedVin;
+    return vinLookup();
+  } catch (e) {
+    showVinLookupValidationError(e.message || 'VIN validation failed');
+    return;
+  }
+}
+
 function getVehicle(){ return document.getElementById('selModel').value; }
 function getYear(){ return document.getElementById('selYear').value; }
 
@@ -2206,7 +2258,7 @@ async function vinImportMissing() {
     }
     window.__vinMissing = null;
     loadAll();
-    setTimeout(() => vinLookup(), 400);
+    setTimeout(() => validatedVinLookup(), 400);
   } catch(e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Import failed — retry'; }
     alert('VIN import failed: ' + e.message);
@@ -2928,7 +2980,7 @@ document.addEventListener('click', e => {
     }
     if (id === 'vinLookupBtn')     { e.stopPropagation(); openVinModal(); return; }
     if (id === 'vinCloseBtn')      { e.stopPropagation(); closeVinModal(); return; }
-    if (id === 'vinSearchBtn')     { e.stopPropagation(); vinLookup(); return; }
+    if (id === 'vinSearchBtn')     { e.stopPropagation(); validatedVinLookup(); return; }
     if (id === 'adminSweepQuickBtn') { e.stopPropagation(); runSweep(); return; }
     if (id === 'adminResearchQuickBtn') { e.stopPropagation(); openAdminTool('researchPanel'); return; }
     if (id === 'adminForumQuickBtn') { e.stopPropagation(); openAdminTool('forumPanel'); return; }
