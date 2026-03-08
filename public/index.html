@@ -817,6 +817,38 @@ input.vin::placeholder{text-transform:none;letter-spacing:0;color:var(--muted)}
       <button class="admin-btn" id="adminCommDedupeBtn" style="margin-bottom:6px">⊘ Dedupe Community</button>
       <div class="admin-result" id="adminCommDedupeResult"></div>
     </div>
+
+    <div class="admin-card" style="grid-column:1 / -1">
+      <div class="admin-card-title">🌱 Seed VIN Recall Engine</div>
+      <div class="admin-card-desc">Store one real VIN per vehicle/year, then run seeding to auto-populate recall coverage from NHTSA. The seed VIN is validated against decoded vehicle identity before import.</div>
+      <div style="display:grid;grid-template-columns:1.2fr .55fr 1.55fr;gap:8px;margin-bottom:8px">
+        <select id="seedVehicleKey" style="padding:8px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+          <option value="equinox_ev">Chevrolet Equinox EV</option>
+          <option value="blazer_ev">Chevrolet Blazer EV</option>
+          <option value="bolt_ev">Chevrolet Bolt EV</option>
+          <option value="bolt_euv">Chevrolet Bolt EUV</option>
+          <option value="bolt_ev_gen2">Chevrolet Bolt EV (2027+)</option>
+          <option value="mach_e">Ford Mustang Mach-E</option>
+          <option value="honda_prologue">Honda Prologue</option>
+          <option value="tesla_model_3">Tesla Model 3</option>
+          <option value="tesla_model_y">Tesla Model Y</option>
+        </select>
+        <input id="seedYear" placeholder="Year" style="padding:8px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+        <input id="seedVin" placeholder="17-character VIN" maxlength="17" style="padding:8px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+      </div>
+      <div style="display:grid;grid-template-columns:.8fr 1.2fr;gap:8px;margin-bottom:10px">
+        <input id="seedTrimHint" placeholder="Trim hint (optional)" style="padding:8px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+        <input id="seedNote" placeholder="Note (optional)" style="padding:8px 12px;background:var(--input-bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:13px">
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <button class="admin-btn" id="adminSeedAddBtn">＋ Save Seed VIN</button>
+        <button class="admin-btn" id="adminSeedListBtn">☰ Refresh Seed List</button>
+        <button class="admin-btn" id="adminSeedRunBtn">⚡ Run Recall Seeder</button>
+      </div>
+      <div class="admin-result" id="adminSeedResult"></div>
+      <div id="adminSeedList" style="margin-top:10px;font-size:11px;color:var(--text-muted);line-height:1.6"></div>
+    </div>
+
     <div class="admin-card">
       <div class="admin-card-title">Database Stats</div>
       <div class="admin-card-desc">Current row counts across all tables.</div>
@@ -1202,6 +1234,7 @@ function togglePanel(id) {
       adminPanel.classList.add('open');
       adminPanel.scrollIntoView({ behavior:'smooth', block:'start' });
       loadAdminDashboard();
+      loadSeedVins();
     }
     const result = document.getElementById('adminQuickToolsResult');
     if (result) {
@@ -1952,7 +1985,7 @@ async function loadAdminDashboard() {
 
     const vDiv = document.getElementById('adminDashVehicles');
     if (vDiv && d.byVehicle && d.byVehicle.length) {
-      const labels = { equinox_ev:'Equinox EV', blazer_ev:'Blazer EV', mach_e:'Mach-E', honda_prologue:'Prologue', tesla_model_3:'Model 3', tesla_model_y:'Model Y' };
+      const labels = { equinox_ev:'Equinox EV', blazer_ev:'Blazer EV', bolt_ev:'Bolt EV', bolt_euv:'Bolt EUV', bolt_ev_gen2:'Bolt EV 2027+', mach_e:'Mach-E', honda_prologue:'Prologue', tesla_model_3:'Model 3', tesla_model_y:'Model Y' };
       vDiv.innerHTML = d.byVehicle.map(v =>
         '<span style="background:var(--card-bg);border:1px solid var(--border);border-radius:4px;padding:2px 8px">' +
         (labels[v.vehicle]||v.vehicle) + ': <strong>' + v.recalls + '</strong></span>'
@@ -1986,9 +2019,9 @@ const vehicleCatalog = {
   chevrolet: [
     { key:'equinox_ev', label:'Chevrolet Equinox EV', years:[2026, 2025, 2024] },
     { key:'blazer_ev',  label:'Chevrolet Blazer EV',  years:[2026, 2025, 2024] },
-    { key:'bolt_ev',      label:'Chevrolet Bolt EV',            years:[2023, 2022, 2021, 2020, 2019, 2018, 2017] },
-    { key:'bolt_euv',     label:'Chevrolet Bolt EUV',           years:[2023, 2022] },
-    { key:'bolt_ev_gen2', label:'Chevrolet Bolt EV (2027+)',    years:[2027] },
+    { key:'bolt_ev',      label:'Chevrolet Bolt EV',           years:[2023, 2022, 2021, 2020, 2019, 2018, 2017] },
+    { key:'bolt_euv',     label:'Chevrolet Bolt EUV',          years:[2023, 2022] },
+    { key:'bolt_ev_gen2', label:'Chevrolet Bolt EV (2027+)',   years:[2027] },
   ],
   ford: [
     { key:'mach_e', label:'Ford Mustang Mach-E', years:[2026, 2025, 2024, 2023, 2022, 2021] },
@@ -2497,7 +2530,95 @@ async function vinLookup() {
   }
 }
 
+
+async function loadSeedVins() {
+  const result = document.getElementById('adminSeedResult');
+  const list = document.getElementById('adminSeedList');
+  if (!list) return;
+  list.innerHTML = 'Loading seed VINs…';
+  try {
+    const data = await apiFetch('/api/admin/seed-vins/list', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: window.__adminKey || '' })
+    });
+    const seeds = data.seeds || [];
+    if (!seeds.length) {
+      list.innerHTML = '<span style="color:var(--text-muted)">No seed VINs saved yet.</span>';
+      return;
+    }
+    const labels = { equinox_ev:'Equinox EV', blazer_ev:'Blazer EV', bolt_ev:'Bolt EV', bolt_euv:'Bolt EUV', bolt_ev_gen2:'Bolt EV 2027+', mach_e:'Mach-E', honda_prologue:'Prologue', tesla_model_3:'Model 3', tesla_model_y:'Model Y' };
+    list.innerHTML = seeds.map(s =>
+      '<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--border)">' +
+      '<div><strong>' + (labels[s.vehicle_key]||s.vehicle_key) + ' ' + s.year + '</strong> · ' + esc(s.vin) +
+      (s.trim_hint ? ' · ' + esc(s.trim_hint) : '') +
+      (s.note ? ' · ' + esc(s.note) : '') + '</div>' +
+      '<div style="color:var(--muted)">' + (s.last_seeded_at ? new Date(s.last_seeded_at).toLocaleString() : 'Never seeded') + '</div>' +
+      '</div>'
+    ).join('');
+    if (result && !result.textContent) result.textContent = '✓ Seed VINs loaded';
+  } catch(e) {
+    list.innerHTML = '<span style="color:var(--recall)">Error: ' + esc(e.message) + '</span>';
+  }
+}
+
+async function addSeedVin() {
+  const result = document.getElementById('adminSeedResult');
+  const btn = document.getElementById('adminSeedAddBtn');
+  const vehicle_key = document.getElementById('seedVehicleKey').value;
+  const year = document.getElementById('seedYear').value.trim();
+  const vin = document.getElementById('seedVin').value.trim().toUpperCase();
+  const trim_hint = document.getElementById('seedTrimHint').value.trim();
+  const note = document.getElementById('seedNote').value.trim();
+  btn.disabled = true;
+  result.style.color = 'var(--muted)';
+  result.textContent = 'Saving seed VIN…';
+  try {
+    const data = await apiFetch('/api/admin/seed-vins/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: window.__adminKey || '', vehicle_key, year, vin, trim_hint, note })
+    });
+    result.style.color = 'var(--green)';
+    result.textContent = data.message || '✓ Seed VIN saved';
+    document.getElementById('seedVin').value = '';
+    document.getElementById('seedTrimHint').value = '';
+    document.getElementById('seedNote').value = '';
+    await loadSeedVins();
+  } catch(e) {
+    result.style.color = 'var(--recall)';
+    result.textContent = 'Error: ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function runSeedVins() {
+  const result = document.getElementById('adminSeedResult');
+  const btn = document.getElementById('adminSeedRunBtn');
+  btn.disabled = true;
+  result.style.color = 'var(--muted)';
+  result.textContent = 'Running recall seeder…';
+  try {
+    const data = await apiFetch('/api/admin/seed-vins/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: window.__adminKey || '' })
+    });
+    result.style.color = 'var(--green)';
+    result.innerHTML = (data.message || '✓ Seed run complete') + (data.lines?.length ? '<br><small>' + data.lines.map(esc).join('<br>') + '</small>' : '');
+    loadAdminDashboard();
+    await loadSeedVins();
+  } catch(e) {
+    result.style.color = 'var(--recall)';
+    result.textContent = 'Error: ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 // ── ADMIN NHTSA IMPORT ───────────────────────
+
 async function adminNhtsaImport() {
   const btn = document.getElementById('adminNhtsaImportBtn');
   const result = document.getElementById('adminNhtsaImportResult');
@@ -2666,6 +2787,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (id === 'adminDedupeBtn')      { e.stopPropagation(); adminAction('dedupe', 'adminDedupeResult', 'adminDedupeBtn'); return; }
     if (id === 'adminCommDedupeBtn')   { e.stopPropagation(); communityDedupe(); return; }
     if (id === 'adminStatsBtn')    { e.stopPropagation(); loadAdminDashboard(); return; }
+    if (id === 'adminSeedAddBtn') { e.stopPropagation(); addSeedVin(); return; }
+    if (id === 'adminSeedListBtn') { e.stopPropagation(); loadSeedVins(); return; }
+    if (id === 'adminSeedRunBtn') { e.stopPropagation(); runSeedVins(); return; }
     if (id === 'adminMigrateBtn'){ e.stopPropagation(); adminAction('migrate', 'adminMigrateResult', 'adminMigrateBtn'); return; }
     if (id === 'adminClearSweepBtn'){ e.stopPropagation(); adminAction('clear-sweep', 'adminClearSweepResult', 'adminClearSweepBtn'); return; }
     if (id === 'adminClearQueueBtn'){ e.stopPropagation(); adminAction('clear-queue', 'adminClearQueueResult', 'adminClearQueueBtn'); return; }

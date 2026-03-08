@@ -24,13 +24,17 @@ function canonicalKey(s) {
   return String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
-function detectVehicleKey(make, model) {
+function detectVehicleKey(make, model, vin='') {
   const m = canonicalKey(make);
   const d = canonicalKey(model);
+  const v = String(vin || '').toUpperCase().trim();
   if (m === 'chevrolet' && d === 'equinoxev') return 'equinox_ev';
   if (m === 'chevrolet' && d === 'blazerev') return 'blazer_ev';
   if (m === 'chevrolet' && d === 'bolteuv') return 'bolt_euv';
-  if (m === 'chevrolet' && d === 'boltev') return 'bolt_ev';
+  if (m === 'chevrolet' && d === 'boltev') {
+    if (v.startsWith('1G1FZ6EV') || v.startsWith('1G1FY6EV')) return 'bolt_ev_gen2';
+    return 'bolt_ev';
+  }
   if (m === 'ford' && (d === 'mustangmache' || d === 'mache')) return 'mach_e';
   if (m === 'honda' && d === 'prologue') return 'honda_prologue';
   if (m === 'tesla' && d === 'model3') return 'tesla_model_3';
@@ -267,6 +271,7 @@ function togglePanel(id) {
   // Auto-load dashboard when opening admin panel
   if (id === 'adminPanel' && !wasOpen) {
     loadAdminDashboard();
+    loadSeedVins();
   }
 }
 
@@ -902,7 +907,7 @@ async function loadAdminDashboard() {
 
     const vDiv = document.getElementById('adminDashVehicles');
     if (vDiv && d.byVehicle && d.byVehicle.length) {
-      const labels = { equinox_ev:'Equinox EV', blazer_ev:'Blazer EV', mach_e:'Mach-E', honda_prologue:'Prologue', tesla_model_3:'Model 3', tesla_model_y:'Model Y' };
+      const labels = { equinox_ev:'Equinox EV', blazer_ev:'Blazer EV', bolt_ev:'Bolt EV', bolt_euv:'Bolt EUV', bolt_ev_gen2:'Bolt EV 2027+', mach_e:'Mach-E', honda_prologue:'Prologue', tesla_model_3:'Model 3', tesla_model_y:'Model Y' };
       vDiv.innerHTML = d.byVehicle.map(v =>
         '<span style="background:var(--card-bg);border:1px solid var(--border);border-radius:4px;padding:2px 8px">' +
         (labels[v.vehicle]||v.vehicle) + ': <strong>' + v.recalls + '</strong></span>'
@@ -930,6 +935,94 @@ async function adminAction(endpoint, resultId, btnId) {
     result.textContent = 'Error: ' + e.message;
   } finally { btn.disabled = false; }
 }
+
+
+async function loadSeedVins() {
+  const result = document.getElementById('adminSeedResult');
+  const list = document.getElementById('adminSeedList');
+  if (!list) return;
+  list.innerHTML = 'Loading seed VINs…';
+  try {
+    const data = await apiFetch('/api/admin/seed-vins/list', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: window.__adminKey || '' })
+    });
+    const seeds = data.seeds || [];
+    if (!seeds.length) {
+      list.innerHTML = '<span style="color:var(--text-muted)">No seed VINs saved yet.</span>';
+      return;
+    }
+    const labels = { equinox_ev:'Equinox EV', blazer_ev:'Blazer EV', bolt_ev:'Bolt EV', bolt_euv:'Bolt EUV', bolt_ev_gen2:'Bolt EV 2027+', mach_e:'Mach-E', honda_prologue:'Prologue', tesla_model_3:'Model 3', tesla_model_y:'Model Y' };
+    list.innerHTML = seeds.map(s =>
+      '<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--border)">' +
+      '<div><strong>' + (labels[s.vehicle_key]||s.vehicle_key) + ' ' + s.year + '</strong> · ' + esc(s.vin) +
+      (s.trim_hint ? ' · ' + esc(s.trim_hint) : '') +
+      (s.note ? ' · ' + esc(s.note) : '') + '</div>' +
+      '<div style="color:var(--muted)">' + (s.last_seeded_at ? new Date(s.last_seeded_at).toLocaleString() : 'Never seeded') + '</div>' +
+      '</div>'
+    ).join('');
+    if (result && !result.textContent) result.textContent = '✓ Seed VINs loaded';
+  } catch(e) {
+    list.innerHTML = '<span style="color:var(--recall)">Error: ' + esc(e.message) + '</span>';
+  }
+}
+
+async function addSeedVin() {
+  const result = document.getElementById('adminSeedResult');
+  const btn = document.getElementById('adminSeedAddBtn');
+  const vehicle_key = document.getElementById('seedVehicleKey').value;
+  const year = document.getElementById('seedYear').value.trim();
+  const vin = document.getElementById('seedVin').value.trim().toUpperCase();
+  const trim_hint = document.getElementById('seedTrimHint').value.trim();
+  const note = document.getElementById('seedNote').value.trim();
+  btn.disabled = true;
+  result.style.color = 'var(--muted)';
+  result.textContent = 'Saving seed VIN…';
+  try {
+    const data = await apiFetch('/api/admin/seed-vins/add', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: window.__adminKey || '', vehicle_key, year, vin, trim_hint, note })
+    });
+    result.style.color = 'var(--green)';
+    result.textContent = data.message || '✓ Seed VIN saved';
+    document.getElementById('seedVin').value = '';
+    document.getElementById('seedTrimHint').value = '';
+    document.getElementById('seedNote').value = '';
+    await loadSeedVins();
+  } catch(e) {
+    result.style.color = 'var(--recall)';
+    result.textContent = 'Error: ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function runSeedVins() {
+  const result = document.getElementById('adminSeedResult');
+  const btn = document.getElementById('adminSeedRunBtn');
+  btn.disabled = true;
+  result.style.color = 'var(--muted)';
+  result.textContent = 'Running recall seeder…';
+  try {
+    const data = await apiFetch('/api/admin/seed-vins/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key: window.__adminKey || '' })
+    });
+    result.style.color = 'var(--green)';
+    result.innerHTML = (data.message || '✓ Seed run complete') + (data.lines?.length ? '<br><small>' + data.lines.map(esc).join('<br>') + '</small>' : '');
+    loadAdminDashboard();
+    await loadSeedVins();
+  } catch(e) {
+    result.style.color = 'var(--recall)';
+    result.textContent = 'Error: ' + e.message;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 
 // ── YEAR OPTIONS BY VEHICLE ──────────────────
 const vehicleYears = {
@@ -1190,7 +1283,7 @@ async function vinLookup() {
     const series = get(34);  // Series
 
     // Auto-set vehicle dropdowns if recognisable
-    const decodedVehicleKey = detectVehicleKey(make, model);
+    const decodedVehicleKey = detectVehicleKey(make, model, vin);
     if (decodedVehicleKey) {
       document.getElementById('selModel').value = decodedVehicleKey;
       updateYearOptions();
@@ -1508,6 +1601,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (id === 'adminDedupeBtn')      { e.stopPropagation(); adminAction('dedupe', 'adminDedupeResult', 'adminDedupeBtn'); return; }
     if (id === 'adminCommDedupeBtn')   { e.stopPropagation(); communityDedupe(); return; }
     if (id === 'adminStatsBtn')    { e.stopPropagation(); loadAdminDashboard(); return; }
+    if (id === 'adminSeedAddBtn') { e.stopPropagation(); addSeedVin(); return; }
+    if (id === 'adminSeedListBtn') { e.stopPropagation(); loadSeedVins(); return; }
+    if (id === 'adminSeedRunBtn') { e.stopPropagation(); runSeedVins(); return; }
     if (id === 'adminMigrateBtn'){ e.stopPropagation(); adminAction('migrate', 'adminMigrateResult', 'adminMigrateBtn'); return; }
     if (id === 'adminClearSweepBtn'){ e.stopPropagation(); adminAction('clear-sweep', 'adminClearSweepResult', 'adminClearSweepBtn'); return; }
     if (id === 'adminClearQueueBtn'){ e.stopPropagation(); adminAction('clear-queue', 'adminClearQueueResult', 'adminClearQueueBtn'); return; }
