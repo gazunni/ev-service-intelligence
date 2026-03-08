@@ -418,6 +418,9 @@ router.post('/seed-vins/run', async (req, res) => {
 router.post('/vin-seen/list', async (req, res) => {
   if (!checkAdmin(req, res)) return;
   try {
+    const exists = await query(`SELECT to_regclass('public.vin_seen') AS reg`);
+    if (!exists[0]?.reg) return res.json({ ok: true, sightings: [] });
+
     const rows = await query(`
       SELECT masked_vin, vehicle_key, year, make, model, trim, first_seen_at, last_seen_at, seen_count, promoted_to_seed, source
       FROM vin_seen
@@ -434,6 +437,15 @@ router.post('/vin-seen/list', async (req, res) => {
 router.post('/vin-seen/coverage', async (req, res) => {
   if (!checkAdmin(req, res)) return;
   try {
+    const exists = await query(`SELECT to_regclass('public.vin_seen') AS reg`);
+    if (!exists[0]?.reg) {
+      return res.json({
+        ok: true,
+        totals: { total_sightings: 0, distinct_vehicle_years: 0 },
+        missingSeedCoverage: []
+      });
+    }
+
     const missingSeedCoverage = await query(`
       SELECT
         v.vehicle_key,
@@ -630,14 +642,16 @@ router.post('/stats', async (req, res) => {
       query(`SELECT vehicle_key,
                COUNT(*) FILTER (WHERE COALESCE(r.status,'active')!='suppressed') as recalls
              FROM recalls r GROUP BY vehicle_key ORDER BY vehicle_key`),
-      query(`SELECT COUNT(*) FROM vin_seen`),
+      query(`SELECT CASE WHEN to_regclass('public.vin_seen') IS NULL THEN 0 ELSE (SELECT COUNT(*) FROM vin_seen) END AS count`),
       query(`
-        SELECT COUNT(*) FROM (
-          SELECT DISTINCT v.vehicle_key, v.year
-          FROM vin_seen v
-          LEFT JOIN seed_vins s ON s.vehicle_key = v.vehicle_key AND s.year = v.year
-          WHERE s.id IS NULL
-        ) q
+        SELECT CASE WHEN to_regclass('public.vin_seen') IS NULL THEN 0 ELSE (
+          SELECT COUNT(*) FROM (
+            SELECT DISTINCT v.vehicle_key, v.year
+            FROM vin_seen v
+            LEFT JOIN seed_vins s ON s.vehicle_key = v.vehicle_key AND s.year = v.year
+            WHERE s.id IS NULL
+          ) q
+        ) END AS count
       `),
     ]);
 
