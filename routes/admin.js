@@ -265,6 +265,27 @@ router.post('/seed-vins/add', async (req, res) => {
     res.json({ ok: true, message: `✓ Seed VIN saved for ${vehicleKey} ${year}`, seed: rows[0] || null });
   } catch (e) {
     console.error('seed-vins add error:', e.message);
+
+    if (/seed_vins_vin_key/i.test(e.message)) {
+      try {
+        const existing = await query(`SELECT vehicle_key, year FROM seed_vins WHERE vin=$1`, [vin]);
+        if (existing.length) {
+          return res.status(409).json({ error: `VIN already stored under ${existing[0].vehicle_key} ${existing[0].year}` });
+        }
+      } catch {}
+      return res.status(409).json({ error: 'VIN already stored in seed_vins' });
+    }
+
+    if (/seed_vins_pkey|seed_vins_vehicle_key_year_key/i.test(e.message)) {
+      try {
+        const existing = await query(`SELECT vin FROM seed_vins WHERE id=$1`, [seedIdFor(vehicleKey, year)]);
+        if (existing.length) {
+          return res.status(409).json({ error: `A seed VIN already exists for ${vehicleKey} ${year}: ${existing[0].vin}` });
+        }
+      } catch {}
+      return res.status(409).json({ error: `A seed VIN already exists for ${vehicleKey} ${year}` });
+    }
+
     res.status(500).json({ error: e.message });
   }
 });
