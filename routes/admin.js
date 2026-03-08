@@ -207,32 +207,61 @@ router.post('/migrate', async (req, res) => {
   }
 });
 
-// ── SEED VINS: ADD / LIST / RUN ──────────────────────────────────────────
+// ── SEED VINS: ADD / LIST / DELETE / RUN ─────────────────────────────────
 router.post('/seed-vins/add', async (req, res) => {
   if (!checkAdmin(req, res)) return;
+
   const vehicleKey = normalizeVehicleKey(req.body?.vehicle_key || req.body?.vehicle || '');
   const year = parseInt(req.body?.year, 10);
   const vin = String(req.body?.vin || '').trim().toUpperCase();
   const trimHint = String(req.body?.trim_hint || '').trim();
   const note = String(req.body?.note || '').trim();
+
   if (!vehicleKey) return res.status(400).json({ error: 'Valid vehicle_key required' });
   if (!Number.isInteger(year)) return res.status(400).json({ error: 'Valid year required' });
   if (vin.length !== 17) return res.status(400).json({ error: 'Valid 17-character VIN required' });
 
   try {
+    const decoded = await decodeVIN(vin);
+    const fields = decoded.Results || decoded.results || [];
+    const make = decodeField(fields, 26);
+    const model = decodeField(fields, 28);
+    const decodedYear = parseInt(decodeField(fields, 29), 10);
+    const decodedVehicleKey = detectVehicleKey(make, model, vin);
+
+    if (!decodedVehicleKey || !Number.isInteger(decodedYear)) {
+      return res.status(400).json({ error: 'VIN decoded, but vehicle identity could not be determined' });
+    }
+
+    if (decodedVehicleKey !== vehicleKey || decodedYear !== year) {
+      return res.status(409).json({
+        error: `VIN mismatch — decoded ${decodedVehicleKey} ${decodedYear}, not ${vehicleKey} ${year}`,
+        decodedVehicle: decodedVehicleKey,
+        decodedYear,
+        selectedVehicle: vehicleKey,
+        selectedYear: year
+      });
+    }
+
+    const existingVin = await query(`SELECT id, vehicle_key, year FROM seed_vins WHERE vin=$1`, [vin]);
+    if (existingVin.length) {
+      const row = existingVin[0];
+      return res.status(409).json({ error: `VIN already stored under ${row.vehicle_key} ${row.year}` });
+    }
+
     const id = seedIdFor(vehicleKey, year);
+    const existingSlot = await query(`SELECT id, vin FROM seed_vins WHERE id=$1`, [id]);
+    if (existingSlot.length) {
+      return res.status(409).json({ error: `A seed VIN already exists for ${vehicleKey} ${year}: ${existingSlot[0].vin}` });
+    }
+
     const rows = await query(
       `INSERT INTO seed_vins (id, vehicle_key, year, vin, trim_hint, note, updated_at)
        VALUES ($1,$2,$3,$4,$5,$6,NOW())
-       ON CONFLICT (id) DO UPDATE SET
-         vin = EXCLUDED.vin,
-         trim_hint = EXCLUDED.trim_hint,
-         note = EXCLUDED.note,
-         is_active = TRUE,
-         updated_at = NOW()
        RETURNING *`,
       [id, vehicleKey, year, vin, trimHint || null, note || null]
     );
+
     res.json({ ok: true, message: `✓ Seed VIN saved for ${vehicleKey} ${year}`, seed: rows[0] || null });
   } catch (e) {
     console.error('seed-vins add error:', e.message);
@@ -247,6 +276,19 @@ router.post('/seed-vins/list', async (req, res) => {
     res.json({ ok: true, seeds });
   } catch (e) {
     console.error('seed-vins list error:', e.message);
+    res.status(500).json({ error: e.message });
+  }
+});
+
+router.post('/seed-vins/delete', async (req, res) => {
+  if (!checkAdmin(req, res)) return;
+  const vin = String(req.body?.vin || '').trim().toUpperCase();
+  if (!vin) return res.status(400).json({ error: 'VIN required' });
+  try {
+    const rows = await query(`DELETE FROM seed_vins WHERE vin=$1 RETURNING vin`, [vin]);
+    res.json({ ok: true, message: rows.length ? `✓ Deleted seed VIN ${vin}` : `No seed VIN found for ${vin}` });
+  } catch (e) {
+    console.error('seed-vins delete error:', e.message);
     res.status(500).json({ error: e.message });
   }
 });
