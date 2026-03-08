@@ -44,9 +44,10 @@ function decodeField(fields, id) {
   return (fields.find(f => f.VariableId === id) || {}).Value || '';
 }
 
-function mapDecodedVehicleKey(make, model) {
+function mapDecodedVehicleKey(make, model, vin='') {
   const mk = String(make || '').toLowerCase().trim();
   const md = String(model || '').toLowerCase().trim();
+  const v = String(vin || '').toUpperCase().trim();
   if (mk.includes('chevrolet') || mk.includes('chevy')) {
     if (md.includes('equinox')) return 'equinox_ev';
     if (md.includes('blazer')) return 'blazer_ev';
@@ -153,7 +154,7 @@ router.get('/vin', async (req, res) => {
     const series = decodeField(fields, 34);
     const plantCity = decodeField(fields, 18);
     const plantCountry = decodeField(fields, 17);
-    const mappedVehicle = mapDecodedVehicleKey(make, model) || requestedVehicle;
+    const mappedVehicle = mapDecodedVehicleKey(make, model, vin) || requestedVehicle;
     const reportYear = decodedYear || requestedYear;
 
     const [dbRecalls, dbTsbs, dbCommunity, vinRecallData] = await Promise.all([
